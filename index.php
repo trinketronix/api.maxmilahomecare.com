@@ -12,7 +12,7 @@ use Phalcon\Di\FactoryDefault;
 use Phalcon\Events\Manager as EventsManager;
 
 // Define application environment
-define('APP_ENV', getenv('APP_ENV') ?: 'development');
+define('APP_ENV', getenv('APP_ENV') ?: 'dev');
 const BASE_PATH = __DIR__;
 
 // Autoloader
@@ -62,6 +62,6 @@ try {
         'success' => false,
         'message' => $e->getMessage(),
         'code' => $e->getCode(),
-        'trace' => APP_ENV === 'development' ? $e->getTraceAsString() : null
+        'trace' => APP_ENV === 'dev' ? $e->getTraceAsString() : null
     ]);
 }

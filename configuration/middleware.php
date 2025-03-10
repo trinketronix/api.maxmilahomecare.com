@@ -14,7 +14,7 @@ use Phalcon\Mvc\Micro\MiddlewareInterface;
 
 if (isset($app)) {
 
-// Create the middleware instances
+    // Create the middleware instances
     $eventsManager = $app->getEventsManager();
 
     /**
@@ -96,7 +96,7 @@ if (isset($app)) {
         ];
 
         // For development, you might want to allow all origins
-        if (APP_ENV === 'development') {
+        if (APP_ENV === 'dev') {
             $allowedOrigins[] = '*';
         }
 
