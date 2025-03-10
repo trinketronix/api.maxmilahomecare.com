@@ -9,7 +9,7 @@ use Phalcon\Db\Adapter\Pdo\Mysql;
 // Create DI container
 $container = new FactoryDefault();
 // Determine environment
-$appEnv = getenv('APP_ENV') ?: 'development';
+$appEnv = getenv('APP_ENV') ?: 'dev';
 
 // Load environment-specific configuration
 $configFile = require_once __DIR__ . "/environment/{$appEnv}.php";
