@@ -1,0 +1,22 @@
+# Ignore .git folder (used by git CLI)
+.git/
+
+# Ignore .idea folder (used by JetBrains IDEs like PhpStorm)
+.idea/
+
+# Ignore macOS system files
+.DS_Store
+
+# Ignore .htaccess files
+.htaccess
+.htaccess_prod
+.htaccess_test
+
+# Ignore .ftpquota file
+.ftpquota
+
+# Ignore secrets.txt
+secrets.txt
+
+# REST API confidential values
+http-client.env.json
