@@ -1,0 +1,4 @@
+###
+# @name Get List of Tools
+GET {{maxmila.baseUrl}}/tools
+Content-Type: application/json

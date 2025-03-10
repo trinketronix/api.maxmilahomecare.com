@@ -136,6 +136,8 @@ if (isset($app)) {
             '/api/auth/login',
             '/api/auth/register',
             '/api/auth/forgot-password',
+            '/api/tools',  // Add this line to make the getAll route public
+            //'/api/tools/search', // If you have a separate search endpoint
             // Add other public routes
         ];
 
