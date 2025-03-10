@@ -25,7 +25,7 @@ CREATE TABLE `patient` (
 
     -- Indexes for performance
     INDEX `idx_admission` (`admission`),
-    INDEX `idx_name` (`lastname`, `firstname`),
+    INDEX `idx_name` (`lastname`, `firstname`)
 ) ENGINE=InnoDB
 DEFAULT CHARSET=utf8mb4
 COLLATE=utf8mb4_unicode_ci
