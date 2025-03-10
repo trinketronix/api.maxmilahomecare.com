@@ -37,13 +37,13 @@ try {
 
     // Load routes by group
     $routeFiles = [
-        'auth',
-        'user',
-        'address',
-        'account',
-        'patient',
-        'visit',
-        'email',
+//        'auth',
+//        'user',
+//        'address',
+//        'account',
+//        'patient',
+//        'visit',
+//        'email',
         'default'
     ];
 
