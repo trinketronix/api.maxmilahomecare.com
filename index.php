@@ -44,6 +44,7 @@ try {
 //        'patient',
 //        'visit',
 //        'email',
+        'tool',
         'default'
     ];
 
