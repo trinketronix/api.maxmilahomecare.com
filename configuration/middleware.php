@@ -133,10 +133,10 @@ if (isset($app)) {
         // List of public routes that don't require authentication
         $publicRoutes = [
             '/',  // Root route
-            '/api/auth/login',
-            '/api/auth/register',
-            '/api/auth/forgot-password',
-            '/api/tools',  // Add this line to make the getAll route public
+            '/auth/login',
+            '/auth/register',
+            '/auth/forgot-password',
+            '/tools',  // Add this line to make the getAll route public
             //'/api/tools/search', // If you have a separate search endpoint
             // Add other public routes
         ];
