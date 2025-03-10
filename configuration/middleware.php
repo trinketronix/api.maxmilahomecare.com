@@ -10,7 +10,6 @@ declare(strict_types=1);
 use Phalcon\Events\Event;
 use Phalcon\Http\Response;
 use Phalcon\Mvc\Micro;
-use Phalcon\Mvc\Micro\MiddlewareInterface;
 
 if (isset($app)) {
 
