@@ -1,11 +1,24 @@
 name: Deploy Maxmila Homecare Rest API (Production)
 on:
-  pull_request:
-    types: [closed]
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason for manual deployment'
+        required: true
+        default: 'Hotfix deployment'
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
 
 jobs:
   deploy:
-    if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main'
     name: Deploy Production
     runs-on: ubuntu-latest
     steps:
@@ -13,6 +26,13 @@ jobs:
         uses: actions/checkout@v4.2.2
         with:
           fetch-depth: 0
+
+      - name: Display deployment information
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          echo "Manual deployment triggered"
+          echo "Reason: ${{ github.event.inputs.reason }}"
+          echo "Environment: ${{ github.event.inputs.environment }}"
 
       - name: Sync files for Production
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
