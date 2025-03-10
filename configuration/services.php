@@ -10,7 +10,7 @@ use Phalcon\Db\Adapter\Pdo\Mysql;
 $appEnv = getenv('APP_ENV') ?: 'dev';
 
 // Load environment-specific configuration
-$configFile = require_once __DIR__ . "/environment/{$appEnv}.php";
+$configFile = require_once __DIR__ . "/configuration/environment/{$appEnv}.php";
 if (file_exists($configFile)) {
     $config = require $configFile;
 } else {
