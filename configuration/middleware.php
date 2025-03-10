@@ -40,7 +40,7 @@ if (isset($app)) {
                 'message' => 'Content-Type header is required'
             ]);
             $app->response->send();
-            return false;
+            exit();
         }
 
         // Get base content type without parameters
@@ -62,7 +62,7 @@ if (isset($app)) {
                 'message' => 'Content-Type must be multipart/form-data for uploads'
             ]);
             $app->response->send();
-            return false;
+            exit();
         } else if (!$isUploadRequest && $baseContentType !== 'application/json') {
             $app->response->setStatusCode(415, 'Unsupported Media Type');
             $app->response->setJsonContent([
@@ -71,7 +71,7 @@ if (isset($app)) {
                 'message' => 'Content-Type must be application/json'
             ]);
             $app->response->send();
-            return false;
+            exit();
         }
 
         return true;
@@ -110,7 +110,7 @@ if (isset($app)) {
         if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
             $app->response->setStatusCode(200, 'OK');
             $app->response->send();
-            return false;
+            exit();
         }
 
         return true;
@@ -131,6 +131,7 @@ if (isset($app)) {
 
         // List of public routes that don't require authentication
         $publicRoutes = [
+            '/',  // Root route
             '/api/auth/login',
             '/api/auth/register',
             '/api/auth/forgot-password',
@@ -157,7 +158,7 @@ if (isset($app)) {
                 'message' => 'Authorization header is required'
             ]);
             $app->response->send();
-            return false;
+            exit();
         }
 
         // Validate token
@@ -175,7 +176,7 @@ if (isset($app)) {
                     'message' => 'Invalid token format'
                 ]);
                 $app->response->send();
-                return false;
+                exit();
             }
 
             // Check for token expiration
@@ -187,7 +188,7 @@ if (isset($app)) {
                     'message' => 'Token expired, please login again'
                 ]);
                 $app->response->send();
-                return false;
+                exit();
             }
 
             // Verify token in database
@@ -200,7 +201,7 @@ if (isset($app)) {
                     'message' => 'Invalid token authorization'
                 ]);
                 $app->response->send();
-                return false;
+                exit();
             }
 
             // Check role permissions (if required)
@@ -228,7 +229,7 @@ if (isset($app)) {
                     'message' => 'Insufficient permissions for this operation'
                 ]);
                 $app->response->send();
-                return false;
+                exit();
             }
 
             // Store user data in DI for controllers
@@ -243,10 +244,13 @@ if (isset($app)) {
                 'message' => 'Authentication error: ' . $e->getMessage()
             ]);
             $app->response->send();
-            return false;
+            exit();
         }
     });
 
+    /**
+     * Request body parsing middleware
+     */
     $eventsManager->attach('micro:beforeExecuteRoute', function(Event $event, Micro $app) {
         // Skip for GET and DELETE requests
         if (in_array($_SERVER['REQUEST_METHOD'], ['GET', 'DELETE', 'OPTIONS'])) {
@@ -282,7 +286,7 @@ if (isset($app)) {
                     'message' => 'Invalid JSON in request body: ' . $e->getMessage()
                 ]);
                 $app->response->send();
-                return false;
+                exit();
             }
         } else if ($baseContentType === 'multipart/form-data') {
             // For form data, we can use the standard $_POST and $_FILES
