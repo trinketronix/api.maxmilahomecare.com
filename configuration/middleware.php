@@ -82,10 +82,11 @@ if (isset($app)) {
      * Handles Cross-Origin Resource Sharing headers
      */
     $eventsManager->attach('micro:beforeHandleRoute', function (Event $event, Micro $app) {
-        $origin = $app->request->getHeader('Origin');
+        $origin = $app->request->getHeader('ORIGIN');
 
         // Allow from specific origins or use * for development
         $allowedOrigins = [
+            '*',
             'https://maxmilahomecare.com',
             'https://app.maxmilahomecare.com',
             'https://api.maxmilahomecare.com',
