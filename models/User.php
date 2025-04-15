@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Api\Models;
 
 use Api\Constants\Message;
+use Api\Constants\Status;
 use Phalcon\Filter\Validation;
 use Phalcon\Filter\Validation\Validator\Uniqueness;
 use Phalcon\Filter\Validation\Validator\Email;
@@ -14,26 +15,26 @@ use Phalcon\Mvc\Model\Behavior\Timestampable;
 
 class User extends Model {
     // Column constants
-    public const ID = 'id';
-    public const LASTNAME = 'lastname';
-    public const FIRSTNAME = 'firstname';
-    public const MIDDLENAME = 'middlename';
-    public const BIRTHDATE = 'birthdate';
-    public const SSN = 'ssn';
-    public const CODE = 'code';
-    public const PHONE = 'phone';
-    public const PHONE2 = 'phone2';
-    public const EMAIL = 'email';
-    public const EMAIL2 = 'email2';
-    public const LANGUAGES = 'languages';
-    public const DESCRIPTION = 'description';
-    public const PHOTO = 'photo';
-    public const CREATED_AT = 'created_at';
-    public const UPDATED_AT = 'updated_at';
+    public const string ID = 'id';
+    public const string LASTNAME = 'lastname';
+    public const string FIRSTNAME = 'firstname';
+    public const string MIDDLENAME = 'middlename';
+    public const string BIRTHDATE = 'birthdate';
+    public const string SSN = 'ssn';
+    public const string CODE = 'code';
+    public const string PHONE = 'phone';
+    public const string PHONE2 = 'phone2';
+    public const string EMAIL = 'email';
+    public const string EMAIL2 = 'email2';
+    public const string LANGUAGES = 'languages';
+    public const string DESCRIPTION = 'description';
+    public const string PHOTO = 'photo';
+    public const string CREATED_AT = 'created_at';
+    public const string UPDATED_AT = 'updated_at';
 
     // File paths
-    public const PATH_PHOTO_FILE = 'user/photo';
-    public const DEFAULT_PHOTO_FILE = '/'.self::PATH_PHOTO_FILE.'/default.jpg';
+    public const string PATH_PHOTO_FILE = 'user/photo';
+    public const string DEFAULT_PHOTO_FILE = '/'.self::PATH_PHOTO_FILE.'/default.jpg';
 
     // Primary identification
     public int $id;
@@ -92,6 +93,33 @@ class User extends Model {
                 'alias' => 'addresses',
                 'params' => [
                     'conditions' => 'person_type = 0' // 0 = user type
+                ],
+                'reusable' => true
+            ]
+        );
+
+        // Define relationships with visits/appointments
+        $this->hasMany(
+            'id',
+            Visit::class,
+            'user_id',
+            [
+                'alias' => 'visits',
+                'reusable' => true
+            ]
+        );
+
+
+        $this->hasManyToMany(
+            'id',
+            UserPatient::class,
+            'user_id', 'patient_id',
+            Patient::class,
+            'id',
+            [
+                'alias' => 'patients',
+                'params' => [
+                    'conditions' => UserPatient::class . '.status = ' . Status::ACTIVE
                 ],
                 'reusable' => true
             ]

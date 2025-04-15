@@ -11,13 +11,11 @@ use Api\Models\Auth;
 use Api\Models\User;
 use Api\Constants\Message;
 
-class AuthController extends BaseController
-{
+class AuthController extends BaseController {
     /**
      * Create a new user account
      */
-    public function create(): array
-    {
+    public function register(): array {
         try {
             $data = $this->getRequestBody();
 
@@ -63,8 +61,7 @@ class AuthController extends BaseController
     /**
      * Process user login
      */
-    public function login(): array
-    {
+    public function login(): array {
         try {
             return $this->processLogin($this->getRequestBody());
         } catch (Exception $e) {
@@ -73,136 +70,9 @@ class AuthController extends BaseController
     }
 
     /**
-     * Bulk create multiple user accounts
-     */
-    public function bulkAuth(): array
-    {
-        try {
-            $accounts = $this->getRequestBody();
-
-            // Validate that we received an array
-            if (!is_array($accounts)) {
-                return $this->respondWithError(Message::REQUEST_BODY_JSON_ARRAY, 400);
-            }
-
-            $results = [
-                'success' => [],
-                'failed' => []
-            ];
-
-            // Start transaction
-            $this->beginTransaction();
-
-            foreach ($accounts as $index => $data) {
-                try {
-                    // Validate username and password input
-                    if (empty($data[Auth::USERNAME]) || empty($data[Auth::PASSWORD])) {
-                        $results['failed'][] = [
-                            'index' => $index,
-                            'username' => $data[Auth::USERNAME] ?? 'unknown',
-                            'error' => Message::CREDENTIALS_REQUIRED
-                        ];
-                        continue;
-                    }
-
-                    // Validate username as an email
-                    if (!filter_var($data[Auth::USERNAME], FILTER_VALIDATE_EMAIL)) {
-                        $results['failed'][] = [
-                            'index' => $index,
-                            'username' => $data[Auth::USERNAME],
-                            'error' => Message::EMAIL_INVALID
-                        ];
-                        continue;
-                    }
-
-                    // Check if username already exists
-                    if (Auth::findFirstByUsername($data[Auth::USERNAME])) {
-                        $results['failed'][] = [
-                            'index' => $index,
-                            'username' => $data[Auth::USERNAME],
-                            'error' => Message::EMAIL_REGISTERED
-                        ];
-                        continue;
-                    }
-
-                    // Create new user record
-                    $auth = new Auth();
-                    $auth->username = $data[Auth::USERNAME];
-                    $auth->setPassword($data[Auth::PASSWORD]);
-                    $auth->role = Role::CAREGIVER;
-                    $auth->status = Status::NOT_VERIFIED;
-
-                    if (!$auth->save()) {
-                        $results['failed'][] = [
-                            'index' => $index,
-                            'username' => $data[Auth::USERNAME],
-                            'error' => $auth->getMessages()
-                        ];
-                        continue;
-                    }
-
-                    if (!$auth->id) {
-                        $results['failed'][] = [
-                            'index' => $index,
-                            'username' => $data[Auth::USERNAME],
-                            'error' => Message::DB_ID_GENERATION_FAILED
-                        ];
-                        continue;
-                    }
-
-                    if (!User::createTemplate($auth->id, $auth->username)) {
-                        $results['failed'][] = [
-                            'index' => $index,
-                            'username' => $data[Auth::USERNAME],
-                            'error' => Message::DB_SESSION_UPDATE_FAILED
-                        ];
-                        continue;
-                    }
-
-                    $results['success'][] = [
-                        'index' => $index,
-                        'username' => $data[Auth::USERNAME]
-                    ];
-
-                } catch (Exception $e) {
-                    $results['failed'][] = [
-                        'index' => $index,
-                        'username' => $data[Auth::USERNAME] ?? 'unknown',
-                        'error' => $e->getMessage()
-                    ];
-                    continue;
-                }
-            }
-
-            // If no accounts were created successfully, rollback and return error
-            if (empty($results['success'])) {
-                $this->rollbackTransaction();
-                return $this->respondWithError([
-                    'message' => Message::BATCH_NONE_CREATED,
-                    'details' => $results['failed']
-                ], 422);
-            }
-
-            // Commit transaction if at least one account was created
-            $this->commitTransaction();
-
-            // Return results including both successes and failures
-            return $this->respondWithSuccess([
-                'message' => count($results['success']) . Message::BATCH_CREATED_SUFFIX,
-                'results' => $results
-            ], 201);
-
-        } catch (Exception $e) {
-            $this->rollbackTransaction();
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
-        }
-    }
-
-    /**
      * Activate a user account
      */
-    public function activateAccount(): array
-    {
+    public function activateAccount(): array {
         try {
             // Role validation should now be done by middleware
             // If we need additional role checking for this specific operation:
@@ -243,8 +113,7 @@ class AuthController extends BaseController
     /**
      * Renew user's authentication token
      */
-    public function renewToken(): array
-    {
+    public function renewToken(): array {
         try {
             $userId = $this->getCurrentUserId();
             $auth = $this->getAuthUserById($userId);
@@ -279,8 +148,7 @@ class AuthController extends BaseController
     /**
      * Change a user's role
      */
-    public function changeRole(): array
-    {
+    public function changeRole(): array {
         try {
             if (!$this->isManagerOrHigher()) {
                 return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 401);
@@ -326,8 +194,7 @@ class AuthController extends BaseController
     /**
      * Change a user's password
      */
-    public function changePassword(): array
-    {
+    public function changePassword(): array {
         try {
             $data = $this->getRequestBody();
 
@@ -362,8 +229,7 @@ class AuthController extends BaseController
     /**
      * Get all auth records (admin only)
      */
-    public function getAuths(): array
-    {
+    public function getAuths(): array {
         try {
             if (!$this->isAdmin()) {
                 return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 401);
@@ -389,8 +255,7 @@ class AuthController extends BaseController
     /**
      * Process login
      */
-    private function processLogin(array $data): array
-    {
+    private function processLogin(array $data): array {
         try {
             if (empty($data[Auth::USERNAME]) || empty($data[Auth::PASSWORD])) {
                 return $this->respondWithError(Message::CREDENTIALS_REQUIRED, 400);

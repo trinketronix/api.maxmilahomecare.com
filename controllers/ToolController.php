@@ -7,15 +7,13 @@ namespace Api\Controllers;
 use Api\Models\Tool;
 use Exception;
 
-class ToolController extends BaseController
-{
+class ToolController extends BaseController {
     /**
      * Create a new tool
      *
      * @return array Response data
      */
-    public function create(): array
-    {
+    public function create(): array {
         try {
             $data = $this->getRequestBody();
 
@@ -74,8 +72,7 @@ class ToolController extends BaseController
      *
      * @return array Response data
      */
-    public function getAll(): array
-    {
+    public function getAll(): array {
         try {
             $query = $this->request->getQuery('q', 'string', '');
             $material = $this->request->getQuery('material', 'string', '');
@@ -122,8 +119,7 @@ class ToolController extends BaseController
      * @param int $id Tool ID
      * @return array Response data
      */
-    public function getById(int $id): array
-    {
+    public function getById(int $id): array {
         try {
             $tool = Tool::findFirst($id);
 
@@ -144,8 +140,7 @@ class ToolController extends BaseController
      * @param int $id Tool ID
      * @return array Response data
      */
-    public function update(int $id): array
-    {
+    public function update(int $id): array {
         try {
             $tool = Tool::findFirst($id);
 
@@ -198,8 +193,7 @@ class ToolController extends BaseController
      * @param int $id Tool ID
      * @return array Response data
      */
-    public function delete(int $id): array
-    {
+    public function delete(int $id): array {
         try {
             $tool = Tool::findFirst($id);
 

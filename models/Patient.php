@@ -5,29 +5,25 @@ declare(strict_types=1);
 namespace Api\Models;
 
 use Api\Constants\Message;
+use Api\Constants\PersonType;
+use Api\Constants\Status;
 use Phalcon\Filter\Validation;
 use Phalcon\Filter\Validation\Validator\PresenceOf;
 use Phalcon\Mvc\Model;
 use Phalcon\Mvc\Model\Behavior\Timestampable;
 
-class Patient extends Model
-{
-    // Status constants
-    public const STATUS_ACTIVE = 0;
-    public const STATUS_ARCHIVED = 1;
-    public const STATUS_DELETED = 2;
-
+class Patient extends Model {
     // Column constants
-    public const ID = 'id';
-    public const PATIENT_ID = 'patient';
-    public const ADMISSION = 'admission';
-    public const FIRSTNAME = 'firstname';
-    public const MIDDLENAME = 'middlename';
-    public const LASTNAME = 'lastname';
-    public const PHONE = 'phone';
-    public const STATUS = 'status';
-    public const CREATED_AT = 'created_at';
-    public const UPDATED_AT = 'updated_at';
+    public const string ID = 'id';
+    public const string PATIENT_ID = 'patient';
+    public const string ADMISSION = 'admission';
+    public const string FIRSTNAME = 'firstname';
+    public const string MIDDLENAME = 'middlename';
+    public const string LASTNAME = 'lastname';
+    public const string PHONE = 'phone';
+    public const string STATUS = 'status';
+    public const string CREATED_AT = 'created_at';
+    public const string UPDATED_AT = 'updated_at';
 
     // Primary identification
     public ?int $id = null;
@@ -43,7 +39,7 @@ class Patient extends Model
     public string $phone;
 
     // Status
-    public int $status = self::STATUS_ACTIVE;
+    public int $status = Status::ACTIVE;
 
     // Timestamps
     public string $created_at;
@@ -52,8 +48,7 @@ class Patient extends Model
     /**
      * Initialize model relationships and behaviors
      */
-    public function initialize(): void
-    {
+    public function initialize(): void {
         $this->setSource('patient');
 
         // Define relationships with addresses
@@ -64,7 +59,7 @@ class Patient extends Model
             [
                 'alias' => 'addresses',
                 'params' => [
-                    'conditions' => 'person_type = ' . Address::PERSON_TYPE_PATIENT
+                    'conditions' => 'person_type = ' . PersonType::PATIENT
                 ],
                 'reusable' => true
             ]
@@ -77,6 +72,21 @@ class Patient extends Model
             'patient_id',
             [
                 'alias' => 'visits',
+                'reusable' => true
+            ]
+        );
+
+        $this->hasManyToMany(
+            'id',
+            UserPatient::class,
+            'patient_id', 'user_id',
+            User::class,
+            'id',
+            [
+                'alias' => 'users',
+                'params' => [
+                    'conditions' => UserPatient::class . '.status = ' . Status::ACTIVE
+                ],
                 'reusable' => true
             ]
         );
@@ -99,8 +109,7 @@ class Patient extends Model
     /**
      * Model validation
      */
-    public function validation(): bool
-    {
+    public function validation(): bool {
         $validator = new Validation();
 
         // Required fields validation
@@ -124,9 +133,9 @@ class Patient extends Model
             self::STATUS,
             new \Phalcon\Filter\Validation\Validator\InclusionIn([
                 'domain' => [
-                    self::STATUS_ACTIVE,
-                    self::STATUS_ARCHIVED,
-                    self::STATUS_DELETED
+                    Status::ACTIVE,
+                    Status::ARCHIVED,
+                    Status::SOFT_DELETED
                 ],
                 'message' => Message::STATUS_INVALID
             ])
@@ -138,8 +147,7 @@ class Patient extends Model
     /**
      * Get patient's full name
      */
-    public function getFullName(): string
-    {
+    public function getFullName(): string {
         $name = $this->firstname;
 
         if (!empty($this->middlename)) {
@@ -154,40 +162,35 @@ class Patient extends Model
     /**
      * Check if patient is active
      */
-    public function isActive(): bool
-    {
-        return $this->status === self::STATUS_ACTIVE;
+    public function isActive(): bool {
+        return $this->status === Status::ACTIVE;
     }
 
     /**
      * Check if patient is archived
      */
-    public function isArchived(): bool
-    {
-        return $this->status === self::STATUS_ARCHIVED;
+    public function isArchived(): bool {
+        return $this->status === Status::ARCHIVED;
     }
 
     /**
      * Check if patient is deleted
      */
-    public function isDeleted(): bool
-    {
-        return $this->status === self::STATUS_DELETED;
+    public function isDeleted(): bool {
+        return $this->status === Status::SOFT_DELETED;
     }
 
     /**
      * Get all patient addresses
      */
-    public function getAddresses(): \Phalcon\Mvc\Model\ResultsetInterface
-    {
+    public function getAddresses(): \Phalcon\Mvc\Model\ResultsetInterface {
         return $this->addresses;
     }
 
     /**
      * Get primary address (most recently created)
      */
-    public function getPrimaryAddress(): ?Address
-    {
+    public function getPrimaryAddress(): ?Address {
         $addresses = $this->addresses;
         if (count($addresses) === 0) {
             return null;
@@ -206,11 +209,10 @@ class Patient extends Model
     /**
      * Find active patients
      */
-    public static function findActive(): \Phalcon\Mvc\Model\ResultsetInterface
-    {
+    public static function findActive(): \Phalcon\Mvc\Model\ResultsetInterface {
         return self::find([
             'conditions' => 'status = :status:',
-            'bind' => ['status' => self::STATUS_ACTIVE],
+            'bind' => ['status' => Status::ACTIVE],
             'bindTypes' => ['status' => \PDO::PARAM_INT],
             'order' => 'lastname, firstname'
         ]);
@@ -219,8 +221,7 @@ class Patient extends Model
     /**
      * Find patients by HHAexchange patient ID
      */
-    public static function findByHHAPatientId(string $patientId): \Phalcon\Mvc\Model\ResultsetInterface
-    {
+    public static function findByHHAPatientId(string $patientId): \Phalcon\Mvc\Model\ResultsetInterface {
         return self::find([
             'conditions' => 'patient = :patient_id:',
             'bind' => ['patient_id' => $patientId],
@@ -231,8 +232,7 @@ class Patient extends Model
     /**
      * Find patients by admission ID
      */
-    public static function findByAdmissionId(string $admissionId): \Phalcon\Mvc\Model\ResultsetInterface
-    {
+    public static function findByAdmissionId(string $admissionId): \Phalcon\Mvc\Model\ResultsetInterface {
         return self::find([
             'conditions' => 'admission = :admission_id:',
             'bind' => ['admission_id' => $admissionId],
@@ -243,8 +243,7 @@ class Patient extends Model
     /**
      * Search patients by name (partial match)
      */
-    public static function searchByName(string $name): \Phalcon\Mvc\Model\ResultsetInterface
-    {
+    public static function searchByName(string $name): \Phalcon\Mvc\Model\ResultsetInterface {
         $name = '%' . trim($name) . '%';
 
         return self::find([
@@ -261,8 +260,7 @@ class Patient extends Model
      * Note: This assumes you have a join table for user-patient assignments
      * If not, this would need modification based on your schema
      */
-    public static function findByUserId(int $userId): \Phalcon\Mvc\Model\ResultsetInterface
-    {
+    public static function findByUserId(int $userId): \Phalcon\Mvc\Model\ResultsetInterface {
         // This is a placeholder - update with your actual assignment relationship
         $phql = "SELECT p.* FROM Api\Models\Patient p 
                  JOIN Api\Models\UserPatient up ON p.id = up.patient_id 
@@ -271,7 +269,7 @@ class Patient extends Model
         $manager = new \Phalcon\Mvc\Model\Manager();
         return $manager->executeQuery($phql, [
             'user_id' => $userId,
-            'status' => self::STATUS_ACTIVE
+            'status' => Status::ACTIVE
         ]);
     }
 }

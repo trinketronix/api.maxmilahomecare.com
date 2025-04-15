@@ -4,18 +4,18 @@ declare(strict_types=1);
 
 namespace Api\Controllers;
 
+use Api\Constants\PersonType;
+use Api\Constants\Status;
 use Exception;
 use Api\Models\Patient;
 use Api\Models\Address;
 use Api\Constants\Message;
 
-class PatientController extends BaseController
-{
+class PatientController extends BaseController {
     /**
      * Create a new patient
      */
-    public function create(): array
-    {
+    public function create(): array {
         try {
             // Verify user has permission to create patients (manager or higher)
             if (!$this->isManagerOrHigher()) {
@@ -60,7 +60,7 @@ class PatientController extends BaseController
                 }
 
                 // Default to active status
-                $patient->status = Patient::STATUS_ACTIVE;
+                $patient->status = Status::ACTIVE;
 
                 if (!$patient->save()) {
                     return $this->respondWithError($patient->getMessages(), 422);
@@ -97,7 +97,7 @@ class PatientController extends BaseController
 
                     $address = new Address();
                     $address->person_id = $patient->id;
-                    $address->person_type = Address::PERSON_TYPE_PATIENT;
+                    $address->person_type = PersonType::PATIENT;
                     $address->type = $addressData[Address::TYPE];
                     $address->address = $addressData[Address::ADDRESS];
                     $address->city = $addressData[Address::CITY];
@@ -143,8 +143,7 @@ class PatientController extends BaseController
     /**
      * Update an existing patient
      */
-    public function update(int $id): array
-    {
+    public function update(int $id): array {
         try {
             // Verify user has permission to update patients
             if (!$this->isManagerOrHigher()) {
@@ -183,9 +182,9 @@ class PatientController extends BaseController
                         if ($field === Patient::STATUS) {
                             $status = (int)$data[$field];
                             if (!in_array($status, [
-                                Patient::STATUS_ACTIVE,
-                                Patient::STATUS_ARCHIVED,
-                                Patient::STATUS_DELETED
+                                Status::ACTIVE,
+                                Status::ARCHIVED,
+                                Status::SOFT_DELETED
                             ])) {
                                 return $this->respondWithError(Message::STATUS_INVALID, 400);
                             }
@@ -214,8 +213,7 @@ class PatientController extends BaseController
     /**
      * Soft delete a patient (mark as deleted)
      */
-    public function delete(int $id): array
-    {
+    public function delete(int $id): array {
         try {
             // Verify user has permission to delete patients
             if (!$this->isManagerOrHigher()) {
@@ -236,7 +234,7 @@ class PatientController extends BaseController
             // Soft delete patient within transaction
             return $this->withTransaction(function() use ($patient) {
                 // Set status to deleted
-                $patient->status = Patient::STATUS_DELETED;
+                $patient->status = Status::SOFT_DELETED;
 
                 if (!$patient->save()) {
                     return $this->respondWithError($patient->getMessages(), 422);
@@ -256,8 +254,7 @@ class PatientController extends BaseController
     /**
      * Archive a patient
      */
-    public function archive(int $id): array
-    {
+    public function archive(int $id): array {
         try {
             // Verify user has permission to archive patients
             if (!$this->isManagerOrHigher()) {
@@ -283,7 +280,7 @@ class PatientController extends BaseController
             // Archive patient within transaction
             return $this->withTransaction(function() use ($patient) {
                 // Set status to archived
-                $patient->status = Patient::STATUS_ARCHIVED;
+                $patient->status = Status::ARCHIVED;
 
                 if (!$patient->save()) {
                     return $this->respondWithError($patient->getMessages(), 422);
@@ -303,8 +300,7 @@ class PatientController extends BaseController
     /**
      * Restore an archived or deleted patient to active status
      */
-    public function restore(int $id): array
-    {
+    public function restore(int $id): array {
         try {
             // Verify user has permission to restore patients
             if (!$this->isManagerOrHigher()) {
@@ -325,7 +321,7 @@ class PatientController extends BaseController
             // Restore patient within transaction
             return $this->withTransaction(function() use ($patient) {
                 // Set status to active
-                $patient->status = Patient::STATUS_ACTIVE;
+                $patient->status = Status::ACTIVE;
 
                 if (!$patient->save()) {
                     return $this->respondWithError($patient->getMessages(), 422);
