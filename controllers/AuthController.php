@@ -51,7 +51,11 @@ class AuthController extends BaseController {
                     return $this->respondWithError(Message::DB_SESSION_UPDATE_FAILED, 422);
                 }
 
-                return $this->respondWithSuccess(Message::USER_CREATED, 201);
+                if(!$this->sendActivationEmail($auth->username, $auth->password)){
+                    return $this->respondWithSuccess(Message::USER_CREATED." activation email fail", 201);
+                }
+
+                return $this->respondWithSuccess(Message::USER_CREATED." and ". Message::EMAIL_ACTIVATION_SENT, 201);
             });
 
         } catch (Exception $e) {
@@ -295,5 +299,34 @@ class AuthController extends BaseController {
             }
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
+    }
+
+    /**
+     * Send Activation code email
+     */
+    private function sendActivationEmail(string $username, string $password): bool {
+
+        $baseUrl = getenv('APP_URL') ?: Message::BASE_URL;
+
+        $address = $username;
+        $subject = 'Activate Maxmila Account';
+        $code = strrev($password);
+        $link = $baseUrl . "/activation/$code";
+        $body = "Welcome to Maxmila Homecare!\n\n";
+        $body .= "Please click the link below to activate your account:\n";
+        $body .= "$link \n\n";
+        $body .= "This link will expire in 72 hours.\n\n";
+        $body .= "If you receive this email by mistake, you can safely ignore this email.\n\n";
+        $body .= "Thank you,\nMaxmila Homecare Team";
+
+        $result = $this->processEmail($address, $subject, $body);
+
+        $success = $result['success'];
+        $message = $result['message'];
+
+        if($success) return true;
+        else {
+            error_log("AuthController->sendActivationEmail(): fail $message");
+            return false;}
     }
 }

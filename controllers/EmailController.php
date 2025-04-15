@@ -36,33 +36,18 @@ class EmailController extends BaseController{
         return $this->process($to, $subject, $body);
     }
 
-    private function process(string $to, string $subject, string $body): array {
-        $mail = new Sender(true);
+    public function process(string $to, string $subject, string $body): array {
         try {
-            $mail->isSMTP();
-            $mail->Host =  getenv('EMAIL_HOSTPATH') ?: '127.0.0.1';
-            $mail->Port = getenv('EMAIL_SERVPORT') ?: 25;
-            $mail->SMTPAuth = getenv('EMAIL_SMTPAUTH') ?: false;
-            $mail->Username = getenv('EMAIL_USERNAME') ?: '';
-            $mail->Password = getenv('EMAIL_PASSWORD') ?: '';
-            $mail->SMTPSecure = Sender::ENCRYPTION_SMTPS;
-            $mail->SMTPDebug = SMTP::DEBUG_OFF;
 
-            $mail->setFrom(getenv('EMAIL_REP_ADDR') ?: 'no-reply@maxmilahomecare.com', getenv('EMAIL_REP_NAME') ?: 'Maxmila Homecare Test System');
-            $mail->addAddress($to);
-
-            $mail->Subject = $subject;
-            $mail->Body = $body;
-
-            $result = $mail->send();
+            $result = $this->processEmail($to, $subject, $body);
 
             $success = $result['success'];
             $message = $result['message'];
 
             if ($success) {
                 $data = [
-                    'email' => $to,
                     'action' => 'email sent',
+                    'to' => $to,
                     'message' => $message
                 ];
                 return $this->respondWithSuccess($data, 201);
@@ -70,7 +55,7 @@ class EmailController extends BaseController{
                 return $this->respondWithError($message, 417);
             }
         } catch (\Exception $e) {
-            return $this->respondWithError('Exception: ' . $e->getMessage() . ' ' . $mail->ErrorInfo, 417);
+            return $this->respondWithError('Exception: ' . $e->getMessage(), 417);
         }
     }
 }

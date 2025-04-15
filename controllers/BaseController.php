@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Api\Controllers;
 
+use Api\Email\Sender;
+use Api\Email\SMTP;
 use Exception;
 use JsonException;
 use Api\Models\Auth;
@@ -185,6 +187,31 @@ class BaseController extends Controller {
                 $this->rollbackTransaction();
             }
             throw $e;
+        }
+    }
+
+    protected function processEmail(string $to, string $subject, string $body): ?array {
+        try {
+            $mail = new Sender(true);
+            $mail->isSMTP();
+            $mail->Host =  getenv('EMAIL_HOSTPATH') ?: '127.0.0.1';
+            $mail->Port = getenv('EMAIL_SERVPORT') ?: 25;
+            $mail->SMTPAuth = getenv('EMAIL_SMTPAUTH') ?: false;
+            $mail->Username = getenv('EMAIL_USERNAME') ?: '';
+            $mail->Password = getenv('EMAIL_PASSWORD') ?: '';
+            $mail->SMTPSecure = Sender::ENCRYPTION_SMTPS;
+            $mail->SMTPDebug = SMTP::DEBUG_OFF;
+
+            $mail->setFrom(getenv('EMAIL_REP_ADDR') ?: 'no-reply@maxmilahomecare.com', getenv('EMAIL_REP_NAME') ?: 'Maxmila Homecare Test System');
+            $mail->addAddress($to);
+
+            $mail->Subject = $subject;
+            $mail->Body = $body;
+
+            return $mail->send();
+        } catch (\Exception $e) {
+            error_log("BaseController->processEmail(): Exception: " . $e->getMessage(). " Sender:" . $mail->ErrorInfo);
+            return null;
         }
     }
 }
