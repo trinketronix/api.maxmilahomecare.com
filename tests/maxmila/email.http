@@ -1,0 +1,10 @@
+###
+# @name Send Email
+POST {{maxmila.baseUrl}}/send-email
+Content-Type: application/json
+
+{
+  "to": "toddsalpen@gmail.com",
+  "subject": "Email sending method works good",
+  "body": "this email is with the only purpose of make something good out of the system, highly recommend to watch the solo leveling, and a link to https://toddsalpen.com \nhave a good day"
+}

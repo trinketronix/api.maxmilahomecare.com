@@ -50,7 +50,10 @@ class EmailController extends BaseController{
             $mail->SMTPSecure = Sender::ENCRYPTION_SMTPS;
             $mail->SMTPDebug = SMTP::DEBUG_OFF;
 
-            $mail->setFrom('EMAIL_REP_ADDR', 'EMAIL_REP_NAME');
+            $address = getenv('EMAIL_REP_ADDR') ?: '';
+            $name = getenv('EMAIL_REP_NAME') ?: '';
+
+            $mail->setFrom($address, $name);
             $mail->addAddress($to);
 
             $mail->Subject = $subject;
