@@ -50,10 +50,7 @@ class EmailController extends BaseController{
             $mail->SMTPSecure = Sender::ENCRYPTION_SMTPS;
             $mail->SMTPDebug = SMTP::DEBUG_OFF;
 
-            $address = getenv('EMAIL_REP_ADDR') ?: '';
-            $name = getenv('EMAIL_REP_NAME') ?: '';
-
-            $mail->setFrom($address, $name);
+            $mail->setFrom(getenv('EMAIL_REP_ADDR') ?: 'no-reply@maxmilahomecare.com', getenv('EMAIL_REP_NAME') ?: 'Maxmila Homecare Test System');
             $mail->addAddress($to);
 
             $mail->Subject = $subject;
