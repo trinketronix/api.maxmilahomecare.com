@@ -20,13 +20,13 @@ Content-Type: application/json
 }
 
 ###
-# @name Activate Account
-PUT {{baseUrl}}/activation/
+# @name Activate Account by the System
+PUT {{maxmila.baseUrl}}/auth/activate/account
 Content-Type: application/json
-Authorization: {{token}}
+Authorization: {{maxmila.token}}
 
 {
-  "id": 5
+  "id": 1
 }
 
 
