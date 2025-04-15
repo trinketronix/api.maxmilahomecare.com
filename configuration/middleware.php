@@ -247,7 +247,7 @@ if (isset($app)) {
             }
 
             // Store user data in DI for controllers
-            $app->getDI()->setShared('auth_user', $decoded);
+            $app->getDI()->setShared('decodedToken', $decoded);
 
             return true;
         } catch (\Exception $e) {
