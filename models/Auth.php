@@ -25,7 +25,7 @@ class Auth extends Model {
     public const string STATUS = 'status';
 
     // Model properties
-    public int $id;
+    public ?int $id = null; // Make it nullable with default null
     public string $username;
     public string $password;
     public ?string $token = null;
