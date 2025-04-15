@@ -13,7 +13,7 @@ class EmailController extends BaseController{
     //TODO functions that can receive data to send emails with more than one TO email,
     // more than one CC and BCC and attachments
 
-    public function send(): Response{
+    public function send(): array{
 
         $data = $this->getRequestBody();
         // Validate the recipient "to"
@@ -36,7 +36,7 @@ class EmailController extends BaseController{
         return $this->process($to, $subject, $body);
     }
 
-    private function process(string $to, string $subject, string $body): Response {
+    private function process(string $to, string $subject, string $body): array {
         $mail = new Sender(true);
         try {
             $mail->isSMTP();
