@@ -88,22 +88,22 @@ class AuthController extends BaseController {
 
             $data = $this->getRequestBody();
 
-            if (empty($data[Auth::USERNAME])) {
-                return $this->respondWithError(Message::EMAIL_REQUIRED, 400);
+            if (empty($data[Auth::ID])) {
+                return $this->respondWithError(Message::ID_REQUIRED, 400);
             }
 
-            $username = $data[Auth::USERNAME];
-            $auth = Auth::findFirstByUsername($username);
+            $id = $data[Auth::ID];
+            $auth = Auth::findFirstById($id);
 
             if (!$auth) {
-                return $this->respondWithError(Message::EMAIL_NOT_FOUND, 404);
+                return $this->respondWithError(Message::ID_NOT_FOUND, 404);
             }
 
             return $this->withTransaction(function() use ($auth) {
                 $auth->status = Status::ACTIVE;
 
                 if (!$auth->save()) {
-                    return $this->respondWithError(Message::USER_ACTIVATED, 409);
+                    return $this->respondWithError(Message::USER_ACTIVATION_FAILED, 409);
                 }
 
                 return $this->respondWithSuccess([
