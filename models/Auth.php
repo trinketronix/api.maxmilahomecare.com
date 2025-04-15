@@ -32,8 +32,10 @@ class Auth extends Model {
     public ?int $expiration = null;
     public int $role = Role::CAREGIVER; // Default to caregiver
     public int $status = Status::INACTIVE; // Default to deactivated
-    public string $created_at;
-    public string $updated_at;
+
+    // Make timestamp fields nullable with default values
+    public ?string $created_at = null;
+    public ?string $updated_at = null;
 
     /**
      * Initialize the model
@@ -167,4 +169,18 @@ class Auth extends Model {
         $this->expiration = null;
     }
 
+    /**
+     * Initialize timestamp fields explicitly before insert
+     */
+    public function beforeValidationOnCreate()
+    {
+        // Set created_at and updated_at to current timestamp if they're null
+        if ($this->created_at === null) {
+            $this->created_at = date('Y-m-d H:i:s');
+        }
+
+        if ($this->updated_at === null) {
+            $this->updated_at = date('Y-m-d H:i:s');
+        }
+    }
 }

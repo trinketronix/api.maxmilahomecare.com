@@ -37,7 +37,7 @@ class User extends Model {
     public const string DEFAULT_PHOTO_FILE = '/'.self::PATH_PHOTO_FILE.'/default.jpg';
 
     // Primary identification
-    public int $id;
+    public ?int $id = null;
 
     // Personal information
     public string $lastname = 'TBD';
@@ -65,8 +65,8 @@ class User extends Model {
     public ?string $photo = null;
 
     // Audit timestamps
-    public string $created_at;
-    public string $updated_at;
+    public ?string $created_at = null;
+    public ?string $updated_at = null;
 
     /**
      * Initialize the model relationships and behaviors
@@ -269,5 +269,20 @@ class User extends Model {
             'bindTypes' => ['id' => \PDO::PARAM_INT],
             'with' => ['auth']
         ]);
+    }
+
+    /**
+     * Initialize timestamp fields explicitly before insert
+     */
+    public function beforeValidationOnCreate()
+    {
+        // Set created_at and updated_at to current timestamp if they're null
+        if ($this->created_at === null) {
+            $this->created_at = date('Y-m-d H:i:s');
+        }
+
+        if ($this->updated_at === null) {
+            $this->updated_at = date('Y-m-d H:i:s');
+        }
     }
 }
