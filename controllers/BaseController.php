@@ -154,12 +154,25 @@ class BaseController extends Controller {
      */
     protected function withTransaction(callable $operation) {
         try {
+            // Make sure $this->db is available
+            if (!isset($this->db) || !$this->db) {
+                // Try to get the db service from the DI container
+                $this->db = $this->getDI()->get('db');
+
+                // If still not available, throw a meaningful exception
+                if (!$this->db) {
+                    throw new \Exception("Database service not available");
+                }
+            }
+
             $this->beginTransaction();
             $result = $operation();
             $this->commitTransaction();
             return $result;
-        } catch (Exception $e) {
-            $this->rollbackTransaction();
+        } catch (\Exception $e) {
+            if ($this->db && $this->db->isUnderTransaction()) {
+                $this->rollbackTransaction();
+            }
             throw $e;
         }
     }

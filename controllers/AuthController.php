@@ -17,6 +17,13 @@ class AuthController extends BaseController {
      */
     public function register(): array {
         try {
+
+            $di = $this->getDI();
+            $hasDb = $di->has('db');
+            $hasTokenService = $di->has('tokenService');
+            error_log("DI has db: " . ($hasDb ? 'yes' : 'no'));
+            error_log("DI has tokenService: " . ($hasTokenService ? 'yes' : 'no'));
+
             $data = $this->getRequestBody();
 
             // Validate required fields
