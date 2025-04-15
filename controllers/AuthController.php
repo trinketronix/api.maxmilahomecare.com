@@ -126,7 +126,13 @@ class AuthController extends BaseController {
             $response->setContentType('text/html', 'UTF-8');
 
             $code = strrev($edoc);
-            $auth = Auth::findFirstPassword($code);
+            $auth = Auth::findFirst([
+                'conditions' => 'password = :code: AND status = :status:',
+                'bind' => [
+                    'code' => $code,
+                    'status' => Status::NOT_VERIFIED
+                ]
+            ]);
 
             if (!$auth) {
                 $htmlResponse = $this->getActivationResponseHtml(false, 'Invalid activation code or account already activated');
