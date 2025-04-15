@@ -325,8 +325,8 @@ class AuthController extends BaseController {
             }
 
             $tokenService = $this->getDI()->get('tokenService');
-            $token = $tokenService->createToken($auth);
-            $expiration = $tokenService->getExpiration($token);
+            $expiration = $tokenService->generateTokenExpirationTime();
+            $token = $tokenService->createToken($auth, $expiration);
 
             return $this->withTransaction(function() use ($auth, $token, $expiration) {
                 $auth->token = $token;
