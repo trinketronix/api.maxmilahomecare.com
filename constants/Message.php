@@ -45,6 +45,7 @@ class Message {
 
     // Email operations
     public const EMAIL_SENT = 'Email sent successfully';
+    public const EMAIL_ACTIVATION_SENT = 'An email has been sent to activate your new account';
     public const EMAIL_SUBJECT_EMPTY = 'Email subject cannot be empty.';
     public const EMAIL_BODY_EMPTY = 'Email body cannot be empty.';
 
@@ -87,6 +88,6 @@ class Message {
     public const BATCH_CREATED_SUFFIX = ' accounts created successfully';
 
     // System
-    public const BASE_URL = 'https://api.maxmila.com';
+    public const BASE_URL = 'https://api.maxmilahomecare.com';
     public const ALGORITHM = 'sha512';
 }
