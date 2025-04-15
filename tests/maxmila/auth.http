@@ -1,0 +1,93 @@
+
+###
+# @name Create Account
+POST {{maxmila.baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "username": "toddsalpen@gmail.com",
+  "password": "ToddSalpen6589"
+}
+
+###
+# @name Login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "{{username}}",
+  "password": "{{password}}"
+}
+
+###
+# @name Activate Account
+PUT {{baseUrl}}/auth/activate/account
+Content-Type: application/json
+Authorization: {{token}}
+
+{
+  "id": 5
+}
+
+###
+# @name Change Role
+PUT {{baseUrl}}/change-role
+Content-Type: application/json
+Authorization: {{token}}
+
+{
+  "username": "paulmccartney@applerecords.com",
+  "role": 0
+}
+
+###
+# @name Change Password
+PUT {{baseUrl}}/change-password
+
+###
+# @name Get List of Auths
+GET {{baseUrl}}/auths
+Content-Type: application/json
+Authorization: {{token}}
+
+###
+# @name Get List of Caregivers Accounts
+GET {{baseUrl}}/caregivers
+Content-Type: application/json
+Authorization: {{token}}
+
+###
+# @name Get List of Managers Accounts
+GET {{baseUrl}}/managers
+Content-Type: application/json
+Authorization: {{token}}
+
+###
+# @name Get List of Administrator Accounts
+GET {{baseUrl}}/administrators
+Content-Type: application/json
+Authorization: {{token}}
+
+###
+# @name Get List of Not Activated Accounts
+GET {{baseUrl}}/not-activated
+Content-Type: application/json
+Authorization: {{token}}
+
+###
+# @name Get List of Activated Accounts
+GET {{baseUrl}}/activated
+Content-Type: application/json
+Authorization: {{token}}
+
+###
+# @name Get List of Deactivated Accounts
+GET {{baseUrl}}/deactivated
+Content-Type: application/json
+Authorization: {{token}}
+
+###
+# @name Get List of Soft Deleted Accounts
+GET {{baseUrl}}/soft-deleted
+Content-Type: application/json
+Authorization: {{token}}
