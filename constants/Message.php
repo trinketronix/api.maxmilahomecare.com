@@ -24,6 +24,7 @@ class Message {
     public const USER_UPDATED = 'User updated successfully';
     public const USER_DELETED = 'User deleted successfully.';
     public const USER_ACTIVATED = 'User activated successfully';
+    public const USER_ACTIVATION_FAILED = 'User activation failed';
     public const USER_NOT_FOUND = 'User not found';
     public const USER_ID_REQUIRED = 'User ID is required';
 
@@ -35,6 +36,8 @@ class Message {
     public const ROLE_CHANGED = 'User role changed successfully';
     public const ROLE_CHANGE_FAILED = 'Failed to change user role';
     public const ROLE_INVALID = 'Invalid role';
+    public const ID_REQUIRED = 'User ID is required';
+    public const ID_NOT_FOUND = 'User ID not found';
 
     // Email validations
     public const EMAIL_REQUIRED = 'Email is required';
