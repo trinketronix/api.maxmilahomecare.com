@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Api\Models;
 
+use Api\Constants\PersonType;
 use Phalcon\Filter\Validation;
 use Phalcon\Filter\Validation\Validator\PresenceOf;
 use Phalcon\Filter\Validation\Validator\InclusionIn;
@@ -12,37 +13,32 @@ use Phalcon\Filter\Validation\Validator\Numericality;
 use Phalcon\Mvc\Model;
 use Phalcon\Mvc\Model\Behavior\Timestampable;
 
-class Address extends Model
-{
-    // Person types
-    public const PERSON_TYPE_USER = 0;
-    public const PERSON_TYPE_PATIENT = 1;
-
+class Address extends Model {
     // Common address types
-    public const TYPE_HOME = 'Home';
-    public const TYPE_APARTMENT = 'Apartment';
-    public const TYPE_FACILITY = 'Facility';
-    public const TYPE_BUSINESS = 'Business';
-    public const TYPE_OTHER = 'Other';
+    public const string HOUSE = 'House';
+    public const string APARTMENT = 'Apartment';
+    public const string CONDOMINIUM = 'Condominium';
+    public const string TRAILER = 'Trailer';
+    public const string OTHER = 'Other';
 
     // Default country
-    public const DEFAULT_COUNTRY = 'United States';
+    public const string DEFAULT_COUNTRY = 'United States';
 
     // Column constants
-    public const ID = 'id';
-    public const PERSON_ID = 'person_id';
-    public const PERSON_TYPE = 'person_type';
-    public const TYPE = 'type';
-    public const ADDRESS = 'address';
-    public const CITY = 'city';
-    public const COUNTY = 'county';
-    public const STATE = 'state';
-    public const ZIPCODE = 'zipcode';
-    public const COUNTRY = 'country';
-    public const LATITUDE = 'latitude';
-    public const LONGITUDE = 'longitude';
-    public const CREATED_AT = 'created_at';
-    public const UPDATED_AT = 'updated_at';
+    public const string ID = 'id';
+    public const string PERSON_ID = 'person_id';
+    public const string PERSON_TYPE = 'person_type';
+    public const string TYPE = 'type';
+    public const string ADDRESS = 'address';
+    public const string CITY = 'city';
+    public const string COUNTY = 'county';
+    public const string STATE = 'state';
+    public const string ZIPCODE = 'zipcode';
+    public const string COUNTRY = 'country';
+    public const string LATITUDE = 'latitude';
+    public const string LONGITUDE = 'longitude';
+    public const string CREATED_AT = 'created_at';
+    public const string UPDATED_AT = 'updated_at';
 
     // Primary identification
     public ?int $id = null;
@@ -69,8 +65,7 @@ class Address extends Model
     /**
      * Initialize model relationships and behaviors
      */
-    public function initialize(): void
-    {
+    public function initialize(): void {
         $this->setSource('address');
 
         // Define polymorphic relationships
@@ -81,7 +76,7 @@ class Address extends Model
             [
                 'alias' => 'user',
                 'foreignKey' => [
-                    'conditions' => 'person_type = ' . self::PERSON_TYPE_USER
+                    'conditions' => 'person_type = ' . PersonType::USER
                 ],
                 'reusable' => true
             ]
@@ -94,7 +89,7 @@ class Address extends Model
             [
                 'alias' => 'patient',
                 'foreignKey' => [
-                    'conditions' => 'person_type = ' . self::PERSON_TYPE_PATIENT
+                    'conditions' => 'person_type = ' . PersonType::PATIENT
                 ],
                 'reusable' => true
             ]
@@ -118,8 +113,7 @@ class Address extends Model
     /**
      * Model validation
      */
-    public function validation(): bool
-    {
+    public function validation(): bool {
         $validator = new Validation();
 
         // Required fields validation
@@ -146,7 +140,7 @@ class Address extends Model
         $validator->add(
             self::PERSON_TYPE,
             new InclusionIn([
-                'domain' => [self::PERSON_TYPE_USER, self::PERSON_TYPE_PATIENT],
+                'domain' => [PersonType::USER, PersonType::PATIENT],
                 'message' => 'Invalid person type'
             ])
         );
@@ -198,8 +192,7 @@ class Address extends Model
     /**
      * Actions before saving the model
      */
-    public function beforeSave(): bool
-    {
+    public function beforeSave(): bool {
         // Convert state to uppercase
         if (isset($this->state)) {
             $this->state = strtoupper($this->state);
@@ -216,11 +209,10 @@ class Address extends Model
     /**
      * Get the associated person (either user or patient)
      */
-    public function getPerson(): ?Model
-    {
-        if ($this->person_type === self::PERSON_TYPE_USER) {
+    public function getPerson(): ?Model {
+        if ($this->person_type === PersonType::USER) {
             return $this->user;
-        } else if ($this->person_type === self::PERSON_TYPE_PATIENT) {
+        } else if ($this->person_type === PersonType::PATIENT) {
             return $this->patient;
         }
 
@@ -230,8 +222,7 @@ class Address extends Model
     /**
      * Get a formatted address string
      */
-    public function getFormattedAddress(): string
-    {
+    public function getFormattedAddress(): string {
         $formatted = $this->address . "\n";
         $formatted .= $this->city . ", " . $this->state . " " . $this->zipcode;
 
@@ -245,8 +236,7 @@ class Address extends Model
     /**
      * Check if this address has geolocation coordinates
      */
-    public function hasCoordinates(): bool
-    {
+    public function hasCoordinates(): bool {
         return !is_null($this->latitude) && !is_null($this->longitude);
     }
 
@@ -254,8 +244,7 @@ class Address extends Model
      * Calculate distance to another address (in miles)
      * Uses Haversine formula
      */
-    public function distanceTo(Address $other): ?float
-    {
+    public function distanceTo(Address $other): ?float {
         if (!$this->hasCoordinates() || !$other->hasCoordinates()) {
             return null;
         }
@@ -279,8 +268,7 @@ class Address extends Model
     /**
      * Find addresses by person ID and type
      */
-    public static function findByPerson(int $personId, int $personType): \Phalcon\Mvc\Model\ResultsetInterface
-    {
+    public static function findByPerson(int $personId, int $personType): \Phalcon\Mvc\Model\ResultsetInterface {
         return self::find([
             'conditions' => 'person_id = :person_id: AND person_type = :person_type:',
             'bind' => [
@@ -298,8 +286,7 @@ class Address extends Model
     /**
      * Find addresses within a certain radius of coordinates
      */
-    public static function findNearby(float $latitude, float $longitude, float $radiusMiles): \Phalcon\Mvc\Model\ResultsetInterface
-    {
+    public static function findNearby(float $latitude, float $longitude, float $radiusMiles): \Phalcon\Mvc\Model\ResultsetInterface {
         // This simplified version uses a square boundary
         // For a more accurate radius search, you'd need a raw SQL query using the Haversine formula
         $latDelta = $radiusMiles / 69; // ~69 miles per degree of latitude
@@ -325,14 +312,13 @@ class Address extends Model
     /**
      * Get common address types
      */
-    public static function getAddressTypes(): array
-    {
+    public static function getAddressTypes(): array {
         return [
-            self::TYPE_HOME,
-            self::TYPE_APARTMENT,
-            self::TYPE_FACILITY,
-            self::TYPE_BUSINESS,
-            self::TYPE_OTHER
+            self::HOUSE,
+            self::APARTMENT,
+            self::CONDOMINIUM,
+            self::TRAILER,
+            self::OTHER
         ];
     }
 }

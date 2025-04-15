@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Api\Controllers;
 
+use Api\Constants\Progress;
+use Api\Constants\Status;
 use Exception;
 use DateTime;
 use Api\Models\Visit;
@@ -11,13 +13,11 @@ use Api\Models\User;
 use Api\Models\Patient;
 use Api\Constants\Message;
 
-class VisitController extends BaseController
-{
+class VisitController extends BaseController {
     /**
      * Create a new visit
      */
-    public function create(): array
-    {
+    public function create(): array {
         try {
             // Get current user ID
             $currentUserId = $this->getCurrentUserId();
@@ -65,13 +65,14 @@ class VisitController extends BaseController
             // Validate time fields
             $startTime = new DateTime($data[Visit::START_TIME]);
             $endTime = new DateTime($data[Visit::END_TIME]);
+            $currentTime = new DateTime();
 
             if ($endTime <= $startTime) {
                 return $this->respondWithError('End time cannot be before start time', 400);
             }
 
             // Create visit within transaction
-            return $this->withTransaction(function() use ($data, $startTime, $endTime) {
+            return $this->withTransaction(function() use ($data, $startTime, $endTime, $currentTime, $currentUserId) {
                 $visit = new Visit();
 
                 // Set required fields
@@ -85,24 +86,52 @@ class VisitController extends BaseController
                     $visit->note = $data[Visit::NOTE];
                 }
 
-                if (isset($data[Visit::PROGRESS])) {
+                // Calculate time difference in minutes
+                $minutesBeforeStart = ($startTime->getTimestamp() - $currentTime->getTimestamp()) / 60;
+                $minutesAfterStart = ($currentTime->getTimestamp() - $startTime->getTimestamp()) / 60;
+
+                // Determine progress status based on creation time relative to start time
+                if ($minutesBeforeStart > 15) {
+                    // Created more than 15 minutes before start time -> Scheduled
+                    $visit->progress = Progress::SCHEDULED;
+                    $visit->scheduled_by = $currentUserId;
+                } else if ($minutesBeforeStart <= 15 && $minutesAfterStart <= 15) {
+                    // Created within 15 minutes of start time (before or after) -> Check-in
+                    $visit->progress = Progress::IN_PROGRESS;
+                    $visit->scheduled_by = $currentUserId;
+                    $visit->checkin_by = $currentUserId;
+                } else {
+                    // Created more than 15 minutes after start time -> Completed
+                    $visit->progress = Progress::COMPLETED;
+                    $visit->scheduled_by = $currentUserId;
+                    $visit->checkin_by = $currentUserId;
+                    $visit->checkout_by = $currentUserId;
+                }
+
+                // Override progress if explicitly provided (for admins/managers only)
+                if (isset($data[Visit::PROGRESS]) && $this->isManagerOrHigher()) {
                     $progress = (int)$data[Visit::PROGRESS];
                     if (!in_array($progress, [
-                        Visit::PROGRESS_CANCELED,
-                        Visit::PROGRESS_SCHEDULED,
-                        Visit::PROGRESS_IN_PROGRESS,
-                        Visit::PROGRESS_COMPLETED,
-                        Visit::PROGRESS_PAID
+                        Progress::CANCELED,
+                        Progress::SCHEDULED,
+                        Progress::IN_PROGRESS,
+                        Progress::COMPLETED,
+                        Progress::PAID
                     ])) {
                         return $this->respondWithError(Message::STATUS_INVALID, 400);
                     }
                     $visit->progress = $progress;
-                } else {
-                    $visit->progress = Visit::PROGRESS_SCHEDULED; // Default status
+
+                    // Set corresponding tracking fields based on provided progress
+                    if ($progress === Progress::CANCELED) {
+                        $visit->canceled_by = $currentUserId;
+                    } else if ($progress === Progress::PAID) {
+                        $visit->approved_by = $currentUserId;
+                    }
                 }
 
                 // Always create with active status
-                $visit->status = Visit::STATUS_ACTIVE;
+                $visit->status = Status::ACTIVE;
 
                 if (!$visit->save()) {
                     return $this->respondWithError($visit->getMessages(), 422);
@@ -111,6 +140,7 @@ class VisitController extends BaseController
                 return $this->respondWithSuccess([
                     'message' => 'Visit created successfully',
                     'visit_id' => $visit->id,
+                    'progress' => $visit->progress,
                     'duration_minutes' => $visit->getDurationMinutes()
                 ], 201);
             });
@@ -123,8 +153,7 @@ class VisitController extends BaseController
     /**
      * Update an existing visit
      */
-    public function update(int $id): array
-    {
+    public function update(int $id): array {
         try {
             // Get current user ID
             $currentUserId = $this->getCurrentUserId();
@@ -148,7 +177,7 @@ class VisitController extends BaseController
             $data = $this->getRequestBody();
 
             // Update visit within transaction
-            return $this->withTransaction(function() use ($visit, $data) {
+            return $this->withTransaction(function() use ($visit, $data, $currentUserId) {
                 // Update fields if provided
                 $updateableFields = [
                     Visit::USER_ID,
@@ -166,6 +195,10 @@ class VisitController extends BaseController
                 $endTimeUpdated = false;
                 $startTime = null;
                 $endTime = null;
+
+                // Track if progress is being updated
+                $oldProgress = $visit->progress;
+                $progressUpdated = false;
 
                 foreach ($updateableFields as $field) {
                     if (isset($data[$field])) {
@@ -208,23 +241,71 @@ class VisitController extends BaseController
                             case Visit::PROGRESS:
                                 $progress = (int)$data[$field];
                                 if (!in_array($progress, [
-                                    Visit::PROGRESS_CANCELED,
-                                    Visit::PROGRESS_SCHEDULED,
-                                    Visit::PROGRESS_IN_PROGRESS,
-                                    Visit::PROGRESS_COMPLETED,
-                                    Visit::PROGRESS_PAID
+                                    Progress::CANCELED,
+                                    Progress::SCHEDULED,
+                                    Progress::IN_PROGRESS,
+                                    Progress::COMPLETED,
+                                    Progress::PAID
                                 ])) {
                                     return $this->respondWithError(Message::STATUS_INVALID, 400);
                                 }
-                                $visit->progress = $progress;
+
+                                // Only update progress if it's actually changing
+                                if ($progress !== $oldProgress) {
+                                    $visit->progress = $progress;
+                                    $progressUpdated = true;
+
+                                    // Update the appropriate tracking field based on the new progress
+                                    switch ($progress) {
+                                        case Progress::CANCELED:
+                                            $visit->canceled_by = $currentUserId;
+                                            break;
+                                        case Progress::SCHEDULED:
+                                            // If going back to scheduled, we're basically rescheduling
+                                            if (!$visit->scheduled_by) {
+                                                $visit->scheduled_by = $currentUserId;
+                                            }
+                                            break;
+                                        case Progress::IN_PROGRESS:
+                                            // Set scheduled_by if not set (in case of direct check-in)
+                                            if (!$visit->scheduled_by) {
+                                                $visit->scheduled_by = $currentUserId;
+                                            }
+                                            $visit->checkin_by = $currentUserId;
+                                            break;
+                                        case Progress::COMPLETED:
+                                            // Ensure all previous steps are tracked
+                                            if (!$visit->scheduled_by) {
+                                                $visit->scheduled_by = $currentUserId;
+                                            }
+                                            if (!$visit->checkin_by) {
+                                                $visit->checkin_by = $currentUserId;
+                                            }
+                                            $visit->checkout_by = $currentUserId;
+                                            break;
+                                        case Progress::PAID:
+                                            // Ensure all previous steps are tracked
+                                            if (!$visit->scheduled_by) {
+                                                $visit->scheduled_by = $currentUserId;
+                                            }
+                                            if (!$visit->checkin_by) {
+                                                $visit->checkin_by = $currentUserId;
+                                            }
+                                            if (!$visit->checkout_by) {
+                                                $visit->checkout_by = $currentUserId;
+                                            }
+                                            $visit->approved_by = $currentUserId;
+                                            break;
+                                    }
+                                }
                                 break;
 
                             case Visit::STATUS:
                                 $status = (int)$data[$field];
                                 if (!in_array($status, [
-                                    Visit::STATUS_ACTIVE,
-                                    Visit::STATUS_ARCHIVED,
-                                    Visit::STATUS_DELETED
+                                    Status::ACTIVE,
+                                    Status::ARCHIVED,
+                                    Status::SOFT_DELETED
                                 ])) {
                                     return $this->respondWithError(Message::STATUS_INVALID, 400);
                                 }
@@ -253,6 +334,34 @@ class VisitController extends BaseController
                     }
                 }
 
+                // Allow direct setting of tracking fields for admins only
+                if ($this->isAdmin()) {
+                    $trackingFields = [
+                        'scheduled_by',
+                        'checkin_by',
+                        'checkout_by',
+                        'canceled_by',
+                        'approved_by'
+                    ];
+
+                    foreach ($trackingFields as $field) {
+                        if (isset($data[$field])) {
+                            // Verify the user exists
+                            $trackingUserId = (int)$data[$field];
+                            if ($trackingUserId > 0) {
+                                $trackingUser = User::findFirst($trackingUserId);
+                                if (!$trackingUser) {
+                                    return $this->respondWithError("User ID $trackingUserId for $field not found", 404);
+                                }
+                                $visit->$field = $trackingUserId;
+                            } else {
+                                // Allow setting to null to clear tracking
+                                $visit->$field = null;
+                            }
+                        }
+                    }
+                }
+
                 if (!$visit->save()) {
                     return $this->respondWithError($visit->getMessages(), 422);
                 }
@@ -260,6 +369,7 @@ class VisitController extends BaseController
                 return $this->respondWithSuccess([
                     'message' => 'Visit updated successfully',
                     'visit_id' => $visit->id,
+                    'progress' => $visit->progress,
                     'duration_minutes' => $visit->getDurationMinutes()
                 ]);
             });
@@ -290,14 +400,14 @@ class VisitController extends BaseController
             }
 
             // Check if visit is already deleted
-            if ($visit->status === Visit::STATUS_DELETED) {
+            if ($visit->status === Status::SOFT_DELETED) {
                 return $this->respondWithError('Visit is already deleted', 400);
             }
 
             // Soft delete visit within transaction
             return $this->withTransaction(function() use ($visit) {
                 // Set status to deleted
-                $visit->status = Visit::STATUS_DELETED;
+                $visit->status = Status::SOFT_DELETED;
 
                 if (!$visit->save()) {
                     return $this->respondWithError($visit->getMessages(), 422);
@@ -349,11 +459,11 @@ class VisitController extends BaseController
 
             // Validate progress value
             if (!in_array($progress, [
-                Visit::PROGRESS_CANCELED,
-                Visit::PROGRESS_SCHEDULED,
-                Visit::PROGRESS_IN_PROGRESS,
-                Visit::PROGRESS_COMPLETED,
-                Visit::PROGRESS_PAID
+                Progress::CANCELED,
+                Progress::SCHEDULED,
+                Progress::IN_PROGRESS,
+                Progress::COMPLETED,
+                Progress::PAID
             ])) {
                 return $this->respondWithError(Message::STATUS_INVALID, 400);
             }
@@ -384,8 +494,7 @@ class VisitController extends BaseController
     /**
      * Check in to a visit (start visit)
      */
-    public function checkIn(int $id): array
-    {
+    public function checkIn(int $id): array {
         try {
             // Get current user ID
             $currentUserId = $this->getCurrentUserId();
@@ -407,13 +516,13 @@ class VisitController extends BaseController
             }
 
             // Check if visit is in the right state
-            if ($visit->progress !== Visit::PROGRESS_SCHEDULED) {
+            if ($visit->progress !== Progress::SCHEDULED) {
                 return $this->respondWithError('Can only check in to scheduled visits', 400);
             }
 
             // Update to in-progress within transaction
             return $this->withTransaction(function() use ($visit) {
-                $visit->progress = Visit::PROGRESS_IN_PROGRESS;
+                $visit->progress = Progress::IN_PROGRESS;
 
                 if (!$visit->save()) {
                     return $this->respondWithError($visit->getMessages(), 422);
@@ -434,8 +543,7 @@ class VisitController extends BaseController
     /**
      * Check out from a visit (complete visit)
      */
-    public function checkOut(int $id): array
-    {
+    public function checkOut(int $id): array {
         try {
             // Get current user ID
             $currentUserId = $this->getCurrentUserId();
@@ -457,7 +565,7 @@ class VisitController extends BaseController
             }
 
             // Check if visit is in the right state
-            if ($visit->progress !== Visit::PROGRESS_IN_PROGRESS) {
+            if ($visit->progress !== Progress::IN_PROGRESS) {
                 return $this->respondWithError('Can only check out from in-progress visits', 400);
             }
 
@@ -465,7 +573,7 @@ class VisitController extends BaseController
 
             // Update to completed within transaction
             return $this->withTransaction(function() use ($visit, $data) {
-                $visit->progress = Visit::PROGRESS_COMPLETED;
+                $visit->progress = Progress::COMPLETED;
 
                 // Update note if provided
                 if (isset($data['note'])) {
@@ -492,8 +600,7 @@ class VisitController extends BaseController
     /**
      * Cancel a visit
      */
-    public function cancel(int $id): array
-    {
+    public function cancel(int $id): array{
         try {
             // Get current user ID
             $currentUserId = $this->getCurrentUserId();
@@ -515,11 +622,11 @@ class VisitController extends BaseController
             }
 
             // Check if visit can be canceled
-            if ($visit->progress === Visit::PROGRESS_COMPLETED || $visit->progress === Visit::PROGRESS_PAID) {
+            if ($visit->progress === Progress::COMPLETED || $visit->progress === Progress::PAID) {
                 return $this->respondWithError('Cannot cancel a completed or paid visit', 400);
             }
 
-            if ($visit->progress === Visit::PROGRESS_CANCELED) {
+            if ($visit->progress === Progress::CANCELED) {
                 return $this->respondWithError('Visit is already canceled', 400);
             }
 
@@ -527,7 +634,7 @@ class VisitController extends BaseController
 
             // Cancel visit within transaction
             return $this->withTransaction(function() use ($visit, $data) {
-                $visit->progress = Visit::PROGRESS_CANCELED;
+                $visit->progress = Progress::CANCELED;
 
                 // Update note if provided
                 if (isset($data['note'])) {

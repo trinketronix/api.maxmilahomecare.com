@@ -4,19 +4,18 @@ declare(strict_types=1);
 
 namespace Api\Controllers;
 
+use Api\Constants\PersonType;
 use Exception;
 use Api\Models\Address;
 use Api\Models\User;
 use Api\Models\Patient;
 use Api\Constants\Message;
 
-class AddressController extends BaseController
-{
+class AddressController extends BaseController {
     /**
      * Create a new address
      */
-    public function create(): array
-    {
+    public function create(): array {
         try {
             $data = $this->getRequestBody();
 
@@ -39,12 +38,12 @@ class AddressController extends BaseController
             }
 
             // Validate person type
-            if (!in_array($data[Address::PERSON_TYPE], [Address::PERSON_TYPE_USER, Address::PERSON_TYPE_PATIENT])) {
+            if (!in_array($data[Address::PERSON_TYPE], [PersonType::USER, PersonType::PATIENT])) {
                 return $this->respondWithError('Invalid person type', 400);
             }
 
             // Validate person exists
-            if ($data[Address::PERSON_TYPE] === Address::PERSON_TYPE_USER) {
+            if ($data[Address::PERSON_TYPE] === PersonType::USER) {
                 $person = User::findFirst($data[Address::PERSON_ID]);
                 if (!$person) {
                     return $this->respondWithError(Message::USER_NOT_FOUND, 404);
@@ -116,16 +115,15 @@ class AddressController extends BaseController
     /**
      * Get addresses for a person (user or patient)
      */
-    public function getByPerson(int $personId, int $personType): array
-    {
+    public function getByPerson(int $personId, int $personType): array {
         try {
             // Validate personType
-            if (!in_array($personType, [Address::PERSON_TYPE_USER, Address::PERSON_TYPE_PATIENT])) {
+            if (!in_array($personType, [PersonType::USER, PersonType::PATIENT])) {
                 return $this->respondWithError('Invalid person type', 400);
             }
 
             // Validate that person exists
-            if ($personType === Address::PERSON_TYPE_USER) {
+            if ($personType === PersonType::USER) {
                 $person = User::findFirst($personId);
                 if (!$person) {
                     return $this->respondWithError(Message::USER_NOT_FOUND, 404);
@@ -160,8 +158,7 @@ class AddressController extends BaseController
     /**
      * Get a specific address by ID
      */
-    public function getById(int $id): array
-    {
+    public function getById(int $id): array {
         try {
             $address = Address::findFirst($id);
 
@@ -170,7 +167,7 @@ class AddressController extends BaseController
             }
 
             // Check authorization
-            if ($address->person_type === Address::PERSON_TYPE_USER) {
+            if ($address->person_type === PersonType::USER) {
                 $currentUserId = $this->getCurrentUserId();
                 if ($currentUserId !== $address->person_id && !$this->isManagerOrHigher()) {
                     return $this->respondWithError(Message::UNAUTHORIZED_ACCESS, 401);
@@ -187,8 +184,7 @@ class AddressController extends BaseController
     /**
      * Update an existing address
      */
-    public function update(int $id): array
-    {
+    public function update(int $id): array {
         try {
             $address = Address::findFirst($id);
 
@@ -197,7 +193,7 @@ class AddressController extends BaseController
             }
 
             // Check authorization
-            if ($address->person_type === Address::PERSON_TYPE_USER) {
+            if ($address->person_type === PersonType::USER) {
                 $currentUserId = $this->getCurrentUserId();
                 if ($currentUserId !== $address->person_id && !$this->isManagerOrHigher()) {
                     return $this->respondWithError(Message::UNAUTHORIZED_ACCESS, 401);
@@ -273,8 +269,7 @@ class AddressController extends BaseController
     /**
      * Delete an address
      */
-    public function delete(int $id): array
-    {
+    public function delete(int $id): array {
         try {
             $address = Address::findFirst($id);
 
@@ -283,7 +278,7 @@ class AddressController extends BaseController
             }
 
             // Check authorization
-            if ($address->person_type === Address::PERSON_TYPE_USER) {
+            if ($address->person_type === PersonType::USER) {
                 $currentUserId = $this->getCurrentUserId();
                 if ($currentUserId !== $address->person_id && !$this->isManagerOrHigher()) {
                     return $this->respondWithError(Message::UNAUTHORIZED_ACCESS, 401);
@@ -308,8 +303,7 @@ class AddressController extends BaseController
     /**
      * Find addresses within a specific radius of coordinates
      */
-    public function findNearby(): array
-    {
+    public function findNearby(): array {
         try {
             $data = $this->getRequestBody();
 
@@ -338,7 +332,7 @@ class AddressController extends BaseController
             // Get additional filters
             $personType = $data['person_type'] ?? null;
 
-            if ($personType !== null && !in_array($personType, [Address::PERSON_TYPE_USER, Address::PERSON_TYPE_PATIENT])) {
+            if ($personType !== null && !in_array($personType, [PersonType::USER, PersonType::PATIENT])) {
                 return $this->respondWithError('Invalid person type', 400);
             }
 
@@ -356,7 +350,7 @@ class AddressController extends BaseController
             if (!$this->isManagerOrHigher()) {
                 $currentUserId = $this->getCurrentUserId();
                 $addresses = $addresses->filter(function($address) use ($currentUserId) {
-                    return $address->person_type != Address::PERSON_TYPE_USER ||
+                    return $address->person_type != PersonType::USER ||
                         $address->person_id == $currentUserId;
                 });
             }
@@ -391,8 +385,7 @@ class AddressController extends BaseController
     /**
      * Calculate distance between two coordinates using Haversine formula
      */
-    private function calculateDistance(float $lat1, float $lon1, float $lat2, float $lon2): float
-    {
+    private function calculateDistance(float $lat1, float $lon1, float $lat2, float $lon2): float {
         $earthRadius = 3958.8; // miles
 
         $latFrom = deg2rad($lat1);

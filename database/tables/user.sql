@@ -39,6 +39,7 @@ CREATE TABLE `user` (
     INDEX `idx_email` (`email`),
     INDEX `idx_code` (`code`),
     INDEX `idx_name` (`lastname`, `firstname`)
+
 ) ENGINE=InnoDB
 DEFAULT CHARSET=utf8mb4
 COLLATE=utf8mb4_unicode_ci

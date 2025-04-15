@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Api\Controllers;
 
 use Api\Constants\Message;
+use Api\Constants\PersonType;
 use Api\Constants\Role;
 use Api\Encoding\Base64;
 use Api\Models\Address;
@@ -12,13 +13,11 @@ use Api\Models\User;
 use Exception;
 use JsonException;
 
-class UserController extends BaseController
-{
+class UserController extends BaseController {
     /**
      * Update a user's information
      */
-    public function updateUser(int $userId): array
-    {
+    public function updateUser(int $userId): array {
         try {
             // Get current user from authenticated token
             $tokenUserId = $this->getCurrentUserId();
@@ -124,131 +123,9 @@ class UserController extends BaseController
     }
 
     /**
-     * Update multiple users at once
-     */
-    public function updateBulkUsers(): array
-    {
-        try {
-            // Only allow admin/manager to perform bulk updates
-            if (!$this->isManagerOrHigher()) {
-                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
-            }
-
-            // Get users array from request body
-            $usersData = $this->getRequestBody();
-
-            // Validate that we received an array
-            if (!is_array($usersData)) {
-                return $this->respondWithError("Request body must be a JSON array", 400);
-            }
-
-            $results = [
-                'success' => [],
-                'failed' => []
-            ];
-
-            // Begin transaction for all updates
-            $this->beginTransaction();
-
-            try {
-                foreach ($usersData as $index => $data) {
-                    try {
-                        // Validate required ID field
-                        if (empty($data['id'])) {
-                            $results['failed'][] = [
-                                'index' => $index,
-                                'error' => 'Missing ID field'
-                            ];
-                            continue;
-                        }
-
-                        // Find user
-                        $user = User::findFirst($data['id']);
-                        if (!$user) {
-                            $results['failed'][] = [
-                                'index' => $index,
-                                'id' => $data['id'],
-                                'error' => 'User not found'
-                            ];
-                            continue;
-                        }
-
-                        // Define updatable fields
-                        $fields = [
-                            'lastname', 'firstname', 'middlename', 'birthdate',
-                            'ssn', 'code', 'phone', 'phone2', 'email', 'email2',
-                            'languages', 'description', 'photo'
-                        ];
-
-                        // Update fields
-                        foreach ($fields as $field) {
-                            if (isset($data[$field])) {
-                                // Special handling for SSN - assume it's coming non-encoded from backup
-                                if ($field === 'ssn' && !empty($data[$field])) {
-                                    $user->$field = Base64::encodingSaltedPeppered($data[$field]);
-                                } else {
-                                    $user->$field = $data[$field];
-                                }
-                            }
-                        }
-
-                        // Save changes
-                        if (!$user->save()) {
-                            $results['failed'][] = [
-                                'index' => $index,
-                                'id' => $data['id'],
-                                'error' => $user->getMessages()
-                            ];
-                            continue;
-                        }
-
-                        $results['success'][] = [
-                            'index' => $index,
-                            'id' => $data['id']
-                        ];
-
-                    } catch (Exception $e) {
-                        $results['failed'][] = [
-                            'index' => $index,
-                            'id' => $data['id'] ?? 'unknown',
-                            'error' => $e->getMessage()
-                        ];
-                        continue;
-                    }
-                }
-
-                // If no records were updated successfully, rollback
-                if (empty($results['success'])) {
-                    $this->rollbackTransaction();
-                    return $this->respondWithError([
-                        'message' => 'No records were updated',
-                        'details' => $results['failed']
-                    ], 422);
-                }
-
-                // Commit all successful updates
-                $this->commitTransaction();
-
-                return $this->respondWithSuccess([
-                    'message' => count($results['success']) . ' users updated successfully',
-                    'results' => $results
-                ]);
-
-            } catch (Exception $e) {
-                $this->rollbackTransaction();
-                throw $e;
-            }
-
-        } catch (Exception $e) {
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
-        }
-    }
-
-    /**
      * Upload a new profile photo for a user
      */
-    public function uploadPhoto(): array
-    {
+    public function uploadPhoto(): array {
         try {
             // Get the current user's ID
             $userId = $this->getCurrentUserId();
@@ -329,8 +206,7 @@ class UserController extends BaseController
     /**
      * Update a user's profile photo
      */
-    public function updatePhoto(int $userId = null): array
-    {
+    public function updatePhoto(int $userId = null): array {
         try {
             // Get the current user's ID
             $currentUserId = $this->getCurrentUserId();
@@ -422,8 +298,7 @@ class UserController extends BaseController
     /**
      * Get user profile by ID
      */
-    public function getUser(int $userId = null): array
-    {
+    public function getUser(int $userId = null): array {
         try {
             // Get the current user's ID
             $currentUserId = $this->getCurrentUserId();
@@ -459,7 +334,7 @@ class UserController extends BaseController
             }
 
             // Get user addresses
-            $addresses = Address::findByPerson($userId, Address::PERSON_TYPE_USER);
+            $addresses = Address::findByPerson($userId, PersonType::USER);
             if ($addresses && $addresses->count() > 0) {
                 $userData['addresses'] = $addresses->toArray();
             } else {

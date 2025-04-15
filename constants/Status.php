@@ -5,8 +5,8 @@ namespace Api\Constants;
 class Status {
     // -1: Not Verified (the user is pending of verification. Just for user authentication)
     public const int NOT_VERIFIED = -1;
-    // 0: Deactivated (the user is in temporary suspension, like vacations, or personal leave)
-    public const int DEACTIVATED = 0;
+    // 0: Inactive (the user is in temporary suspension, like vacations, or personal leave)
+    public const int INACTIVE = 0;
     // 1: Active/Normal/Visible (record is active and normally visible)
     public const int ACTIVE = 1;
     // 2: Archived (record archived)

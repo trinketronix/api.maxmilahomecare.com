@@ -16,13 +16,13 @@ use Phalcon\Filter\Validation\Validator\Uniqueness;
 
 class Auth extends Model {
     // Class constants for column names
-    public const ID = 'id';
-    public const USERNAME = 'username';
-    public const PASSWORD = 'password';
-    public const TOKEN = 'token';
-    public const EXPIRATION = 'expiration';
-    public const ROLE = 'role';
-    public const STATUS = 'status';
+    public const string ID = 'id';
+    public const string USERNAME = 'username';
+    public const string PASSWORD = 'password';
+    public const string TOKEN = 'token';
+    public const string EXPIRATION = 'expiration';
+    public const string ROLE = 'role';
+    public const string STATUS = 'status';
 
     // Model properties
     public int $id;
@@ -31,7 +31,7 @@ class Auth extends Model {
     public ?string $token = null;
     public ?int $expiration = null;
     public int $role = Role::CAREGIVER; // Default to caregiver
-    public int $status = Status::DEACTIVATED; // Default to deactivated
+    public int $status = Status::INACTIVE; // Default to deactivated
     public string $created_at;
     public string $updated_at;
 
@@ -109,7 +109,7 @@ class Auth extends Model {
         $validator->add(
             self::STATUS,
             new InclusionIn([
-                'domain' => [Status::NOT_VERIFIED, Status::DEACTIVATED, Status::ACTIVE, Status::ARCHIVED, Status::SOFT_DELETED],
+                'domain' => [Status::NOT_VERIFIED, Status::INACTIVE, Status::ACTIVE, Status::ARCHIVED, Status::SOFT_DELETED],
                 'message' => Message::STATUS_INVALID
             ])
         );

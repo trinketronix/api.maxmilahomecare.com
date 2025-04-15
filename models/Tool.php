@@ -7,17 +7,16 @@ namespace Api\Models;
 use Phalcon\Mvc\Model;
 use Phalcon\Mvc\Model\Behavior\Timestampable;
 
-class Tool extends Model
-{
+class Tool extends Model {
     // Column constants
-    public const ID = 'id';
-    public const NAME = 'name';
-    public const DESCRIPTION = 'description';
-    public const MATERIAL = 'material';
-    public const INVENTOR = 'inventor';
-    public const YEAR = 'year';
-    public const CREATED_AT = 'created_at';
-    public const UPDATED_AT = 'updated_at';
+    public const string ID = 'id';
+    public const string NAME = 'name';
+    public const string DESCRIPTION = 'description';
+    public const string MATERIAL = 'material';
+    public const string INVENTOR = 'inventor';
+    public const string YEAR = 'year';
+    public const string CREATED_AT = 'created_at';
+    public const string UPDATED_AT = 'updated_at';
 
     // Primary identification
     public ?int $id = null;
@@ -36,8 +35,7 @@ class Tool extends Model
     /**
      * Initialize model relationships and behaviors
      */
-    public function initialize(): void
-    {
+    public function initialize(): void {
         $this->setSource('tool');
 
         // Add automatic timestamp behavior
@@ -58,8 +56,7 @@ class Tool extends Model
     /**
      * Model validation
      */
-    public function validation(): bool
-    {
+    public function validation(): bool {
         $validator = new \Phalcon\Filter\Validation();
 
         // Required fields validation
@@ -95,8 +92,7 @@ class Tool extends Model
     /**
      * Find tools by material
      */
-    public static function findByMaterial(string $material): \Phalcon\Mvc\Model\ResultsetInterface
-    {
+    public static function findByMaterial(string $material): \Phalcon\Mvc\Model\ResultsetInterface {
         return self::find([
             'conditions' => 'material LIKE :material:',
             'bind' => ['material' => "%$material%"],
@@ -108,8 +104,7 @@ class Tool extends Model
     /**
      * Find tools by inventor
      */
-    public static function findByInventor(string $inventor): \Phalcon\Mvc\Model\ResultsetInterface
-    {
+    public static function findByInventor(string $inventor): \Phalcon\Mvc\Model\ResultsetInterface {
         return self::find([
             'conditions' => 'inventor LIKE :inventor:',
             'bind' => ['inventor' => "%$inventor%"],
@@ -121,8 +116,7 @@ class Tool extends Model
     /**
      * Find tools by year range
      */
-    public static function findByYearRange(int $startYear, int $endYear): \Phalcon\Mvc\Model\ResultsetInterface
-    {
+    public static function findByYearRange(int $startYear, int $endYear): \Phalcon\Mvc\Model\ResultsetInterface {
         return self::find([
             'conditions' => 'year >= :start_year: AND year <= :end_year:',
             'bind' => ['start_year' => $startYear, 'end_year' => $endYear],
@@ -134,8 +128,7 @@ class Tool extends Model
     /**
      * Search tools by name or description
      */
-    public static function search(string $query): \Phalcon\Mvc\Model\ResultsetInterface
-    {
+    public static function search(string $query): \Phalcon\Mvc\Model\ResultsetInterface {
         return self::find([
             'conditions' => 'name LIKE :query: OR description LIKE :query:',
             'bind' => ['query' => "%$query%"],

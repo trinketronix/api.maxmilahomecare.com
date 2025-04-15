@@ -135,7 +135,13 @@ if (isset($app)) {
             '/',  // Root route
             '/auth/login',
             '/auth/register',
-            '/auth/forgot-password',
+            '/auth/change/password',
+            '/bulk/auth',
+            '/bulk/user',
+            '/bulk/patients',
+            '/bulk/addresses',
+            '/bulk/user-patient',
+            '/bulk/visits',
             '/tools',  // Add this line to make the getAll route public
             //'/api/tools/search', // If you have a separate search endpoint
             // Add other public routes
