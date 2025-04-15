@@ -31,12 +31,12 @@ if (isset($container)) {
         true // shared service
     );
 
-    // In your services.php file:
+    // Token service registration with className
     $container->set(
         'tokenService',
-        function () {
-            return new TokenService();
-        },
-        true
+        [
+            'className' => TokenService::class,
+            'shared' => true
+        ]
     );
 }
