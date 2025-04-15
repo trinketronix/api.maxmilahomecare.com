@@ -1,6 +1,6 @@
 ###
 # @name Send Email
-POST {{maxmila.baseUrl}}/send-email
+POST {{maxmila.baseUrl}}/send/email
 Content-Type: application/json
 
 {

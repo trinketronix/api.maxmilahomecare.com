@@ -43,7 +43,7 @@ try {
 //        'account',
 //        'patient',
 //        'visit',
-//        'email',
+        'email',
         'tool',
         'default'
     ];
