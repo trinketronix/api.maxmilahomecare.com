@@ -285,10 +285,13 @@ if (isset($app)) {
                         JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_IGNORE
                     );
 
-                    // Store parsed body in DI for controller access
-                    $app->getDI()->set('request_body', is_array($decodedBody) ? $decodedBody : []);
+                    // Store parsed body using setShared/setData instead of set
+                    $app->getDI()->setShared('request_body', $decodedBody ?: []);
+                    // Alternative: use a property in the DI container
+                    // $app->getDI()->requestBody = $decodedBody ?: [];
                 } else {
-                    $app->getDI()->set('request_body', []);
+                    $app->getDI()->setShared('request_body', []);
+                    // Alternative: $app->getDI()->requestBody = [];
                 }
             } catch (\JsonException $e) {
                 $app->response->setStatusCode(400, 'Bad Request');
@@ -302,14 +305,17 @@ if (isset($app)) {
             }
         } else if ($baseContentType === 'multipart/form-data') {
             // For form data, we can use the standard $_POST and $_FILES
-            $app->getDI()->set('request_body', $_POST);
+            $app->getDI()->setShared('request_body', $_POST ?: []);
+            // Alternative: $app->getDI()->requestBody = $_POST ?: [];
         } else if ($baseContentType === 'application/x-www-form-urlencoded') {
             $rawBody = $app->request->getRawBody() ?: '';
             if (!empty($rawBody)) {
                 parse_str($rawBody, $parsedData);
-                $app->getDI()->set('request_body', is_array($parsedData) ? $parsedData : []);
+                $app->getDI()->setShared('request_body', $parsedData ?: []);
+                // Alternative: $app->getDI()->requestBody = $parsedData ?: [];
             } else {
-                $app->getDI()->set('request_body', []);
+                $app->getDI()->setShared('request_body', []);
+                // Alternative: $app->getDI()->requestBody = [];
             }
         }
 

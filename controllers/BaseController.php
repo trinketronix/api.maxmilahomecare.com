@@ -16,7 +16,18 @@ class BaseController extends Controller {
      * Get the parsed request body from the DI container
      */
     protected function getRequestBody(): array {
-        return $this->getDI()->get('request_body') ?? [];
+        // Use getShared() instead of get() for values that are not service definitions
+        // Or use getRaw() which returns the stored value without checking for service definitions
+        try {
+            // Try to retrieve as raw value
+            if ($this->getDI()->has('request_body')) {
+                return $this->getDI()->getRaw('request_body') ?? [];
+            }
+        } catch (\Exception $e) {
+            // If any error, return empty array
+        }
+
+        return [];
     }
 
     /**
