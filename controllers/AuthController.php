@@ -24,39 +24,35 @@ class AuthController extends BaseController {
             if (empty($data[Auth::USERNAME]) || empty($data[Auth::PASSWORD])) {
                 return $this->respondWithError(Message::CREDENTIALS_REQUIRED, 400);
             }
-            else{
-                return $this->respondWithSuccess("All good", 201);
+
+            // Validate email format
+            if (!filter_var($data[Auth::USERNAME], FILTER_VALIDATE_EMAIL)) {
+                return $this->respondWithError(Message::EMAIL_INVALID, 400);
             }
 
-//            // Validate email format
-//            if (!filter_var($data[Auth::USERNAME], FILTER_VALIDATE_EMAIL)) {
-//                return $this->respondWithError(Message::EMAIL_INVALID, 400);
-//            }
-//
-//            // Execute within transaction
-//            return $this->withTransaction(function() use ($data) {
-//                // Create new user record
-//                $auth = new Auth();
-//                $auth->username = $data[Auth::USERNAME];
-//                $auth->setPassword($data[Auth::PASSWORD]);
-//                $auth->role = Role::CAREGIVER;
-//                $auth->status = Status::NOT_VERIFIED;
-//
-//                if (!$auth->save()) {
-//                    return $this->respondWithError($auth->getMessages(), 422);
-//                }
-//
-//                if (!$auth->id) {
-//                    return $this->respondWithError(Message::DB_ID_GENERATION_FAILED, 422);
-//                }
-//
-//                if (!User::createTemplate($auth->id, $auth->username)) {
-//                    return $this->respondWithError(Message::DB_SESSION_UPDATE_FAILED, 422);
-//                }
-//
-//                return $this->respondWithSuccess(Message::USER_CREATED, 201);
-//
-//            });
+            // Execute within transaction
+            return $this->withTransaction(function() use ($data) {
+                // Create new user record
+                $auth = new Auth();
+                $auth->username = $data[Auth::USERNAME];
+                $auth->setPassword($data[Auth::PASSWORD]);
+                $auth->role = Role::CAREGIVER;
+                $auth->status = Status::NOT_VERIFIED;
+
+                if (!$auth->save()) {
+                    return $this->respondWithError($auth->getMessages(), 422);
+                }
+
+                if (!$auth->id) {
+                    return $this->respondWithError(Message::DB_ID_GENERATION_FAILED, 422);
+                }
+
+                if (!User::createTemplate($auth->id, $auth->username)) {
+                    return $this->respondWithError(Message::DB_SESSION_UPDATE_FAILED, 422);
+                }
+
+                return $this->respondWithSuccess(Message::USER_CREATED, 201);
+            });
 
         } catch (Exception $e) {
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
