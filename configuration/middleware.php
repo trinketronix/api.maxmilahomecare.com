@@ -145,6 +145,7 @@ if (isset($app)) {
             '/bulk/addresses',
             '/bulk/user-patient',
             '/bulk/visits',
+            '/send/email',
             '/tools',  // Add this line to make the getAll route public
             //'/api/tools/search', // If you have a separate search endpoint
             // Add other public routes
