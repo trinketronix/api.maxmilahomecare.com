@@ -139,6 +139,7 @@ if (isset($app)) {
             '/auth/login',
             '/auth/register',
             '/auth/change/password',
+            '/activation/{code}',
             '/bulk/auth',
             '/bulk/user',
             '/bulk/patients',
@@ -338,6 +339,20 @@ if (isset($app)) {
 
         // If it's already a Response object, don't modify it
         if ($content instanceof Response) {
+            return;
+        }
+
+        // Check if this is the activation route
+        $matchedRoute = $app->router->getMatchedRoute();
+        if ($matchedRoute && strpos($matchedRoute->getPattern(), '/activate/') === 0) {
+            // For the activation route, we expect a Response object to be returned
+            // If we reach here, something went wrong
+            $response = new Response();
+            $response->setStatusCode(500, 'Internal Server Error');
+            $response->setContentType('text/html', 'UTF-8');
+            $response->setContent('<html><body><h1>Error</h1><p>Something went wrong with the activation process.</p></body></html>');
+            $app->response = $response;
+            $response->send();
             return;
         }
 

@@ -21,7 +21,7 @@ Content-Type: application/json
 
 ###
 # @name Activate Account
-PUT {{baseUrl}}/activate/
+PUT {{baseUrl}}/activation/
 Content-Type: application/json
 Authorization: {{token}}
 

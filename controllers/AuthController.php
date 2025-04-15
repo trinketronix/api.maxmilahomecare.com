@@ -10,6 +10,7 @@ use Api\Constants\Status;
 use Api\Models\Auth;
 use Api\Models\User;
 use Api\Constants\Message;
+use Phalcon\Http\Response;
 
 class AuthController extends BaseController {
     /**
@@ -75,7 +76,7 @@ class AuthController extends BaseController {
     }
 
     /**
-     * Activate a user account
+     * Activate a user account from the system
      */
     public function activateAccount(): array {
         try {
@@ -112,6 +113,47 @@ class AuthController extends BaseController {
 
         } catch (Exception $e) {
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        }
+    }
+
+    /**
+     * Activate a user account from email
+     */
+    public function activation(string $edoc): Response{
+        try {
+            // Create response object
+            $response = new \Phalcon\Http\Response();
+            $response->setContentType('text/html', 'UTF-8');
+
+            $code = strrev($edoc);
+            $auth = Auth::findFirstPassword($code);
+
+            if (!$auth) {
+                $htmlResponse = $this->getActivationResponseHtml(false, 'Invalid activation code or account already activated');
+                $response->setContent($htmlResponse);
+                return $response;
+            }
+
+            $auth->status = Status::ACTIVE;
+
+            if (!$auth->save()) {
+                $htmlResponse = $this->getActivationResponseHtml(false, 'Failed to activate account. Please try again.');
+                $response->setContent($htmlResponse);
+                return $response;
+            }
+
+            // Return success HTML
+            $htmlResponse = $this->getActivationResponseHtml(true, 'Your account has been successfully activated! You can now log in.');
+            $response->setContent($htmlResponse);
+
+            return $response;
+
+        } catch (Exception $e) {
+            $response = new \Phalcon\Http\Response();
+            $response->setContentType('text/html', 'UTF-8');
+            $htmlResponse = $this->getActivationResponseHtml(false, 'An error occurred: ' . $e->getMessage());
+            $response->setContent($htmlResponse);
+            return $response;
         }
     }
 
@@ -304,20 +346,20 @@ class AuthController extends BaseController {
     /**
      * Send Activation code email
      */
-    private function sendActivationEmail(string $username, string $password): bool {
+    private function sendActivationEmail(string $address, string $code): bool {
 
-        $baseUrl = getenv('APP_URL') ?: Message::BASE_URL;
+        $baseUrl = getenv('BASE_URL') ?: Message::BASE_URL;
 
-        $address = $username;
         $subject = 'Activate Maxmila Account';
-        $code = strrev($password);
-        $link = $baseUrl . "/activation/$code";
-        $body = "Welcome to Maxmila Homecare!\n\n";
-        $body .= "Please click the link below to activate your account:\n";
-        $body .= "$link \n\n";
-        $body .= "This link will expire in 72 hours.\n\n";
-        $body .= "If you receive this email by mistake, you can safely ignore this email.\n\n";
-        $body .= "Thank you,\nMaxmila Homecare Team";
+        $edoc= strrev($code);
+        $link = "$baseUrl/activation/$edoc";
+        $body = "<h1>Welcome to Maxmila Homecare!</h1>>";
+        $body .= "<p>Please click the link below to activate your account:</p>";
+        $body .= "<a href=\"$link\">Click Here to Activate your Account</a>";
+        $body .= "<p>This link will expire in 72 hours.</p>";
+        $body .= "<p>If you receive this email by mistake, you can safely ignore this email.</p>";
+        $body .= "<h3>Thank you</h3>";
+        $body .= "<h4>Maxmila Homecare & Trinketronix ®️Copyright 2025<h4>";
 
         $result = $this->processEmail($address, $subject, $body);
 
@@ -328,5 +370,85 @@ class AuthController extends BaseController {
         else {
             error_log("AuthController->sendActivationEmail(): fail $message");
             return false;}
+    }
+
+    /**
+     * Generate HTML for activation response
+     *
+     * @param bool $success Whether activation was successful
+     * @param string $message Message to display
+     * @return string HTML content
+     */
+    private function getActivationResponseHtml(bool $success, string $message): string
+    {
+        $title = $success ? 'Account Activated' : 'Activation Failed';
+        $color = $success ? '#4CAF50' : '#F44336';
+        $appName = \Api\Constants\Api::NAME;
+
+        return <<<HTML
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{$title} - {$appName}</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 500px;
+        }
+        h1 {
+            color: {$color};
+            margin-bottom: 20px;
+        }
+        p {
+            font-size: 18px;
+            line-height: 1.6;
+            color: #555;
+        }
+        .logo {
+            margin-bottom: 20px;
+        }
+        .button {
+            display: inline-block;
+            background-color: #007BFF;
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-top: 20px;
+            transition: background-color 0.3s;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <h2>{$appName}</h2>
+        </div>
+        <h1>{$title}</h1>
+        <p>{$message}</p>
+        <a href="https://app.maxmilahomecare.com/login" class="button">Go to Login</a>
+    </div>
+</body>
+</html>
+HTML;
     }
 }
