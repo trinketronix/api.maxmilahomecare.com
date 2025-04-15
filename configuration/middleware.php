@@ -139,7 +139,7 @@ if (isset($app)) {
             '/auth/login',
             '/auth/register',
             '/auth/change/password',
-            '/activation/{code}',
+            '/activation/{edoc}',
             '/bulk/auth',
             '/bulk/user',
             '/bulk/patients',
