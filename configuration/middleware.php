@@ -48,9 +48,12 @@ if (isset($app)) {
 
         // Check if it's an upload request
         $isUploadRequest = false;
-        $routePattern = $app->router->getMatchedRoute()->getPattern();
-        if (strpos($routePattern, '/upload') !== false) {
-            $isUploadRequest = true;
+        $matchedRoute = $app->router->getMatchedRoute();
+        if ($matchedRoute) {
+            $routePattern = $matchedRoute->getPattern();
+            if (strpos($routePattern, '/upload') !== false) {
+                $isUploadRequest = true;
+            }
         }
 
         // Validate appropriate content type based on request type
