@@ -28,7 +28,6 @@ class BaseController extends Controller {
         } catch (\Exception $e) {
             // If any error, return empty array
         }
-
         return [];
     }
 
@@ -36,7 +35,15 @@ class BaseController extends Controller {
      * Get the authenticated user data from the DI container
      */
     protected function getAuthUser(): ?array {
-        return $this->getDI()->get('auth_user') ?? null;
+        try {
+            // Try to retrieve as raw value
+            if ($this->getDI()->has('decodedToken')) {
+                return $this->getDI()->getRaw('decodedToken') ?? [];
+            }
+        } catch (\Exception $e) {
+            // If any error, return empty array
+        }
+        return [];
     }
 
     /**
