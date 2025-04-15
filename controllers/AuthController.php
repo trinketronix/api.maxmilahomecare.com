@@ -53,9 +53,9 @@ class AuthController extends BaseController {
                     return $this->respondWithError(Message::DB_ID_GENERATION_FAILED, 422);
                 }
 
-                if (!User::createTemplate($auth->id, $auth->username)) {
-                    return $this->respondWithError(Message::DB_SESSION_UPDATE_FAILED, 422);
-                }
+//                if (!User::createTemplate($auth->id, $auth->username)) {
+//                    return $this->respondWithError(Message::DB_SESSION_UPDATE_FAILED, 422);
+//                }
 
                 return $this->respondWithSuccess(Message::USER_CREATED, 201);
             });
