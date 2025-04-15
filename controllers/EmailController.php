@@ -14,9 +14,7 @@ class EmailController extends BaseController{
     // more than one CC and BCC and attachments
 
     public function send(): Response{
-        // Validate Header -> Content-Type: application/json
-        $contentTypeCheck = $this->validateJsonContentType();
-        if ($contentTypeCheck instanceof Response) return $contentTypeCheck;
+
         $data = $this->getRequestBody();
         // Validate the recipient "to"
         if (empty($data[Email::TO]))
