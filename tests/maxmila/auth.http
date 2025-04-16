@@ -38,13 +38,13 @@ Authorization: {{maxmila.token}}
 
 ###
 # @name Change Role
-PUT {{baseUrl}}/change-role
+PUT {{baseUrl}}/auth/change/role
 Content-Type: application/json
 Authorization: {{token}}
 
 {
-  "username": "paulmccartney@applerecords.com",
-  "role": 0
+  "id": 1,
+  "role": 1
 }
 
 ###

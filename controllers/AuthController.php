@@ -205,11 +205,11 @@ class AuthController extends BaseController {
 
             $data = $this->getRequestBody();
 
-            if (empty($data[Auth::USERNAME]) || !isset($data[Auth::ROLE])) {
-                return $this->respondWithError('User and role were expected', 400);
+            if (empty($data[Auth::ID]) || !isset($data[Auth::ROLE])) {
+                return $this->respondWithError(Message::USER_ID_ROLE_REQUIRED, 405);
             }
 
-            $username = $data[Auth::USERNAME];
+            $id = $data[Auth::ID];
             $userRole = (int)$data[Auth::ROLE];
 
             // Validate role
@@ -217,7 +217,7 @@ class AuthController extends BaseController {
                 return $this->respondWithError(Message::ROLE_INVALID, 400);
             }
 
-            $auth = Auth::findFirstByUsername($username);
+            $auth = Auth::findFirstById($id);
 
             if (!$auth) {
                 return $this->respondWithError(Message::USER_NOT_FOUND, 404);
