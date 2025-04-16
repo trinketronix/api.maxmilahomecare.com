@@ -27,6 +27,7 @@ class Message {
     public const USER_ACTIVATION_FAILED = 'User activation failed';
     public const USER_NOT_FOUND = 'User not found';
     public const USER_ID_REQUIRED = 'User ID is required';
+    public const USER_ID_ROLE_REQUIRED = 'User ID and role are required';
 
     // Password operations
     public const PASSWORD_CHANGED = 'Password changed successfully';
