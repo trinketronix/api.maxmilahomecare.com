@@ -29,6 +29,12 @@ Authorization: {{maxmila.token}}
   "id": 1
 }
 
+###
+# @name Renew Token
+PUT {{maxmila.baseUrl}}/auth/renew/token
+Content-Type: application/json
+Authorization: {{maxmila.token}}
+
 
 ###
 # @name Change Role

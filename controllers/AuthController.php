@@ -171,22 +171,18 @@ class AuthController extends BaseController {
             $userId = $this->getCurrentUserId();
             $auth = $this->getAuthUserById($userId);
 
-            if (!$auth) {
-                return $this->respondWithError(Message::INVALID_CREDENTIALS, 401);
-            }
+            if (!$auth)  return $this->respondWithError(Message::INVALID_CREDENTIALS, 401);
 
             // Token service should now be available through DI
             $tokenService = $this->getDI()->get('tokenService');
-            $newToken = $tokenService->createToken($auth);
-            $newExpiration = $tokenService->getExpiration($newToken);
+            $newExpiration = $tokenService->generateTokenExpirationTime();
+            $newToken = $tokenService->createToken($auth, $newExpiration);
 
             return $this->withTransaction(function() use ($auth, $newToken, $newExpiration) {
                 $auth->token = $newToken;
                 $auth->expiration = $newExpiration;
 
-                if (!$auth->save()) {
-                    return $this->respondWithError(Message::TOKEN_INVALID, 409);
-                }
+                if (!$auth->save()) return $this->respondWithError(Message::TOKEN_INVALID, 409);
 
                 return $this->respondWithSuccess([
                     Auth::TOKEN => $newToken
