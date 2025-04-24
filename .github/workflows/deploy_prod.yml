@@ -37,9 +37,9 @@ jobs:
       - name: Sync files for Production
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          server: ${{ secrets.FTP_MAXMILA_SERVER_PROD }}
-          username: ${{ secrets.FTP_MAXMILA_USERNAME_PROD }}
-          password: ${{ secrets.FTP_MAXMILA_PASSWORD_PROD }}
+          server: ${{ secrets.FTP_MAX_SERVER }}
+          username: ${{ secrets.FTP_APP_USERNAME_PROD }}
+          password: ${{ secrets.FTP_APP_PASSWORD_PROD }}
           protocol: ftps
           timeout: 90000          # Increased timeout to 60s
           max-retries: 3          # Add retry attempts
