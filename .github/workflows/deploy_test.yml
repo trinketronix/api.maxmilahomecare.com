@@ -17,9 +17,9 @@ jobs:
       - name: Sync files for Testing
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          server: ${{ secrets.FTP_MAXMILA_SERVER_TEST }}
-          username: ${{ secrets.FTP_MAXMILA_USERNAME_TEST }}
-          password: ${{ secrets.FTP_MAXMILA_PASSWORD_TEST }}
+          server: ${{ secrets.FTP_MAX_SERVER }}
+          username: ${{ secrets.FTP_API_USERNAME_TEST }}
+          password: ${{ secrets.FTP_API_PASSWORD_TEST }}
           protocol: ftps
           timeout: 90000          # Increased timeout to 90s
           max-retries: 3          # Add retry attempts
