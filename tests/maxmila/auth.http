@@ -5,8 +5,8 @@ POST {{maxmila.baseUrl}}/auth/register
 Content-Type: application/json
 
 {
-  "username": "toddsalpen@gmail.com",
-  "password": "ToddSalpen6589"
+  "username": "edmundo_ch@hotmail.com",
+  "password": "edmundo2025"
 }
 
 ###
@@ -38,9 +38,9 @@ Authorization: {{maxmila.token}}
 
 ###
 # @name Change Role
-PUT {{baseUrl}}/auth/change/role
+PUT {{maxmila.baseUrl}}/auth/change/role
 Content-Type: application/json
-Authorization: {{token}}
+Authorization: {{maxmila.token}}
 
 {
   "id": 1,
@@ -48,53 +48,11 @@ Authorization: {{token}}
 }
 
 ###
-# @name Change Password
-PUT {{baseUrl}}/change-password
-
-###
-# @name Get List of Auths
-GET {{baseUrl}}/auths
+# @name Change Password from system
+PUT {{maxmila.baseUrl}}/auth/change/password
 Content-Type: application/json
-Authorization: {{token}}
 
-###
-# @name Get List of Caregivers Accounts
-GET {{baseUrl}}/caregivers
-Content-Type: application/json
-Authorization: {{token}}
-
-###
-# @name Get List of Managers Accounts
-GET {{baseUrl}}/managers
-Content-Type: application/json
-Authorization: {{token}}
-
-###
-# @name Get List of Administrator Accounts
-GET {{baseUrl}}/administrators
-Content-Type: application/json
-Authorization: {{token}}
-
-###
-# @name Get List of Not Activated Accounts
-GET {{baseUrl}}/not-activated
-Content-Type: application/json
-Authorization: {{token}}
-
-###
-# @name Get List of Activated Accounts
-GET {{baseUrl}}/activated
-Content-Type: application/json
-Authorization: {{token}}
-
-###
-# @name Get List of Deactivated Accounts
-GET {{baseUrl}}/deactivated
-Content-Type: application/json
-Authorization: {{token}}
-
-###
-# @name Get List of Soft Deleted Accounts
-GET {{baseUrl}}/soft-deleted
-Content-Type: application/json
-Authorization: {{token}}
+{
+  "username": "toddsalpen@gmail.com",
+  "password": "ToddSalpen6589"
+}
