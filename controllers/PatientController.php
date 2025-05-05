@@ -337,4 +337,74 @@ class PatientController extends BaseController {
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }
+
+    /**
+     * Get all patients
+     * Restricted to Managers and Administrators only
+     */
+    public function getAll(): array {
+        try {
+            // Check if the current user has appropriate role (admin or manager)
+            if (!$this->isManagerOrHigher())
+                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
+
+            // Fetch all patients
+            $patients = Patient::find([
+                'order' => 'lastname, firstname'
+            ]);
+
+            if (!$patients)
+                return $this->respondWithError(Message::DB_QUERY_FAILED, 500);
+
+            if ($patients->count() === 0)
+                return $this->respondWithSuccess(Message::DB_NO_RECORDS, 204);
+
+            // Get patient data
+            $patientsArray = [];
+            foreach ($patients as $patient) {
+                $patientData = $patient->toArray();
+
+                // Get patient's addresses
+                $addresses = $patient->getAddresses();
+                if ($addresses && $addresses->count() > 0) {
+                    $patientData['addresses'] = $addresses->toArray();
+                } else {
+                    $patientData['addresses'] = [];
+                }
+
+                $patientsArray[] = $patientData;
+            }
+
+            return $this->respondWithSuccess([
+                'count' => $patients->count(),
+                'patients' => $patientsArray
+            ]);
+
+        } catch (Exception $e) {
+            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        }
+    }
+
+    /**
+     * Get a patient by ID
+     */
+    public function getById(int $id): array {
+        try {
+            // Verify user has permission to view patients
+            if (!$this->isManagerOrHigher()) {
+                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
+            }
+
+            // Find patient
+            $patient = Patient::findFirst($id);
+            if (!$patient) {
+                return $this->respondWithError(Message::PATIENT_NOT_FOUND, 404);
+            }
+
+            return $this->respondWithSuccess($patient->toArray());
+
+        } catch (Exception $e) {
+            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        }
+    }
 }
