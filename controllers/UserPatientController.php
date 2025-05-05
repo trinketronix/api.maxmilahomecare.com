@@ -20,9 +20,8 @@ class UserPatientController extends BaseController {
     public function create(): array {
         try {
             // Verify manager role or higher
-            if (!$this->isManagerOrHigher()) {
+            if (!$this->isManagerOrHigher())
                 return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
-            }
 
             $data = $this->getRequestBody();
 
@@ -33,9 +32,8 @@ class UserPatientController extends BaseController {
             ];
 
             foreach ($requiredFields as $field => $message) {
-                if (empty($data[$field])) {
+                if (empty($data[$field]))
                     return $this->respondWithError($message, 400);
-                }
             }
 
             $userId = (int)$data[UserPatient::USER_ID];
@@ -43,15 +41,13 @@ class UserPatientController extends BaseController {
 
             // Check if user exists
             $user = User::findFirst($userId);
-            if (!$user) {
+            if (!$user)
                 return $this->respondWithError(Message::USER_NOT_FOUND, 404);
-            }
 
             // Check if patient exists
             $patient = Patient::findFirst($patientId);
-            if (!$patient) {
+            if (!$patient)
                 return $this->respondWithError(Message::PATIENT_NOT_FOUND, 404);
-            }
 
             // Check if assignment already exists
             $existingAssignment = UserPatient::findAssignment($userId, $patientId);
@@ -63,13 +59,11 @@ class UserPatientController extends BaseController {
                         $existingAssignment->assigned_by = $this->getCurrentUserId();
                         $existingAssignment->assigned_at = date('Y-m-d H:i:s');
 
-                        if (isset($data[UserPatient::NOTES])) {
+                        if (isset($data[UserPatient::NOTES]))
                             $existingAssignment->notes = $data[UserPatient::NOTES];
-                        }
 
-                        if (!$existingAssignment->save()) {
+                        if (!$existingAssignment->save())
                             return $this->respondWithError($existingAssignment->getMessages(), 422);
-                        }
 
                         return $this->respondWithSuccess([
                             'message' => 'User-patient assignment reactivated successfully',
@@ -88,13 +82,11 @@ class UserPatientController extends BaseController {
                 $assignment->patient_id = $patientId;
                 $assignment->assigned_by = $this->getCurrentUserId();
 
-                if (isset($data[UserPatient::NOTES])) {
+                if (isset($data[UserPatient::NOTES]))
                     $assignment->notes = $data[UserPatient::NOTES];
-                }
 
-                if (!$assignment->save()) {
+                if (!$assignment->save())
                     return $this->respondWithError($assignment->getMessages(), 422);
-                }
 
                 return $this->respondWithSuccess([
                     'message' => 'User-patient assignment created successfully',
@@ -117,28 +109,24 @@ class UserPatientController extends BaseController {
     public function deactivate(int $userId, int $patientId): array {
         try {
             // Verify manager role or higher
-            if (!$this->isManagerOrHigher()) {
+            if (!$this->isManagerOrHigher())
                 return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
-            }
 
             // Find the assignment
             $assignment = UserPatient::findAssignment($userId, $patientId);
 
-            if (!$assignment) {
+            if (!$assignment)
                 return $this->respondWithError('Assignment not found', 404);
-            }
 
-            if ($assignment->status === Status::INACTIVE) {
+            if ($assignment->status === Status::INACTIVE)
                 return $this->respondWithError('Assignment is already inactive', 400);
-            }
 
             // Deactivate assignment within transaction
             return $this->withTransaction(function() use ($assignment) {
                 $assignment->status = Status::INACTIVE;
 
-                if (!$assignment->save()) {
+                if (!$assignment->save())
                     return $this->respondWithError($assignment->getMessages(), 422);
-                }
 
                 return $this->respondWithSuccess([
                     'message' => 'Assignment deactivated successfully',
@@ -153,6 +141,9 @@ class UserPatientController extends BaseController {
 
     /**
      * Get all patients assigned to a user
+     * Access restricted to:
+     * - The user themselves
+     * - Managers and Administrators
      *
      * @param int $userId User ID
      * @return array Response data
@@ -161,15 +152,15 @@ class UserPatientController extends BaseController {
         try {
             // Check if user exists
             $user = User::findFirst($userId);
-            if (!$user) {
+            if (!$user)
                 return $this->respondWithError(Message::USER_NOT_FOUND, 404);
-            }
 
-            // Check authorization (users can only see their own assignments unless manager+)
+            // Check authorization:
+            // - Allow if the current user is requesting their own patients
+            // - Allow if the current user is a manager or administrator
             $currentUserId = $this->getCurrentUserId();
-            if ($currentUserId !== $userId && !$this->isManagerOrHigher()) {
-                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
-            }
+            if ($currentUserId !== $userId && !$this->isManagerOrHigher())
+                return $this->respondWithError(Message::UNAUTHORIZED_ACCESS, 403);
 
             // Get all active patients for this user
             $patients = $user->patients;
@@ -181,9 +172,36 @@ class UserPatientController extends BaseController {
                 ]);
             }
 
+            // Prepare patient data with additional information
+            $patientsData = [];
+            foreach ($patients as $patient) {
+                $patientInfo = $patient->toArray();
+
+                // Get patient's addresses
+                $addresses = $patient->getAddresses();
+                if ($addresses && $addresses->count() > 0) {
+                    $patientInfo['addresses'] = $addresses->toArray();
+                } else {
+                    $patientInfo['addresses'] = [];
+                }
+
+                // Add assignment details
+                $assignment = UserPatient::findAssignment($userId, $patient->id);
+                if ($assignment) {
+                    $patientInfo['assignment'] = [
+                        'assigned_at' => $assignment->assigned_at,
+                        'assigned_by' => $assignment->assigned_by,
+                        'notes' => $assignment->notes,
+                        'status' => $assignment->status
+                    ];
+                }
+
+                $patientsData[] = $patientInfo;
+            }
+
             return $this->respondWithSuccess([
                 'count' => count($patients),
-                'patients' => $patients->toArray()
+                'patients' => $patientsData
             ]);
 
         } catch (Exception $e) {
@@ -200,15 +218,13 @@ class UserPatientController extends BaseController {
     public function getPatientUsers(int $patientId): array {
         try {
             // Verify manager role or higher
-            if (!$this->isManagerOrHigher()) {
+            if (!$this->isManagerOrHigher())
                 return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
-            }
 
             // Check if patient exists
             $patient = Patient::findFirst($patientId);
-            if (!$patient) {
+            if (!$patient)
                 return $this->respondWithError(Message::PATIENT_NOT_FOUND, 404);
-            }
 
             // Get all active users for this patient
             $users = $patient->users;

@@ -32,6 +32,7 @@ class Message {
     // Password operations
     public const PASSWORD_CHANGED = 'Password changed successfully';
     public const PASSWORD_CHANGE_FAILED = 'Failed to change password';
+    public const PLEASE_RENEW_TOKEN = 'Please renew the token also';
 
     // Role operations
     public const ROLE_CHANGED = 'User role changed successfully';

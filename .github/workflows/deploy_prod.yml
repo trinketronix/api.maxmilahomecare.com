@@ -7,7 +7,7 @@ on:
       reason:
         description: 'Reason for manual deployment'
         required: true
-        default: 'Hotfix deployment'
+        default: 'Manual update and deployment'
       environment:
         description: 'Environment to deploy to'
         required: true
@@ -16,7 +16,6 @@ on:
         options:
           - production
           - staging
-
 jobs:
   deploy:
     name: Deploy Production

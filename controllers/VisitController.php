@@ -151,6 +151,252 @@ class VisitController extends BaseController {
     }
 
     /**
+     * Get a specific visit by ID
+     */
+    public function getById(int $id): array {
+        try {
+            // Get current user ID
+            $currentUserId = $this->getCurrentUserId();
+
+            // Find visit
+            $visit = Visit::findFirst($id);
+            if (!$visit) {
+                return $this->respondWithError('Visit not found', 404);
+            }
+
+            // Authorization check: can only view own visits or as manager/admin
+            if ($visit->user_id !== $currentUserId && !$this->isManagerOrHigher()) {
+                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
+            }
+
+            // Get related data
+            $visitData = $visit->toArray();
+            $visitData['user'] = $visit->user ? $visit->user->toArray() : null;
+            $visitData['patient'] = $visit->patient ? $visit->patient->toArray() : null;
+            $visitData['duration_minutes'] = $visit->getDurationMinutes();
+            $visitData['progress_description'] = $visit->getProgressDescription();
+
+            return $this->respondWithSuccess($visitData);
+
+        } catch (Exception $e) {
+            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        }
+    }
+
+    /**
+     * Get visits with optional filtering
+     */
+    public function getVisits(): array {
+        try {
+            // Get query parameters for filtering
+            $userId = $this->request->getQuery('user_id', 'int', null);
+            $patientId = $this->request->getQuery('patient_id', 'int', null);
+            $progress = $this->request->getQuery('progress', 'int', null);
+            $status = $this->request->getQuery('status', 'int', Status::ACTIVE);
+            $startDate = $this->request->getQuery('start_date', 'string', null);
+            $endDate = $this->request->getQuery('end_date', 'string', null);
+            $page = $this->request->getQuery('page', 'int', 1);
+            $pageSize = $this->request->getQuery('pageSize', 'int', 50);
+
+            // Build query parameters
+            $params = [
+                'status' => $status,
+                'order' => 'DESC'
+            ];
+
+            if ($progress !== null) {
+                $params['progress'] = $progress;
+            }
+
+            if ($startDate && $endDate) {
+                $params['start_date'] = $startDate;
+                $params['end_date'] = $endDate;
+            }
+
+            // Get visits based on parameters
+            if ($userId) {
+                // Check authorization for accessing user-specific visits
+                $currentUserId = $this->getCurrentUserId();
+                if ($userId !== $currentUserId && !$this->isManagerOrHigher()) {
+                    return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
+                }
+                $visits = Visit::findByUser($userId, $params);
+            } elseif ($patientId) {
+                // Managers and above can access patient visits
+                if (!$this->isManagerOrHigher()) {
+                    return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
+                }
+                $visits = Visit::findByPatient($patientId, $params);
+            } else {
+                // General visit query - managers and above only
+                if (!$this->isManagerOrHigher()) {
+                    return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
+                }
+                $visits = Visit::find([
+                    'conditions' => 'status = :status:',
+                    'bind' => ['status' => $status],
+                    'order' => 'start_time DESC'
+                ]);
+            }
+
+            // Convert to array and add additional data
+            $visitArray = [];
+            foreach ($visits as $visit) {
+                $visitData = $visit->toArray();
+                $visitData['duration_minutes'] = $visit->getDurationMinutes();
+                $visitData['progress_description'] = $visit->getProgressDescription();
+                $visitArray[] = $visitData;
+            }
+
+            return $this->respondWithSuccess([
+                'data' => $visitArray,
+                'count' => count($visitArray)
+            ]);
+
+        } catch (Exception $e) {
+            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        }
+    }
+
+    /**
+     * Get visits for a specific user
+     */
+    public function getUserVisits(int $userId): array {
+        try {
+            // Check authorization
+            $currentUserId = $this->getCurrentUserId();
+            if ($userId !== $currentUserId && !$this->isManagerOrHigher()) {
+                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
+            }
+
+            // Get query parameters
+            $progress = $this->request->getQuery('progress', 'int', null);
+            $status = $this->request->getQuery('status', 'int', Status::ACTIVE);
+            $startDate = $this->request->getQuery('start_date', 'string', null);
+            $endDate = $this->request->getQuery('end_date', 'string', null);
+
+            // Build parameters
+            $params = [
+                'status' => $status,
+                'order' => 'DESC'
+            ];
+
+            if ($progress !== null) {
+                $params['progress'] = $progress;
+            }
+
+            if ($startDate && $endDate) {
+                $params['start_date'] = $startDate;
+                $params['end_date'] = $endDate;
+            }
+
+            // Get visits
+            $visits = Visit::findByUser($userId, $params);
+
+            // Convert to array and add additional data
+            $visitArray = [];
+            foreach ($visits as $visit) {
+                $visitData = $visit->toArray();
+                $visitData['duration_minutes'] = $visit->getDurationMinutes();
+                $visitData['progress_description'] = $visit->getProgressDescription();
+                $visitData['patient'] = $visit->patient ? $visit->patient->toArray() : null;
+                $visitArray[] = $visitData;
+            }
+
+            return $this->respondWithSuccess($visitArray);
+
+        } catch (Exception $e) {
+            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        }
+    }
+
+    /**
+     * Get visits for a specific patient
+     */
+    public function getPatientVisits(int $patientId): array {
+        try {
+            // Verify manager role or higher
+            if (!$this->isManagerOrHigher()) {
+                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
+            }
+
+            // Get query parameters
+            $progress = $this->request->getQuery('progress', 'int', null);
+            $status = $this->request->getQuery('status', 'int', Status::ACTIVE);
+            $startDate = $this->request->getQuery('start_date', 'string', null);
+            $endDate = $this->request->getQuery('end_date', 'string', null);
+
+            // Build parameters
+            $params = [
+                'status' => $status,
+                'order' => 'DESC'
+            ];
+
+            if ($progress !== null) {
+                $params['progress'] = $progress;
+            }
+
+            if ($startDate && $endDate) {
+                $params['start_date'] = $startDate;
+                $params['end_date'] = $endDate;
+            }
+
+            // Get visits
+            $visits = Visit::findByPatient($patientId, $params);
+
+            // Convert to array and add additional data
+            $visitArray = [];
+            foreach ($visits as $visit) {
+                $visitData = $visit->toArray();
+                $visitData['duration_minutes'] = $visit->getDurationMinutes();
+                $visitData['progress_description'] = $visit->getProgressDescription();
+                $visitData['user'] = $visit->user ? $visit->user->toArray() : null;
+                $visitArray[] = $visitData;
+            }
+
+            return $this->respondWithSuccess($visitArray);
+
+        } catch (Exception $e) {
+            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        }
+    }
+
+    /**
+     * Get today's visits
+     */
+    public function getTodaysVisits(): array {
+        try {
+            // Check if user has permission to view today's visits
+            $currentUserId = $this->getCurrentUserId();
+            $userId = null;
+
+            // If not manager or higher, only show own visits
+            if (!$this->isManagerOrHigher()) {
+                $userId = $currentUserId;
+            }
+
+            // Get today's visits
+            $visits = Visit::findTodaysVisits($userId);
+
+            // Convert to array and add additional data
+            $visitArray = [];
+            foreach ($visits as $visit) {
+                $visitData = $visit->toArray();
+                $visitData['duration_minutes'] = $visit->getDurationMinutes();
+                $visitData['progress_description'] = $visit->getProgressDescription();
+                $visitData['user'] = $visit->user ? $visit->user->toArray() : null;
+                $visitData['patient'] = $visit->patient ? $visit->patient->toArray() : null;
+                $visitArray[] = $visitData;
+            }
+
+            return $this->respondWithSuccess($visitArray);
+
+        } catch (Exception $e) {
+            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        }
+    }
+
+    /**
      * Update an existing visit
      */
     public function update(int $id): array {

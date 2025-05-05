@@ -198,7 +198,7 @@ class BaseController extends Controller {
         }
     }
 
-    protected function processEmail(string $to, string $subject, string $body): ?array {
+    protected function processEmail(string $to, string $subject, string $body, bool $isHtml = false): ?array {
         try {
             $mail = new Sender(true);
             $mail->isSMTP();
@@ -213,8 +213,10 @@ class BaseController extends Controller {
             $mail->setFrom(getenv('EMAIL_REP_ADDR') ?: 'no-reply@maxmilahomecare.com', getenv('EMAIL_REP_NAME') ?: 'Maxmila Homecare Test System');
             $mail->addAddress($to);
 
+            $mail->isHTML($isHtml);
             $mail->Subject = $subject;
             $mail->Body = $body;
+            if($isHtml) $mail->AltBody = strip_tags($body);
 
             return $mail->send();
         } catch (\Exception $e) {

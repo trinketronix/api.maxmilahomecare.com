@@ -22,14 +22,12 @@ class AuthController extends BaseController {
             $data = $this->getRequestBody();
 
             // Validate required fields
-            if (empty($data[Auth::USERNAME]) || empty($data[Auth::PASSWORD])) {
+            if (empty($data[Auth::USERNAME]) || empty($data[Auth::PASSWORD]))
                 return $this->respondWithError(Message::CREDENTIALS_REQUIRED, 400);
-            }
 
             // Validate email format
-            if (!filter_var($data[Auth::USERNAME], FILTER_VALIDATE_EMAIL)) {
+            if (!filter_var($data[Auth::USERNAME], FILTER_VALIDATE_EMAIL))
                 return $this->respondWithError(Message::EMAIL_INVALID, 400);
-            }
 
             // Execute within transaction
             return $this->withTransaction(function() use ($data) {
@@ -40,21 +38,17 @@ class AuthController extends BaseController {
                 $auth->role = Role::CAREGIVER;
                 $auth->status = Status::NOT_VERIFIED;
 
-                if (!$auth->save()) {
+                if (!$auth->save())
                     return $this->respondWithError($auth->getMessages(), 422);
-                }
 
-                if (!$auth->id) {
+                if (!$auth->id)
                     return $this->respondWithError(Message::DB_ID_GENERATION_FAILED, 422);
-                }
 
-                if (!User::createTemplate($auth->id, $auth->username)) {
+                if (!User::createTemplate($auth->id, $auth->username))
                     return $this->respondWithError(Message::DB_SESSION_UPDATE_FAILED, 422);
-                }
 
-                if(!$this->sendActivationEmail($auth->username, $auth->password)){
+                if(!$this->sendActivationEmail($auth->username, $auth->password))
                     return $this->respondWithSuccess(Message::USER_CREATED." activation email fail", 201);
-                }
 
                 return $this->respondWithSuccess(Message::USER_CREATED." and ". Message::EMAIL_ACTIVATION_SENT, 201);
             });
@@ -82,29 +76,25 @@ class AuthController extends BaseController {
         try {
             // Role validation should now be done by middleware
             // If we need additional role checking for this specific operation:
-            if (!$this->isManagerOrHigher()) {
+            if (!$this->isManagerOrHigher())
                 return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 401);
-            }
 
             $data = $this->getRequestBody();
 
-            if (empty($data[Auth::ID])) {
+            if (empty($data[Auth::ID]))
                 return $this->respondWithError(Message::ID_REQUIRED, 400);
-            }
 
             $id = $data[Auth::ID];
             $auth = Auth::findFirstById($id);
 
-            if (!$auth) {
+            if (!$auth)
                 return $this->respondWithError(Message::ID_NOT_FOUND, 404);
-            }
 
             return $this->withTransaction(function() use ($auth) {
                 $auth->status = Status::ACTIVE;
 
-                if (!$auth->save()) {
+                if (!$auth->save())
                     return $this->respondWithError(Message::USER_ACTIVATION_FAILED, 409);
-                }
 
                 return $this->respondWithSuccess([
                     'message' => Message::USER_ACTIVATED
@@ -199,36 +189,31 @@ class AuthController extends BaseController {
      */
     public function changeRole(): array {
         try {
-            if (!$this->isManagerOrHigher()) {
+            if (!$this->isManagerOrHigher())
                 return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 401);
-            }
 
             $data = $this->getRequestBody();
 
-            if (empty($data[Auth::ID]) || !isset($data[Auth::ROLE])) {
+            if (empty($data[Auth::ID]) || !isset($data[Auth::ROLE]))
                 return $this->respondWithError(Message::USER_ID_ROLE_REQUIRED, 405);
-            }
 
             $id = $data[Auth::ID];
             $userRole = (int)$data[Auth::ROLE];
 
             // Validate role
-            if (!in_array($userRole, [Role::ADMINISTRATOR, Role::MANAGER, Role::CAREGIVER])) {
+            if (!in_array($userRole, [Role::ADMINISTRATOR, Role::MANAGER, Role::CAREGIVER]))
                 return $this->respondWithError(Message::ROLE_INVALID, 400);
-            }
 
             $auth = Auth::findFirstById($id);
 
-            if (!$auth) {
+            if (!$auth)
                 return $this->respondWithError(Message::USER_NOT_FOUND, 404);
-            }
 
             return $this->withTransaction(function() use ($auth, $userRole) {
                 $auth->role = $userRole;
 
-                if (!$auth->save()) {
+                if (!$auth->save())
                     return $this->respondWithError(Message::ROLE_CHANGE_FAILED, 409);
-                }
 
                 return $this->respondWithSuccess([
                     'message' => Message::ROLE_CHANGED
@@ -241,32 +226,29 @@ class AuthController extends BaseController {
     }
 
     /**
-     * Change a user's password
+     * Change a user's password from system
      */
     public function changePassword(): array {
         try {
             $data = $this->getRequestBody();
 
-            if (empty($data[Auth::USERNAME]) || empty($data[Auth::PASSWORD])) {
+            if (empty($data[Auth::USERNAME]) || empty($data[Auth::PASSWORD]))
                 return $this->respondWithError('Username and new password is expected', 400);
-            }
 
             $username = $data[Auth::USERNAME];
             $auth = Auth::findFirstByUsername($username);
 
-            if (!$auth) {
+            if (!$auth)
                 return $this->respondWithError(Message::EMAIL_NOT_FOUND, 404);
-            }
 
             return $this->withTransaction(function() use ($auth, $data) {
                 $auth->setPassword($data[Auth::PASSWORD]);
 
-                if (!$auth->save()) {
+                if (!$auth->save())
                     return $this->respondWithError(Message::PASSWORD_CHANGE_FAILED, 409);
-                }
 
                 return $this->respondWithSuccess([
-                    'message' => Message::PASSWORD_CHANGED
+                    'message' => Message::PASSWORD_CHANGED . ' ' . Message::PLEASE_RENEW_TOKEN
                 ], 202);
             });
 
@@ -306,19 +288,16 @@ class AuthController extends BaseController {
      */
     private function processLogin(array $data): array {
         try {
-            if (empty($data[Auth::USERNAME]) || empty($data[Auth::PASSWORD])) {
+            if (empty($data[Auth::USERNAME]) || empty($data[Auth::PASSWORD]))
                 return $this->respondWithError(Message::CREDENTIALS_REQUIRED, 400);
-            }
 
             $auth = Auth::findFirstByUsername($data[Auth::USERNAME]);
 
-            if (!$auth || !$auth->isCorrect($data[Auth::PASSWORD])) {
+            if (!$auth || !$auth->isCorrect($data[Auth::PASSWORD]))
                 return $this->respondWithError(Message::INVALID_CREDENTIALS, 401);
-            }
 
-            if (!$auth->isActive()) {
+            if (!$auth->isActive())
                 return $this->respondWithError(Message::ACCOUNT_NOT_ACTIVATED, 403);
-            }
 
             $tokenService = $this->getDI()->get('tokenService');
             $expiration = $tokenService->generateTokenExpirationTime();
@@ -328,9 +307,8 @@ class AuthController extends BaseController {
                 $auth->token = $token;
                 $auth->expiration = $expiration;
 
-                if (!$auth->save()) {
+                if (!$auth->save())
                     return $this->respondWithError(Message::DB_SESSION_UPDATE_FAILED, 500);
-                }
 
                 return $this->respondWithSuccess([
                     Auth::TOKEN => $token
@@ -338,9 +316,7 @@ class AuthController extends BaseController {
             });
 
         } catch (Exception $e) {
-            if ($this->db->isUnderTransaction()) {
-                $this->rollbackTransaction();
-            }
+            if ($this->db->isUnderTransaction()) $this->rollbackTransaction();
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }
@@ -361,9 +337,9 @@ class AuthController extends BaseController {
         $body .= "<p>This link will expire in 72 hours.</p>";
         $body .= "<p>If you receive this email by mistake, you can safely ignore this email.</p>";
         $body .= "<h3>Thank you</h3>";
-        $body .= "<h4>Maxmila Homecare & Trinketronix ®️Copyright 2025<h4>";
+        $body .= "<h4>Maxmila Homecare & Trinketronix Copyright 2025<h4>";
 
-        $result = $this->processEmail($address, $subject, $body);
+        $result = $this->processEmail($address, $subject, $body, true);
 
         $success = $result['success'];
         $message = $result['message'];
