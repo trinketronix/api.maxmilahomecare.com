@@ -48,7 +48,8 @@ class AddressController extends BaseController {
             }
 
             // Validate person exists
-            if ($data[Address::PERSON_TYPE] === PersonType::USER) {
+            // Make sure to strictly compare with ===
+            if ((int)$data[Address::PERSON_TYPE] === PersonType::USER) {
                 $person = User::findFirst($data[Address::PERSON_ID]);
                 if (!$person) {
                     return $this->respondWithError(Message::USER_NOT_FOUND, 404);
