@@ -73,7 +73,6 @@ class BaseController extends Controller {
      * Check if the current user has manager role or higher
      */
     protected function isManagerOrHigher(): bool {
-        error_log("just tracking the current user role ". $this->getCurrentUserRole());
         return $this->getCurrentUserRole() <= 1; // Manager role = 1 or Admin role = 0
     }
 
