@@ -32,7 +32,12 @@ class AddressController extends BaseController {
             ];
 
             foreach ($requiredFields as $field => $message) {
-                if (empty($data[$field])) {
+                if ($field === Address::PERSON_TYPE) {
+                    // Special handling for person_type since 0 is a valid value
+                    if (!isset($data[$field]) && $data[$field] !== 0) {
+                        return $this->respondWithError($message, 400);
+                    }
+                } else if (empty($data[$field])) {
                     return $this->respondWithError($message, 400);
                 }
             }
