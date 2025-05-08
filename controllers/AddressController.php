@@ -52,7 +52,8 @@ class AddressController extends BaseController {
             if ((int)$data[Address::PERSON_TYPE] === PersonType::USER) {
                 $person = User::findFirst([
                     'conditions' => 'id = :id:',
-                    'bind' => ['id' => $data[Address::PERSON_ID]]
+                    'bind' => ['id' => $data[Address::PERSON_ID]],
+                    'for_update' => true  // This can help bypass the default scopes
                 ]);
                 if (!$person) {
                     return $this->respondWithError(Message::USER_NOT_FOUND, 404);
@@ -61,7 +62,8 @@ class AddressController extends BaseController {
             else {
                 $person = Patient::findFirst([
                     'conditions' => 'id = :id:',
-                    'bind' => ['id' => $data[Address::PERSON_ID]]
+                    'bind' => ['id' => $data[Address::PERSON_ID]],
+                    'for_update' => true
                 ]);
                 if (!$person) {
                     return $this->respondWithError(Message::PATIENT_NOT_FOUND, 404);
