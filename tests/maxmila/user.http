@@ -1,0 +1,275 @@
+### User API Endpoints Testing
+### ========================================
+### Update User Information - PUT /user
+### ========================================
+
+### Update current user's information (logged in user)
+PUT {{baseUrl}}/user
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "firstname": "John",
+  "lastname": "Doe",
+  "middlename": "Michael",
+  "birthdate": "1990-01-15",
+  "phone": "+1-555-123-4567",
+  "phone2": "+1-555-987-6543",
+  "email": "john.doe@example.com",
+  "email2": "john.doe.alt@example.com",
+  "languages": "English, Spanish",
+  "description": "Experienced caregiver with 5 years in home healthcare",
+  "code": "EMP-001"
+}
+
+### Update specific fields only
+PUT {{baseUrl}}/user
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "phone": "+1-555-999-8888",
+  "description": "Updated description only"
+}
+
+### Update SSN (sensitive data)
+PUT {{baseUrl}}/user
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "ssn": "123-45-6789"
+}
+
+### Update another user's information (Admin/Manager only)
+PUT {{baseUrl}}/user/{{userId}}
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "firstname": "Jane",
+  "lastname": "Smith",
+  "email": "jane.smith@example.com"
+}
+
+### ========================================
+### Upload Profile Photo - POST /user/upload/photo
+### ========================================
+
+### Upload a new profile photo (current user)
+POST {{baseUrl}}/user/upload/photo
+Authorization: {{token}}
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="file"; filename="profile.jpg"
+Content-Type: image/jpeg
+
+< ./profile.jpg
+--boundary--
+
+### ========================================
+### Update Profile Photo - PUT /user/update/photo
+### ========================================
+
+### Update current user's profile photo
+PUT {{baseUrl}}/user/update/photo
+Authorization: {{token}}
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="file"; filename="new-profile.png"
+Content-Type: image/png
+
+< ./new-profile.png
+--boundary--
+
+### Update another user's profile photo (Admin/Manager only)
+PUT {{baseUrl}}/user/update/photo/{{userId}}
+Authorization: {{token}}
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="file"; filename="user-profile.jpg"
+Content-Type: image/jpeg
+
+< ./user-profile.jpg
+--boundary--
+
+### ========================================
+### Error Cases Testing
+### ========================================
+
+### Update user without authentication (should fail)
+PUT {{baseUrl}}/user
+Content-Type: application/json
+
+{
+  "firstname": "Test"
+}
+
+### Update user with invalid token (should fail)
+PUT {{baseUrl}}/user
+Authorization: invalid_token
+Content-Type: application/json
+
+{
+  "firstname": "Test"
+}
+
+### Upload invalid file type (should fail)
+POST {{baseUrl}}/user/upload/photo
+Authorization: {{token}}
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="file"; filename="document.pdf"
+Content-Type: application/pdf
+
+< ./document.pdf
+--boundary--
+
+### Access denied - Non-admin updating other user (should fail)
+PUT {{baseUrl}}/user/999
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "firstname": "Unauthorized"
+}
+
+### ========================================
+### File Upload Examples
+### ========================================
+
+### Example with different image formats
+
+### Upload JPEG
+POST {{baseUrl}}/user/upload/photo
+Authorization: {{token}}
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="file"; filename="photo.jpg"
+Content-Type: image/jpeg
+
+< ./photo.jpg
+--boundary--
+
+### Upload PNG
+POST {{baseUrl}}/user/upload/photo
+Authorization: {{token}}
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="file"; filename="photo.png"
+Content-Type: image/png
+
+< ./photo.png
+--boundary--
+
+### Upload GIF
+POST {{baseUrl}}/user/upload/photo
+Authorization: {{token}}
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="file"; filename="photo.gif"
+Content-Type: image/gif
+
+< ./photo.gif
+--boundary--
+
+### Upload WEBP
+POST {{baseUrl}}/user/upload/photo
+Authorization: {{token}}
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="file"; filename="photo.webp"
+Content-Type: image/webp
+
+< ./photo.webp
+--boundary--
+
+### ========================================
+### Test Edge Cases
+### ========================================
+
+### Empty update request
+PUT {{baseUrl}}/user
+Authorization: {{token}}
+Content-Type: application/json
+
+{}
+
+### Very long description
+PUT {{baseUrl}}/user
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "description": "This is a very long description that tests the database column limit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+}
+
+### Invalid date format
+PUT {{baseUrl}}/user
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "birthdate": "invalid-date"
+}
+
+### Invalid SSN format
+PUT {{baseUrl}}/user
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "ssn": "123-4"
+}
+
+### Special characters in name
+PUT {{baseUrl}}/user
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "firstname": "José María",
+  "lastname": "García-López"
+}
+
+### ========================================
+### Bulk Operations (for testing multiple users)
+### ========================================
+
+### Update user 1
+PUT {{baseUrl}}/user/1
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "firstname": "Alice",
+  "lastname": "Johnson"
+}
+
+### Update user 2
+PUT {{baseUrl}}/user/2
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "firstname": "Bob",
+  "lastname": "Wilson"
+}
+
+### Update user 3
+PUT {{baseUrl}}/user/3
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "firstname": "Carol",
+  "lastname": "Davis"
+}

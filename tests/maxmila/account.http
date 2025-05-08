@@ -1,0 +1,24 @@
+### Account API Endpoints Testing
+### ========================================
+### Get All User Accounts (Managers and Admins only)
+### ========================================
+
+### Get all user accounts with detailed information
+GET {{maxmila.baseUrl}}/accounts
+Authorization: {{token}}
+
+### ========================================
+### Error Cases Testing
+### ========================================
+
+### Try to get all accounts without authentication (should fail)
+GET {{maxmila.baseUrl}}/accounts
+
+### Try to get all accounts with invalid token (should fail)
+GET {{maxmila.baseUrl}}/accounts
+Authorization: invalid_token
+
+### Try to get all accounts as regular user (should fail with 403 Forbidden)
+# Note: This assumes you have a caregiver-level user token
+GET {{maxmila.baseUrl}}/accounts
+Authorization: {{caregiverToken}}

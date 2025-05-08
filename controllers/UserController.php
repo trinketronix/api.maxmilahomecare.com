@@ -123,6 +123,118 @@ class UserController extends BaseController {
     }
 
     /**
+     * Get user profile by ID
+     */
+    public function getUser(?int $userId = null): array {
+        try {
+            // Get the current user's ID
+            $currentUserId = $this->getCurrentUserId();
+            $currentUserRole = $this->getCurrentUserRole();
+
+            // If no userId provided, use current user's ID
+            if ($userId === null) {
+                $userId = $currentUserId;
+            }
+
+            // Find user
+            $user = User::findWithAuth($userId);
+            if (!$user) {
+                return $this->respondWithError(Message::USER_NOT_FOUND, 404);
+            }
+
+            // Authorization check: only allow viewing other profiles if admin/manager
+            if ($currentUserId !== $userId && $currentUserRole > Role::MANAGER) {
+                return $this->respondWithError(Message::UNAUTHORIZED_ACCESS, 403);
+            }
+
+            // Prepare user data
+            $userData = $user->toArray();
+
+            // Process SSN if present
+            if (isset($userData[User::SSN]) && !empty($userData[User::SSN])) {
+                try {
+                    $userData[User::SSN] = Base64::decodingSaltedPeppered($userData[User::SSN]);
+                } catch (Exception $e) {
+                    // If there's an error decoding, just remove it from response
+                    unset($userData[User::SSN]);
+                }
+            }
+
+            // Get user addresses
+            $addresses = Address::findByPerson($userId, PersonType::USER);
+            if ($addresses && $addresses->count() > 0) {
+                $userData['addresses'] = $addresses->toArray();
+            } else {
+                $userData['addresses'] = [];
+            }
+
+            return $this->respondWithSuccess($userData);
+
+        } catch (Exception $e) {
+            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        }
+    }
+
+    /**
+     * Process and resize image using ImageMagick
+     *
+     * @param string $sourcePath Path to original image
+     * @param string $destinationPath Path where processed image will be saved
+     * @param int $width Desired width (default: 360)
+     * @param int $height Desired height (default: 360)
+     * @return bool True if processing successful
+     */
+    private function processAndResizeImage(string $sourcePath, string $destinationPath, int $width = 360, int $height = 360): bool {
+        try {
+            // Check if ImageMagick extension is installed
+            if (!extension_loaded('imagick')) {
+                error_log('ImageMagick extension not installed');
+                return false;
+            }
+
+            // Create a new Imagick object
+            $image = new \Imagick($sourcePath);
+
+            // Set the image to the specified dimensions with proper aspect ratio
+            $originalWidth = $image->getImageWidth();
+            $originalHeight = $image->getImageHeight();
+
+            // Calculate the scale factor
+            $scaleWidth = $width / $originalWidth;
+            $scaleHeight = $height / $originalHeight;
+            $scale = max($scaleWidth, $scaleHeight);
+
+            // Calculate new dimensions
+            $newWidth = round($originalWidth * $scale);
+            $newHeight = round($originalHeight * $scale);
+
+            // Resize the image
+            $image->resizeImage($newWidth, $newHeight, \Imagick::FILTER_LANCZOS, 1);
+
+            // Crop to exact dimensions from center
+            $image->cropImage($width, $height, ($newWidth - $width) / 2, ($newHeight - $height) / 2);
+
+            // Set image quality (90% for good quality with reasonable file size)
+            $image->setImageCompressionQuality(90);
+
+            // Strip EXIF data for privacy
+            $image->stripImage();
+
+            // Save the processed image
+            $image->writeImage($destinationPath);
+
+            // Clear the image from memory
+            $image->clear();
+            $image->destroy();
+
+            return true;
+        } catch (\ImagickException $e) {
+            error_log('ImageMagick processing error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Upload a new profile photo for a user
      */
     public function uploadPhoto(): array {
@@ -170,32 +282,41 @@ class UserController extends BaseController {
 
             $path = $uploadDir . '/' . $filename;
 
-            return $this->withTransaction(function() use ($user, $photo, $path, $filename) {
-                // Delete old photo if exists and is not the default photo
-                if ($user->photo && $user->photo !== User::DEFAULT_PHOTO_FILE && file_exists($user->photo)) {
-                    unlink($user->photo);
-                }
+            return $this->withTransaction(function() use ($user, $photo, $path, $filename, $uploadDir) {
+                // Get temporary file path
+                $tempPath = $photo->getTempName();
 
-                if ($photo->moveTo($path)) {
-                    $upath = "/$path";
-                    $user->photo = $upath;
-
-                    if (!$user->save()) {
-                        // If save fails, clean up the uploaded file
-                        if (file_exists($path)) {
-                            unlink($path);
-                        }
-                        return $this->respondWithError($user->getMessages(), 422);
+                // Process and resize image to 360x360
+                if (!$this->processAndResizeImage($tempPath, $path)) {
+                    // If ImageMagick fails, fall back to regular file upload
+                    if (!$photo->moveTo($path)) {
+                        return $this->respondWithError(Message::UPLOAD_PHOTO_FAILED, 500);
                     }
-
-                    return $this->respondWithSuccess([
-                        'message' => Message::UPLOAD_PHOTO_SUCCESS,
-                        'path' => $upath,
-                        'filename' => $filename
-                    ]);
                 }
 
-                return $this->respondWithError(Message::UPLOAD_PHOTO_FAILED, 500);
+                // Delete old photo if exists and is not the default photo
+                $oldPhoto = $uploadDir . '/' . $user->photo;
+                if ($user->photo && $user->photo !== User::DEFAULT_PHOTO_FILE && file_exists($oldPhoto)) {
+                    unlink($oldPhoto);
+                }
+
+                $upath = "$path";
+                $user->photo = $upath;
+
+                if (!$user->save()) {
+                    // If save fails, clean up the uploaded file
+                    if (file_exists($path)) {
+                        unlink($path);
+                    }
+                    return $this->respondWithError($user->getMessages(), 422);
+                }
+
+                return $this->respondWithSuccess([
+                    'message' => Message::UPLOAD_PHOTO_SUCCESS,
+                    'path' => $upath,
+                    'filename' => $filename,
+                    'processed' => true // Indicates image was processed with ImageMagick
+                ]);
             });
 
         } catch (Exception $e) {
@@ -206,7 +327,7 @@ class UserController extends BaseController {
     /**
      * Update a user's profile photo
      */
-    public function updatePhoto(int $userId = null): array {
+    public function updatePhoto(?int $userId = null): array {
         try {
             // Get the current user's ID
             $currentUserId = $this->getCurrentUserId();
@@ -262,86 +383,42 @@ class UserController extends BaseController {
 
             $path = $uploadDir . '/' . $filename;
 
-            return $this->withTransaction(function() use ($user, $photo, $path, $filename) {
-                // Delete old photo if exists and is not the default photo
-                if ($user->photo && $user->photo !== User::DEFAULT_PHOTO_FILE && file_exists($user->photo)) {
-                    unlink($user->photo);
-                }
+            return $this->withTransaction(function() use ($user, $photo, $path, $filename, $uploadDir) {
+                // Get temporary file path
+                $tempPath = $photo->getTempName();
 
-                if ($photo->moveTo($path)) {
-                    $upath = "/$path";
-                    $user->photo = $upath;
-
-                    if (!$user->save()) {
-                        // If save fails, clean up the uploaded file
-                        if (file_exists($path)) {
-                            unlink($path);
-                        }
-                        return $this->respondWithError($user->getMessages(), 422);
+                // Process and resize image to 360x360
+                if (!$this->processAndResizeImage($tempPath, $path)) {
+                    // If ImageMagick fails, fall back to regular file upload
+                    if (!$photo->moveTo($path)) {
+                        return $this->respondWithError(Message::UPLOAD_FAILED, 500);
                     }
-
-                    return $this->respondWithSuccess([
-                        'message' => Message::UPLOAD_PHOTO_SUCCESS,
-                        'path' => $upath,
-                        'filename' => $filename
-                    ]);
                 }
 
-                return $this->respondWithError(Message::UPLOAD_FAILED, 500);
+                // Delete old photo if exists and is not the default photo
+                $oldPhoto = $uploadDir . '/' . $user->photo;
+                if ($user->photo && $user->photo !== User::DEFAULT_PHOTO_FILE && file_exists($oldPhoto)) {
+                    unlink($oldPhoto);
+                }
+
+                $upath = "$path";
+                $user->photo = $upath;
+
+                if (!$user->save()) {
+                    // If save fails, clean up the uploaded file
+                    if (file_exists($path)) {
+                        unlink($path);
+                    }
+                    return $this->respondWithError($user->getMessages(), 422);
+                }
+
+                return $this->respondWithSuccess([
+                    'message' => Message::UPLOAD_PHOTO_SUCCESS,
+                    'path' => $upath,
+                    'filename' => $filename,
+                    'processed' => true
+                ]);
             });
-
-        } catch (Exception $e) {
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
-        }
-    }
-
-    /**
-     * Get user profile by ID
-     */
-    public function getUser(int $userId = null): array {
-        try {
-            // Get the current user's ID
-            $currentUserId = $this->getCurrentUserId();
-            $currentUserRole = $this->getCurrentUserRole();
-
-            // If no userId provided, use current user's ID
-            if ($userId === null) {
-                $userId = $currentUserId;
-            }
-
-            // Find user
-            $user = User::findWithAuth($userId);
-            if (!$user) {
-                return $this->respondWithError(Message::USER_NOT_FOUND, 404);
-            }
-
-            // Authorization check: only allow viewing other profiles if admin/manager
-            if ($currentUserId !== $userId && $currentUserRole > Role::MANAGER) {
-                return $this->respondWithError(Message::UNAUTHORIZED_ACCESS, 403);
-            }
-
-            // Prepare user data
-            $userData = $user->toArray();
-
-            // Process SSN if present
-            if (isset($userData[User::SSN]) && !empty($userData[User::SSN])) {
-                try {
-                    $userData[User::SSN] = Base64::decodingSaltedPeppered($userData[User::SSN]);
-                } catch (Exception $e) {
-                    // If there's an error decoding, just remove it from response
-                    unset($userData[User::SSN]);
-                }
-            }
-
-            // Get user addresses
-            $addresses = Address::findByPerson($userId, PersonType::USER);
-            if ($addresses && $addresses->count() > 0) {
-                $userData['addresses'] = $addresses->toArray();
-            } else {
-                $userData['addresses'] = [];
-            }
-
-            return $this->respondWithSuccess($userData);
 
         } catch (Exception $e) {
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);

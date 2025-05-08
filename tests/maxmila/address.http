@@ -1,0 +1,368 @@
+### Address API Endpoints Testing
+
+### LOGIN FIRST to get a token
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "test@example.com",
+  "password": "password123"
+}
+
+### ========================================
+### Create Address - POST /address
+### ========================================
+
+### Create address for a user
+POST {{baseUrl}}/address
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "person_id": 1,
+  "person_type": 0,
+  "type": "House",
+  "address": "123 Main Street",
+  "city": "Anytown",
+  "county": "Anycounty",
+  "state": "CA",
+  "zipcode": "90210",
+  "country": "United States",
+  "latitude": 34.0522,
+  "longitude": -118.2437
+}
+
+### Create address for a patient
+POST {{baseUrl}}/address
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "person_id": 5,
+  "person_type": 1,
+  "type": "Apartment",
+  "address": "456 Oak Avenue, Apt 2B",
+  "city": "Los Angeles",
+  "county": "Los Angeles",
+  "state": "CA",
+  "zipcode": "90001"
+}
+
+### Create address without optional fields
+POST {{baseUrl}}/address
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "person_id": 2,
+  "person_type": 0,
+  "type": "Condominium",
+  "address": "789 Pine Street",
+  "city": "San Francisco",
+  "county": "San Francisco",
+  "state": "CA",
+  "zipcode": "94105"
+}
+
+### Create address with all optional fields
+POST {{baseUrl}}/address
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "person_id": 3,
+  "person_type": 0,
+  "type": "Trailer",
+  "address": "321 Elm Road, Space 15",
+  "city": "Sacramento",
+  "county": "Sacramento",
+  "state": "CA",
+  "zipcode": "95814",
+  "country": "Canada",
+  "latitude": 38.5816,
+  "longitude": -121.4944
+}
+
+### ========================================
+### Get Address by ID - GET /address/{id}
+### ========================================
+
+### Get specific address by ID
+GET {{baseUrl}}/address/{{addressId}}
+Authorization: {{token}}
+
+### Get non-existent address (should return 404)
+GET {{baseUrl}}/address/999
+Authorization: {{token}}
+
+### ========================================
+### Get Addresses by Person - GET /address/person/{personId}/{personType}
+### ========================================
+
+### Get all addresses for a user
+GET {{baseUrl}}/address/person/{{userId}}/0
+Authorization: {{token}}
+
+### Get all addresses for a patient
+GET {{baseUrl}}/address/person/{{patientId}}/1
+Authorization: {{token}}
+
+### Get addresses for non-existent person (should return 404)
+GET {{baseUrl}}/address/person/999/0
+Authorization: {{token}}
+
+### ========================================
+### Find Nearby Addresses - GET /address/nearby
+### ========================================
+
+### Find addresses within specific radius
+GET {{baseUrl}}/address/nearby?latitude=34.0522&longitude=-118.2437&radius=5
+
+### Find user addresses within radius
+GET {{baseUrl}}/address/nearby?latitude=34.0522&longitude=-118.2437&radius=10&person_type=0
+
+### Find patient addresses within radius
+GET {{baseUrl}}/address/nearby?latitude=34.0522&longitude=-118.2437&radius=15&person_type=1
+
+### ========================================
+### Update Address - PUT /address/{id}
+### ========================================
+
+### Update complete address
+PUT {{baseUrl}}/address/{{addressId}}
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "type": "House",
+  "address": "123 Updated Street",
+  "city": "New City",
+  "county": "New County",
+  "state": "NY",
+  "zipcode": "10001",
+  "country": "United States",
+  "latitude": 40.7128,
+  "longitude": -74.0060
+}
+
+### Update only specific fields
+PUT {{baseUrl}}/address/{{addressId}}
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "address": "789 Partially Updated Ave",
+  "city": "Updated City"
+}
+
+### Update with invalid state format (should fail)
+PUT {{baseUrl}}/address/{{addressId}}
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "state": "California"
+}
+
+### Update with invalid zipcode (should fail)
+PUT {{baseUrl}}/address/{{addressId}}
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "zipcode": "1234"
+}
+
+### ========================================
+### Delete Address - DELETE /address/{id}
+### ========================================
+
+### Delete address by ID
+DELETE {{baseUrl}}/address/{{addressId}}
+Authorization: {{token}}
+
+### Delete non-existent address (should return 404)
+DELETE {{baseUrl}}/address/999
+Authorization: {{token}}
+
+### ========================================
+### Authorization Tests
+### ========================================
+
+### Create address without authentication (should fail)
+POST {{baseUrl}}/address
+Content-Type: application/json
+
+{
+  "person_id": 1,
+  "person_type": 0,
+  "type": "House",
+  "address": "123 Test Street",
+  "city": "Test City",
+  "county": "Test County",
+  "state": "TS",
+  "zipcode": "12345"
+}
+
+### Access other user's address without permission (as caregiver)
+GET {{baseUrl}}/address/person/99/0
+Authorization: {{token}}
+
+### Update other user's address without permission (as caregiver)
+PUT {{baseUrl}}/address/10
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "address": "Updated without permission"
+}
+
+### ========================================
+### Validation Tests
+### ========================================
+
+### Missing required fields (should fail)
+POST {{baseUrl}}/address
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "type": "House",
+  "address": "123 Incomplete Street"
+}
+
+### Invalid person type (should fail)
+POST {{baseUrl}}/address
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "person_id": 1,
+  "person_type": 99,
+  "type": "House",
+  "address": "123 Main Street",
+  "city": "Anytown",
+  "county": "Anycounty",
+  "state": "CA",
+  "zipcode": "90210"
+}
+
+### Invalid coordinates
+POST {{baseUrl}}/address
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "person_id": 1,
+  "person_type": 0,
+  "type": "House",
+  "address": "123 Main Street",
+  "city": "Anytown",
+  "county": "Anycounty",
+  "state": "CA",
+  "zipcode": "90210",
+  "latitude": 999.99,
+  "longitude": -999.99
+}
+
+### Invalid radius for nearby search
+GET {{baseUrl}}/address/nearby?latitude=34.0522&longitude=-118.2437&radius=150
+
+### ========================================
+### Edge Cases
+### ========================================
+
+### Very long address text
+POST {{baseUrl}}/address
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "person_id": 1,
+  "person_type": 0,
+  "type": "House",
+  "address": "This is a very long address that contains multiple lines and could potentially exceed database column limits. It includes apartment numbers, building names, and other detailed location information to test database storage capabilities.",
+  "city": "Long City Name With Spaces",
+  "county": "Extra Long County Name",
+  "state": "CA",
+  "zipcode": "90210"
+}
+
+### Address with special characters
+POST {{baseUrl}}/address
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "person_id": 1,
+  "person_type": 0,
+  "type": "Apartment",
+  "address": "789 Main St. #2B-C, Bldg A",
+  "city": "San José",
+  "county": "Santa Clara",
+  "state": "CA",
+  "zipcode": "95110"
+}
+
+### Update empty values
+PUT {{baseUrl}}/address/{{addressId}}
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "country": "",
+  "latitude": null,
+  "longitude": null
+}
+
+### ========================================
+### Bulk Operations
+### ========================================
+
+### Create multiple addresses for testing
+POST {{baseUrl}}/address
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "person_id": 1,
+  "person_type": 0,
+  "type": "House",
+  "address": "100 First Avenue",
+  "city": "Test City 1",
+  "county": "Test County",
+  "state": "CA",
+  "zipcode": "90001"
+}
+
+###
+POST {{baseUrl}}/address
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "person_id": 1,
+  "person_type": 0,
+  "type": "Apartment",
+  "address": "200 Second Street",
+  "city": "Test City 2",
+  "county": "Test County",
+  "state": "CA",
+  "zipcode": "90002"
+}
+
+###
+POST {{baseUrl}}/address
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "person_id": 1,
+  "person_type": 0,
+  "type": "Condominium",
+  "address": "300 Third Boulevard",
+  "city": "Test City 3",
+  "county": "Test County",
+  "state": "CA",
+  "zipcode": "90003"
+}
