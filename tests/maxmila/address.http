@@ -1,21 +1,11 @@
 ### Address API Endpoints Testing
-
-### LOGIN FIRST to get a token
-POST {{baseUrl}}/auth/login
-Content-Type: application/json
-
-{
-  "username": "test@example.com",
-  "password": "password123"
-}
-
 ### ========================================
 ### Create Address - POST /address
 ### ========================================
 
 ### Create address for a user
-POST {{baseUrl}}/address
-Authorization: {{token}}
+POST {{maxmila.baseUrl}}/address
+Authorization: {{maxmila.token}}
 Content-Type: application/json
 
 {
@@ -33,8 +23,8 @@ Content-Type: application/json
 }
 
 ### Create address for a patient
-POST {{baseUrl}}/address
-Authorization: {{token}}
+POST {{maxmila.baseUrl}}/address
+Authorization: {{maxmila.token}}
 Content-Type: application/json
 
 {
@@ -49,8 +39,8 @@ Content-Type: application/json
 }
 
 ### Create address without optional fields
-POST {{baseUrl}}/address
-Authorization: {{token}}
+POST {{maxmila.baseUrl}}/address
+Authorization: {{maxmila.token}}
 Content-Type: application/json
 
 {
@@ -65,8 +55,8 @@ Content-Type: application/json
 }
 
 ### Create address with all optional fields
-POST {{baseUrl}}/address
-Authorization: {{token}}
+POST {{maxmila.baseUrl}}/address
+Authorization: {{maxmila.token}}
 Content-Type: application/json
 
 {
@@ -88,49 +78,49 @@ Content-Type: application/json
 ### ========================================
 
 ### Get specific address by ID
-GET {{baseUrl}}/address/{{addressId}}
-Authorization: {{token}}
+GET {{maxmila.baseUrl}}/address/{{addressId}}
+Authorization: {{maxmila.token}}
 
 ### Get non-existent address (should return 404)
-GET {{baseUrl}}/address/999
-Authorization: {{token}}
+GET {{maxmila.baseUrl}}/address/999
+Authorization: {{maxmila.token}}
 
 ### ========================================
 ### Get Addresses by Person - GET /address/person/{personId}/{personType}
 ### ========================================
 
 ### Get all addresses for a user
-GET {{baseUrl}}/address/person/{{userId}}/0
-Authorization: {{token}}
+GET {{maxmila.baseUrl}}/address/person/1/0
+Authorization: {{maxmila.token}}
 
 ### Get all addresses for a patient
-GET {{baseUrl}}/address/person/{{patientId}}/1
-Authorization: {{token}}
+GET {{maxmila.baseUrl}}/address/person/{{patientId}}/1
+Authorization: {{maxmila.token}}
 
 ### Get addresses for non-existent person (should return 404)
-GET {{baseUrl}}/address/person/999/0
-Authorization: {{token}}
+GET {{maxmila.baseUrl}}/address/person/999/0
+Authorization: {{maxmila.token}}
 
 ### ========================================
 ### Find Nearby Addresses - GET /address/nearby
 ### ========================================
 
 ### Find addresses within specific radius
-GET {{baseUrl}}/address/nearby?latitude=34.0522&longitude=-118.2437&radius=5
+GET {{maxmila.baseUrl}}/address/nearby?latitude=34.0522&longitude=-118.2437&radius=5
 
 ### Find user addresses within radius
-GET {{baseUrl}}/address/nearby?latitude=34.0522&longitude=-118.2437&radius=10&person_type=0
+GET {{maxmila.baseUrl}}/address/nearby?latitude=34.0522&longitude=-118.2437&radius=10&person_type=0
 
 ### Find patient addresses within radius
-GET {{baseUrl}}/address/nearby?latitude=34.0522&longitude=-118.2437&radius=15&person_type=1
+GET {{maxmila.baseUrl}}/address/nearby?latitude=34.0522&longitude=-118.2437&radius=15&person_type=1
 
 ### ========================================
 ### Update Address - PUT /address/{id}
 ### ========================================
 
 ### Update complete address
-PUT {{baseUrl}}/address/{{addressId}}
-Authorization: {{token}}
+PUT {{maxmila.baseUrl}}/address/{{addressId}}
+Authorization: {{maxmila.token}}
 Content-Type: application/json
 
 {
@@ -146,8 +136,8 @@ Content-Type: application/json
 }
 
 ### Update only specific fields
-PUT {{baseUrl}}/address/{{addressId}}
-Authorization: {{token}}
+PUT {{maxmila.baseUrl}}/address/{{addressId}}
+Authorization: {{maxmila.token}}
 Content-Type: application/json
 
 {
@@ -156,8 +146,8 @@ Content-Type: application/json
 }
 
 ### Update with invalid state format (should fail)
-PUT {{baseUrl}}/address/{{addressId}}
-Authorization: {{token}}
+PUT {{maxmila.baseUrl}}/address/{{addressId}}
+Authorization: {{maxmila.token}}
 Content-Type: application/json
 
 {
@@ -165,8 +155,8 @@ Content-Type: application/json
 }
 
 ### Update with invalid zipcode (should fail)
-PUT {{baseUrl}}/address/{{addressId}}
-Authorization: {{token}}
+PUT {{maxmila.baseUrl}}/address/{{addressId}}
+Authorization: {{maxmila.token}}
 Content-Type: application/json
 
 {
@@ -178,19 +168,19 @@ Content-Type: application/json
 ### ========================================
 
 ### Delete address by ID
-DELETE {{baseUrl}}/address/{{addressId}}
-Authorization: {{token}}
+DELETE {{maxmila.baseUrl}}/address/{{addressId}}
+Authorization: {{maxmila.token}}
 
 ### Delete non-existent address (should return 404)
-DELETE {{baseUrl}}/address/999
-Authorization: {{token}}
+DELETE {{maxmila.baseUrl}}/address/999
+Authorization: {{maxmila.token}}
 
 ### ========================================
 ### Authorization Tests
 ### ========================================
 
 ### Create address without authentication (should fail)
-POST {{baseUrl}}/address
+POST {{maxmila.baseUrl}}/address
 Content-Type: application/json
 
 {
@@ -205,12 +195,12 @@ Content-Type: application/json
 }
 
 ### Access other user's address without permission (as caregiver)
-GET {{baseUrl}}/address/person/99/0
-Authorization: {{token}}
+GET {{maxmila.baseUrl}}/address/person/99/0
+Authorization: {{maxmila.token}}
 
 ### Update other user's address without permission (as caregiver)
-PUT {{baseUrl}}/address/10
-Authorization: {{token}}
+PUT {{maxmila.baseUrl}}/address/10
+Authorization: {{maxmila.token}}
 Content-Type: application/json
 
 {
@@ -222,8 +212,8 @@ Content-Type: application/json
 ### ========================================
 
 ### Missing required fields (should fail)
-POST {{baseUrl}}/address
-Authorization: {{token}}
+POST {{maxmila.baseUrl}}/address
+Authorization: {{maxmila.token}}
 Content-Type: application/json
 
 {
@@ -232,8 +222,8 @@ Content-Type: application/json
 }
 
 ### Invalid person type (should fail)
-POST {{baseUrl}}/address
-Authorization: {{token}}
+POST {{maxmila.baseUrl}}/address
+Authorization: {{maxmila.token}}
 Content-Type: application/json
 
 {
@@ -248,8 +238,8 @@ Content-Type: application/json
 }
 
 ### Invalid coordinates
-POST {{baseUrl}}/address
-Authorization: {{token}}
+POST {{maxmila.baseUrl}}/address
+Authorization: {{maxmila.token}}
 Content-Type: application/json
 
 {
@@ -266,15 +256,15 @@ Content-Type: application/json
 }
 
 ### Invalid radius for nearby search
-GET {{baseUrl}}/address/nearby?latitude=34.0522&longitude=-118.2437&radius=150
+GET {{maxmila.baseUrl}}/address/nearby?latitude=34.0522&longitude=-118.2437&radius=150
 
 ### ========================================
 ### Edge Cases
 ### ========================================
 
 ### Very long address text
-POST {{baseUrl}}/address
-Authorization: {{token}}
+POST {{maxmila.baseUrl}}/address
+Authorization: {{maxmila.token}}
 Content-Type: application/json
 
 {
@@ -289,8 +279,8 @@ Content-Type: application/json
 }
 
 ### Address with special characters
-POST {{baseUrl}}/address
-Authorization: {{token}}
+POST {{maxmila.baseUrl}}/address
+Authorization: {{maxmila.token}}
 Content-Type: application/json
 
 {
@@ -305,8 +295,8 @@ Content-Type: application/json
 }
 
 ### Update empty values
-PUT {{baseUrl}}/address/{{addressId}}
-Authorization: {{token}}
+PUT {{maxmila.baseUrl}}/address/{{addressId}}
+Authorization: {{maxmila.token}}
 Content-Type: application/json
 
 {
@@ -320,8 +310,8 @@ Content-Type: application/json
 ### ========================================
 
 ### Create multiple addresses for testing
-POST {{baseUrl}}/address
-Authorization: {{token}}
+POST {{maxmila.baseUrl}}/address
+Authorization: {{maxmila.token}}
 Content-Type: application/json
 
 {
@@ -336,8 +326,8 @@ Content-Type: application/json
 }
 
 ###
-POST {{baseUrl}}/address
-Authorization: {{token}}
+POST {{maxmila.baseUrl}}/address
+Authorization: {{maxmila.token}}
 Content-Type: application/json
 
 {
@@ -352,8 +342,8 @@ Content-Type: application/json
 }
 
 ###
-POST {{baseUrl}}/address
-Authorization: {{token}}
+POST {{maxmila.baseUrl}}/address
+Authorization: {{maxmila.token}}
 Content-Type: application/json
 
 {

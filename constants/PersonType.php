@@ -3,7 +3,7 @@
 namespace Api\Constants;
 
 class PersonType {
-    public const USER = 0;
-    public const PATIENT = 1;
+    public const int USER = 0;
+    public const int PATIENT = 1;
 
 }
