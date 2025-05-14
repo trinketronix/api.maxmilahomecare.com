@@ -58,9 +58,9 @@ class Address extends Model {
     public ?float $latitude = null;
     public ?float $longitude = null;
 
-    // Timestamps
-    public string $created_at;
-    public string $updated_at;
+    // Timestamps// To:
+    public ?string $created_at = null;
+    public ?string $updated_at = null;
 
     /**
      * Initialize model relationships and behaviors
@@ -95,19 +95,19 @@ class Address extends Model {
 //            ]
 //        );
 
-        // Add automatic timestamp behavior
-        $this->addBehavior(
-            new Timestampable([
-                'beforeCreate' => [
-                    'field' => 'created_at',
-                    'format' => 'Y-m-d H:i:s'
-                ],
-                'beforeUpdate' => [
-                    'field' => 'updated_at',
-                    'format' => 'Y-m-d H:i:s'
-                ]
-            ])
-        );
+//        // Add automatic timestamp behavior
+//        $this->addBehavior(
+//            new Timestampable([
+//                'beforeCreate' => [
+//                    'field' => 'created_at',
+//                    'format' => 'Y-m-d H:i:s'
+//                ],
+//                'beforeUpdate' => [
+//                    'field' => 'updated_at',
+//                    'format' => 'Y-m-d H:i:s'
+//                ]
+//            ])
+//        );
     }
 
     /**
