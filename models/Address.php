@@ -67,33 +67,33 @@ class Address extends Model {
      */
     public function initialize(): void {
         $this->setSource('address');
-
-        // Define polymorphic relationships
-        $this->belongsTo(
-            'person_id',
-            User::class,
-            'id',
-            [
-                'alias' => 'user',
-                'foreignKey' => [
-                    'conditions' => 'person_type = ' . PersonType::USER
-                ],
-                'reusable' => true
-            ]
-        );
-
-        $this->belongsTo(
-            'person_id',
-            Patient::class,
-            'id',
-            [
-                'alias' => 'patient',
-                'foreignKey' => [
-                    'conditions' => 'person_type = ' . PersonType::PATIENT
-                ],
-                'reusable' => true
-            ]
-        );
+//
+//        // Define polymorphic relationships
+//        $this->belongsTo(
+//            'person_id',
+//            User::class,
+//            'id',
+//            [
+//                'alias' => 'user',
+//                'foreignKey' => [
+//                    'conditions' => 'person_type = ' . PersonType::USER
+//                ],
+//                'reusable' => true
+//            ]
+//        );
+//
+//        $this->belongsTo(
+//            'person_id',
+//            Patient::class,
+//            'id',
+//            [
+//                'alias' => 'patient',
+//                'foreignKey' => [
+//                    'conditions' => 'person_type = ' . PersonType::PATIENT
+//                ],
+//                'reusable' => true
+//            ]
+//        );
 
         // Add automatic timestamp behavior
         $this->addBehavior(
