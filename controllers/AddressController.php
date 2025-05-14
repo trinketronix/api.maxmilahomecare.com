@@ -53,7 +53,7 @@ class AddressController extends BaseController {
                 $person = User::findFirst([
                     'conditions' => 'id = :id:',
                     'bind' => ['id' => $data[Address::PERSON_ID]],
-                    'for_update' => true  // This can help bypass the default scopes
+                    'bindTypes' => ['id' => \PDO::PARAM_INT]
                 ]);
                 if (!$person) {
                     return $this->respondWithError(Message::USER_NOT_FOUND, 404);
@@ -63,7 +63,7 @@ class AddressController extends BaseController {
                 $person = Patient::findFirst([
                     'conditions' => 'id = :id:',
                     'bind' => ['id' => $data[Address::PERSON_ID]],
-                    'for_update' => true
+                    'bindTypes' => ['id' => \PDO::PARAM_INT]
                 ]);
                 if (!$person) {
                     return $this->respondWithError(Message::PATIENT_NOT_FOUND, 404);
