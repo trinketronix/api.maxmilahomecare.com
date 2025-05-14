@@ -40,7 +40,35 @@ class UserAuthView extends Model {
         $this->setSource('user_auth_view');
 
         // This is a read-only model as it's based on a view
-        $this->setReadOnly(true);
+        //$this->setReadOnly(true);
+    }
+
+    /**
+     * Search account by firstname, lastname, email, username, phone, code
+     */
+    public static function search(string $term): array {
+        return self::find([
+            'conditions' => 'firstname LIKE :term: OR 
+                          lastname LIKE :term: OR 
+                          email LIKE :term: OR 
+                          username LIKE :term: OR
+                          phone LIKE :term: OR
+                          code LIKE :term:',
+            'bind' => ['term' => '%' . $term . '%'],
+            'order' => 'lastname ASC, firstname ASC'
+        ])->toArray();
+    }
+
+    public static function findByRole(int $role): array {
+        if (!in_array($role, [Role::ADMINISTRATOR, Role::MANAGER, Role::CAREGIVER])) {
+            throw new InvalidArgumentException('Invalid role value');
+        }
+
+        return self::find([
+            'conditions' => 'role = :role:',
+            'bind' => ['role' => $role],
+            'order' => 'lastname ASC, firstname ASC'
+        ])->toArray();
     }
 
     /**
