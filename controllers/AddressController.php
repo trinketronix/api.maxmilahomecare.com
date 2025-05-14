@@ -53,26 +53,26 @@ class AddressController extends BaseController {
                 return $this->respondWithError('Invalid person type', 400);
             }
 
+            // Validate person exists
+            if ($personType === PersonType::USER) {
+                $person = User::findFirstById((int)$data[Address::PERSON_ID]);
+                if (!$person) {
+                    return $this->respondWithError(Message::USER_NOT_FOUND, 404);
+                }
+            } else {
+                $person = Patient::findFirstById((int)$data[Address::PERSON_ID]);
+                if (!$person) {
+                    return $this->respondWithError(Message::PATIENT_NOT_FOUND, 404);
+                }
+            }
+
             return $this->respondWithSuccess([
-                'message' => 'Request Works up to line 61',
+                'message' => 'Request Works up to line 70',
                 'person_id' => $data[Address::PERSON_ID],
                 'person_type' => $personType,
-                'version' => 'version 9'
+                'version' => 'version 10',
+                'person' => $person->toArray()
             ], 201);
-//
-//            // Validate person exists
-//            if ($personType === PersonType::USER) {
-//                $person = User::findFirstById((int)$data[Address::PERSON_ID]);
-//                if (!$person) {
-//                    return $this->respondWithError(Message::USER_NOT_FOUND, 404);
-//                }
-//            }
-//            else {
-//                $person = Patient::findFirstById((int)$data[Address::PERSON_ID]);
-//                if (!$person) {
-//                    return $this->respondWithError(Message::PATIENT_NOT_FOUND, 404);
-//                }
-//            }
 //
 //            // Validate state format
 //            if (!preg_match('/^[A-Z]{2}$/', $data[Address::STATE])) {
