@@ -43,7 +43,7 @@ class AddressController extends BaseController {
             }
 
             // Validate person type
-            if (!in_array($data[Address::PERSON_TYPE], [PersonType::USER, PersonType::PATIENT])) {
+            if (!in_array((int)$data[Address::PERSON_TYPE], [PersonType::USER, PersonType::PATIENT])) {
                 return $this->respondWithError('Invalid person type', 400);
             }
 
