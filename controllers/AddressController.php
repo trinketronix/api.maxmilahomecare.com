@@ -42,15 +42,17 @@ class AddressController extends BaseController {
                 }
             }
 
+            // Special handling for person_type since 0 is a valid value
+            if (!isset($data[Address::PERSON_TYPE]) || !is_numeric($data[Address::PERSON_TYPE])) {
+                return $this->respondWithError('Person type is required and must be numeric', 400);
+            }
+
             return $this->respondWithSuccess([
-                'message' => 'Request Works up to line 48',
-                'id' => 1234
+                'message' => 'Request Works up to line 53',
+                'version' => 'version 8'
             ], 201);
 //
-//            // Special handling for person_type since 0 is a valid value
-//            if (!isset($data[Address::PERSON_TYPE]) || !is_numeric($data[Address::PERSON_TYPE])) {
-//                return $this->respondWithError('Person type is required and must be numeric', 400);
-//            }
+
 //
 //            // Validate person type
 //            $personType = (int)$data[Address::PERSON_TYPE]; // Explicitly cast to integer
