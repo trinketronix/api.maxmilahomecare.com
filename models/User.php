@@ -84,46 +84,46 @@ class User extends Model {
                 'reusable' => true
             ]
         );
-
-        $this->hasMany(
-            'id',
-            Address::class,
-            'person_id',
-            [
-                'alias' => 'addresses',
-                'params' => [
-                    'conditions' => 'person_type = 0' // 0 = user type
-                ],
-                'reusable' => true
-            ]
-        );
-
-        // Define relationships with visits/appointments
-        $this->hasMany(
-            'id',
-            Visit::class,
-            'user_id',
-            [
-                'alias' => 'visits',
-                'reusable' => true
-            ]
-        );
-
-
-        $this->hasManyToMany(
-            'id',
-            UserPatient::class,
-            'user_id', 'patient_id',
-            Patient::class,
-            'id',
-            [
-                'alias' => 'patients',
-                'params' => [
-                    'conditions' => UserPatient::class . '.status = ' . Status::ACTIVE
-                ],
-                'reusable' => true
-            ]
-        );
+//
+//        $this->hasMany(
+//            'id',
+//            Address::class,
+//            'person_id',
+//            [
+//                'alias' => 'addresses',
+//                'params' => [
+//                    'conditions' => 'person_type = 0' // 0 = user type
+//                ],
+//                'reusable' => true
+//            ]
+//        );
+//
+//        // Define relationships with visits/appointments
+//        $this->hasMany(
+//            'id',
+//            Visit::class,
+//            'user_id',
+//            [
+//                'alias' => 'visits',
+//                'reusable' => true
+//            ]
+//        );
+//
+//
+//        $this->hasManyToMany(
+//            'id',
+//            UserPatient::class,
+//            'user_id', 'patient_id',
+//            Patient::class,
+//            'id',
+//            [
+//                'alias' => 'patients',
+//                'params' => [
+//                    'conditions' => UserPatient::class . '.status = ' . Status::ACTIVE
+//                ],
+//                'reusable' => true
+//            ]
+//        );
 
         // Add automatic timestamp behavior
         $this->addBehavior(
