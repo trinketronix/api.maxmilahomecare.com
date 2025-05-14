@@ -50,21 +50,14 @@ class AddressController extends BaseController {
             // Validate person exists
             // Make sure to strictly compare with ===
             if ((int)$data[Address::PERSON_TYPE] === PersonType::USER) {
-                $person = User::findFirst([
-                    'conditions' => 'id = :id:',
-                    'bind' => ['id' => $data[Address::PERSON_ID]],
-                    'bindTypes' => ['id' => \PDO::PARAM_INT]
-                ]);
+                // Use a direct query without relationship constraints
+                $person = User::findFirstById((int)$data[Address::PERSON_ID]);
                 if (!$person) {
                     return $this->respondWithError(Message::USER_NOT_FOUND, 404);
                 }
             }
             else {
-                $person = Patient::findFirst([
-                    'conditions' => 'id = :id:',
-                    'bind' => ['id' => $data[Address::PERSON_ID]],
-                    'bindTypes' => ['id' => \PDO::PARAM_INT]
-                ]);
+                $person = Patient::findFirstById((int)$data[Address::PERSON_ID]);
                 if (!$person) {
                     return $this->respondWithError(Message::PATIENT_NOT_FOUND, 404);
                 }
