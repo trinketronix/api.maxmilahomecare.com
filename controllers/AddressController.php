@@ -47,18 +47,18 @@ class AddressController extends BaseController {
                 return $this->respondWithError('Person type is required and must be numeric', 400);
             }
 
-            return $this->respondWithSuccess([
-                'message' => 'Request Works up to line 53',
-                'version' => 'version 8'
-            ], 201);
-//
+            // Validate person type
+            $personType = (int)$data[Address::PERSON_TYPE]; // Explicitly cast to integer
+            if (!in_array($personType, [PersonType::USER, PersonType::PATIENT])) {
+                return $this->respondWithError('Invalid person type', 400);
+            }
 
-//
-//            // Validate person type
-//            $personType = (int)$data[Address::PERSON_TYPE]; // Explicitly cast to integer
-//            if (!in_array($personType, [PersonType::USER, PersonType::PATIENT])) {
-//                return $this->respondWithError('Invalid person type', 400);
-//            }
+            return $this->respondWithSuccess([
+                'message' => 'Request Works up to line 61',
+                'person_id' => $data[Address::PERSON_ID],
+                'person_type' => $personType,
+                'version' => 'version 9'
+            ], 201);
 //
 //            // Validate person exists
 //            if ($personType === PersonType::USER) {
