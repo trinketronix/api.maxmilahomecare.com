@@ -42,15 +42,19 @@ class AddressController extends BaseController {
                 }
             }
 
+            // Special handling for person_type since 0 is a valid value
+            if (!isset($data[Address::PERSON_TYPE]) || !is_numeric($data[Address::PERSON_TYPE])) {
+                return $this->respondWithError('Person type is required and must be numeric', 400);
+            }
+
             // Validate person type
-            if (!in_array((int)$data[Address::PERSON_TYPE], [PersonType::USER, PersonType::PATIENT])) {
+            $personType = (int)$data[Address::PERSON_TYPE]; // Explicitly cast to integer
+            if (!in_array($personType, [PersonType::USER, PersonType::PATIENT])) {
                 return $this->respondWithError('Invalid person type', 400);
             }
 
             // Validate person exists
-            // Make sure to strictly compare with ===
-            if ((int)$data[Address::PERSON_TYPE] === PersonType::USER) {
-                // Use a direct query without relationship constraints
+            if ($personType === PersonType::USER) {
                 $person = User::findFirstById((int)$data[Address::PERSON_ID]);
                 if (!$person) {
                     return $this->respondWithError(Message::USER_NOT_FOUND, 404);
