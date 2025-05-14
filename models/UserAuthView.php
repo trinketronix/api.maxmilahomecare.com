@@ -37,7 +37,7 @@ class UserAuthView extends Model {
      */
     public function initialize(): void {
         // Set the source to our view instead of a regular table
-        $this->setSource('user_auth_view');
+        $this->setSource('user_auth');
 
         // This is a read-only model as it's based on a view
         //$this->setReadOnly(true);
