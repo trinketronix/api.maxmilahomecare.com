@@ -66,68 +66,60 @@ class AddressController extends BaseController {
                 }
             }
 
-            return $this->respondWithSuccess([
-                'message' => 'Request Works up to line 70',
-                'person_id' => $data[Address::PERSON_ID],
-                'person_type' => $personType,
-                'version' => 'version 10',
-                'person' => $person->toArray()
-            ], 201);
-//
-//            // Validate state format
-//            if (!preg_match('/^[A-Z]{2}$/', $data[Address::STATE])) {
-//                return $this->respondWithError('State must be a 2-letter code', 400);
-//            }
-//
-//            // Validate ZIP code format
-//            if (!preg_match('/^\d{5}$/', $data[Address::ZIPCODE])) {
-//                return $this->respondWithError('ZIP code must be 5 digits', 400);
-//            }
-//
-//            // Create new address within transaction
-//            return $this->withTransaction(function() use ($data) {
-//                $address = new Address();
-//
-//                // Set basic fields
-//                $address->person_id = (int)$data[Address::PERSON_ID];
-//                $address->person_type = (int)$data[Address::PERSON_TYPE];
-//                $address->type = $data[Address::TYPE];
-//                $address->address = $data[Address::ADDRESS];
-//                $address->city = $data[Address::CITY];
-//                $address->county = $data[Address::COUNTY];
-//                $address->state = strtoupper($data[Address::STATE]);
-//                $address->zipcode = $data[Address::ZIPCODE];
-//
-//                // Set optional fields if provided
-//                if (isset($data[Address::COUNTRY])) {
-//                    $address->country = $data[Address::COUNTRY];
-//                }
-//
-//                if (isset($data[Address::LATITUDE]) && isset($data[Address::LONGITUDE])) {
-//                    $latitude = (float)$data[Address::LATITUDE];
-//                    $longitude = (float)$data[Address::LONGITUDE];
-//
-//                    // Validate coordinates
-//                    if ($latitude < -90 || $latitude > 90 || $longitude < -180 || $longitude > 180) {
-//                        return $this->respondWithError('Invalid coordinates', 400);
-//                    }
-//
-//                    $address->latitude = $latitude;
-//                    $address->longitude = $longitude;
-//                }
-//
-//                if (!$address->save()) {
-//                    return $this->respondWithError($address->getMessages(), 422);
-//                }
-//
-//                return $this->respondWithSuccess([
-//                    'message' => 'Address created successfully',
-//                    'id' => $address->id
-//                ], 201);
-//            });
+            // Validate state format
+            if (!preg_match('/^[A-Z]{2}$/', $data[Address::STATE])) {
+                return $this->respondWithError('State must be a 2-letter code', 400);
+            }
+
+            // Validate ZIP code format
+            if (!preg_match('/^\d{5}$/', $data[Address::ZIPCODE])) {
+                return $this->respondWithError('ZIP code must be 5 digits', 400);
+            }
+
+            // Create new address within transaction
+            return $this->withTransaction(function() use ($data) {
+                $address = new Address();
+
+                // Set basic fields
+                $address->person_id = (int)$data[Address::PERSON_ID];
+                $address->person_type = (int)$data[Address::PERSON_TYPE];
+                $address->type = $data[Address::TYPE];
+                $address->address = $data[Address::ADDRESS];
+                $address->city = $data[Address::CITY];
+                $address->county = $data[Address::COUNTY];
+                $address->state = strtoupper($data[Address::STATE]);
+                $address->zipcode = $data[Address::ZIPCODE];
+
+                // Set optional fields if provided
+                if (isset($data[Address::COUNTRY])) {
+                    $address->country = $data[Address::COUNTRY];
+                }
+
+                if (isset($data[Address::LATITUDE]) && isset($data[Address::LONGITUDE])) {
+                    $latitude = (float)$data[Address::LATITUDE];
+                    $longitude = (float)$data[Address::LONGITUDE];
+
+                    // Validate coordinates
+                    if ($latitude < -90 || $latitude > 90 || $longitude < -180 || $longitude > 180) {
+                        return $this->respondWithError('Invalid coordinates', 400);
+                    }
+
+                    $address->latitude = $latitude;
+                    $address->longitude = $longitude;
+                }
+
+                if (!$address->save()) {
+                    return $this->respondWithError($address->getMessages(), 422);
+                }
+
+                return $this->respondWithSuccess([
+                    'message' => 'Address created successfully',
+                    'id' => $address->id
+                ], 201);
+            });
 
         } catch (Exception $e) {
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+            return $this->respondWithError('Exception: ' . $e->getMessage() . ' trace: ' . $e->getTraceAsString() . ' line:'. $e->getLine(), 400);
         }
     }
 
