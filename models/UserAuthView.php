@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Api\Models;
 
 use Phalcon\Mvc\Model;
+use Api\Constants\Role;
+use Phalcon\Cache\Exception\InvalidArgumentException;
 
 class UserAuthView extends Model {
     // Model properties
