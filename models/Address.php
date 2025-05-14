@@ -76,7 +76,7 @@ class Address extends Model {
             [
                 'alias' => 'user',
                 'foreignKey' => [
-                    'conditions' => 'person_type = ' . PersonType::USER
+                    'conditions' => 'person_type = 0'
                 ],
                 'reusable' => true
             ]
@@ -89,7 +89,7 @@ class Address extends Model {
             [
                 'alias' => 'patient',
                 'foreignKey' => [
-                    'conditions' => 'person_type = ' . PersonType::PATIENT
+                    'conditions' => 'person_type = 1'
                 ],
                 'reusable' => true
             ]
