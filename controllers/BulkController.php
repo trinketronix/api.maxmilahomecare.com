@@ -150,10 +150,6 @@ class BulkController extends BaseController {
      */
     public function users(): array {
         try {
-            // Verify user has permission (manager or higher)
-            if (!$this->isManagerOrHigher()) {
-                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
-            }
 
             // Get users array from request body
             $usersData = $this->getRequestBody();
