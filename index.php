@@ -40,6 +40,7 @@ try {
         'auth',
         'account',
         'address',
+        'bulk',
         'user',
         'patient',
         'visit',
