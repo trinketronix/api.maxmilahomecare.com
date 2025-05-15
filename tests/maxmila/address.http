@@ -9,14 +9,14 @@ Authorization: {{maxmila.token}}
 Content-Type: application/json
 
 {
-  "person_id": 1,
-  "person_type": 0,
+  "person_id": 105,
+  "person_type": 1,
   "type": "House",
   "address": "123 Main Street",
-  "city": "Anytown",
-  "county": "Anycounty",
-  "state": "CA",
-  "zipcode": "90210",
+  "city": "Detroit",
+  "county": "Wayne",
+  "state": "MI",
+  "zipcode": "48204",
   "country": "United States",
   "latitude": 34.0522,
   "longitude": -118.2437

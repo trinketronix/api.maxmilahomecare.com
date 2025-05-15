@@ -51,4 +51,55 @@ class AccountController extends BaseController {
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }
+
+    /**
+     * Get account by ID
+     * If no ID provided or ID matches current user, return current user's account
+     * For other IDs, only managers or admins can access
+     *
+     * @param int|null $id User ID (optional)
+     * @return array Response data
+     */
+    public function getById($id = null): array {
+        try {
+            // Get current user ID
+            $currentUserId = $this->getCurrentUserId();
+
+            // If no ID provided in URL or empty string, use current user ID
+            if ($id === null || $id === '') {
+                $id = $currentUserId;
+            } else {
+                $id = (int)$id;
+            }
+
+            // If requesting another user's account, check authorization
+            if ($id !== $currentUserId && !$this->isManagerOrHigher()) {
+                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
+            }
+
+            // Find user in UserAuthView
+            $user = UserAuthView::findFirst([
+                'conditions' => 'id = :id:',
+                'bind' => ['id' => $id],
+                'bindTypes' => ['id' => \PDO::PARAM_INT]
+            ]);
+
+            if (!$user) {
+                return $this->respondWithError(Message::USER_NOT_FOUND, 404);
+            }
+
+            // Convert to array and mask sensitive data
+            $userData = $user->toArray();
+
+            // Mask SSN
+            if (isset($userData['ssn']) && !empty($userData['ssn'])) {
+                $userData['ssn'] = '***-**-****';
+            }
+
+            return $this->respondWithSuccess($userData);
+
+        } catch (Exception $e) {
+            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        }
+    }
 }

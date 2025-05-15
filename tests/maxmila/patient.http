@@ -9,20 +9,20 @@ Authorization: {{maxmila.token}}
 Content-Type: application/json
 
 {
-  "firstname": "John",
-  "middlename": "Robert",
-  "lastname": "Smith",
+  "firstname": "Don",
+  "middlename": "Doroteo",
+  "lastname": "Arango",
   "phone": "734-555-1234",
-  "patient": "PAT-001",
+  "patient": "PAT-GO-8743",
   "admission": "ADM-001",
   "address": {
-    "type": "Home",
-    "address": "123 Main Street",
-    "city": "Anytown",
-    "county": "Anycounty",
-    "state": "MI",
-    "zipcode": "48185",
-    "country": "United States",
+    "type": "Ranch",
+    "address": "Surancho Villa",
+    "city": "Chihuahua",
+    "county": "Delicias",
+    "state": "CH",
+    "zipcode": "56348",
+    "country": "Mexico",
     "latitude": 42.34229,
     "longitude": -83.39545
   }
@@ -50,11 +50,11 @@ Content-Type: application/json
   "phone": "734-555-9012",
   "address": {
     "type": "Home",
-    "address": "456 Error Lane",
-    "city": "Errorville",
-    "county": "Errorcounty",
-    "state": "Error",
-    "zipcode": "12345"
+    "address": "Surancho Villa",
+    "city": "Chihuahua",
+    "county": "Delicias",
+    "state": "CH",
+    "zipcode": "56348"
   }
 }
 
