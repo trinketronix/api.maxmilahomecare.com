@@ -146,7 +146,7 @@ class BulkController extends BaseController {
 
 
     /**
-     * Update multiple users with optional address creation
+     * Update multiple users with optional addresses creation
      */
     public function users(): array {
         try {
@@ -225,65 +225,22 @@ class BulkController extends BaseController {
 
                         $successResult = [
                             'index' => $index,
-                            'id' => $data['id']
+                            'id' => $data['id'],
+                            'addresses' => []
                         ];
 
-                        // If address data is included, create an address for the user
-                        if (isset($data['address']) && is_array($data['address'])) {
+                        // Handle addresses array if provided
+                        if (isset($data['addresses']) && is_array($data['addresses'])) {
+                            $addressResults = $this->processAddresses($data['addresses'], $user->id, PersonType::USER);
+                            $successResult['addresses'] = $addressResults;
+                        }
+                        // Backward compatibility for single address
+                        else if (isset($data['address']) && is_array($data['address'])) {
                             $addressData = $data['address'];
-
-                            // Check for required address fields
-                            $requiredAddressFields = [
-                                Address::TYPE,
-                                Address::ADDRESS,
-                                Address::CITY,
-                                Address::COUNTY,
-                                Address::STATE,
-                                Address::ZIPCODE
-                            ];
-
-                            $missingAddressFields = [];
-                            foreach ($requiredAddressFields as $field) {
-                                if (empty($addressData[$field])) {
-                                    $missingAddressFields[] = $field;
-                                }
+                            $addressResult = $this->processSingleAddress($addressData, $user->id, PersonType::USER);
+                            if ($addressResult) {
+                                $successResult['addresses'][] = $addressResult;
                             }
-
-                            if (!empty($missingAddressFields)) {
-                                $successResult['address_status'] = 'not created';
-                                $successResult['missing_address_fields'] = $missingAddressFields;
-                                $results['success'][] = $successResult;
-                                continue;
-                            }
-
-                            $address = new Address();
-                            $address->person_id = $user->id;
-                            $address->person_type = PersonType::USER;
-                            $address->type = $addressData[Address::TYPE];
-                            $address->address = $addressData[Address::ADDRESS];
-                            $address->city = $addressData[Address::CITY];
-                            $address->county = $addressData[Address::COUNTY];
-                            $address->state = strtoupper($addressData[Address::STATE]);
-                            $address->zipcode = $addressData[Address::ZIPCODE];
-
-                            if (isset($addressData[Address::COUNTRY])) {
-                                $address->country = $addressData[Address::COUNTRY];
-                            }
-
-                            if (isset($addressData[Address::LATITUDE]) && isset($addressData[Address::LONGITUDE])) {
-                                $address->latitude = (float)$addressData[Address::LATITUDE];
-                                $address->longitude = (float)$addressData[Address::LONGITUDE];
-                            }
-
-                            if (!$address->save()) {
-                                $successResult['address_status'] = 'failed';
-                                $successResult['address_errors'] = $address->getMessages();
-                                $results['success'][] = $successResult;
-                                continue;
-                            }
-
-                            $successResult['address_id'] = $address->id;
-                            $successResult['address_status'] = 'created';
                         }
 
                         $results['success'][] = $successResult;
@@ -406,79 +363,28 @@ class BulkController extends BaseController {
                             continue;
                         }
 
-                        // If address data is included, create an address for the patient
-                        if (isset($data['address']) && is_array($data['address'])) {
-                            $addressData = $data['address'];
+                        $patientResult = [
+                            'index' => $index,
+                            'patient_id' => $patient->id,
+                            'status' => 'created',
+                            'addresses' => []
+                        ];
 
-                            // Check for required address fields
-                            $requiredAddressFields = [
-                                Address::TYPE,
-                                Address::ADDRESS,
-                                Address::CITY,
-                                Address::COUNTY,
-                                Address::STATE,
-                                Address::ZIPCODE
-                            ];
-
-                            $missingAddressFields = [];
-                            foreach ($requiredAddressFields as $field) {
-                                if (empty($addressData[$field])) {
-                                    $missingAddressFields[] = $field;
-                                }
-                            }
-
-                            if (!empty($missingAddressFields)) {
-                                $results['success'][] = [
-                                    'index' => $index,
-                                    'patient_id' => $patient->id,
-                                    'status' => 'created without address',
-                                    'missing_address_fields' => $missingAddressFields
-                                ];
-                                continue;
-                            }
-
-                            $address = new Address();
-                            $address->person_id = $patient->id;
-                            $address->person_type = PersonType::PATIENT;
-                            $address->type = $addressData[Address::TYPE];
-                            $address->address = $addressData[Address::ADDRESS];
-                            $address->city = $addressData[Address::CITY];
-                            $address->county = $addressData[Address::COUNTY];
-                            $address->state = strtoupper($addressData[Address::STATE]);
-                            $address->zipcode = $addressData[Address::ZIPCODE];
-
-                            if (isset($addressData[Address::COUNTRY])) {
-                                $address->country = $addressData[Address::COUNTRY];
-                            }
-
-                            if (isset($addressData[Address::LATITUDE]) && isset($addressData[Address::LONGITUDE])) {
-                                $address->latitude = (float)$addressData[Address::LATITUDE];
-                                $address->longitude = (float)$addressData[Address::LONGITUDE];
-                            }
-
-                            if (!$address->save()) {
-                                $results['success'][] = [
-                                    'index' => $index,
-                                    'patient_id' => $patient->id,
-                                    'status' => 'created without address',
-                                    'address_errors' => $address->getMessages()
-                                ];
-                                continue;
-                            }
-
-                            $results['success'][] = [
-                                'index' => $index,
-                                'patient_id' => $patient->id,
-                                'address_id' => $address->id,
-                                'status' => 'created with address'
-                            ];
-                        } else {
-                            $results['success'][] = [
-                                'index' => $index,
-                                'patient_id' => $patient->id,
-                                'status' => 'created without address'
-                            ];
+                        // Handle addresses array if provided
+                        if (isset($data['addresses']) && is_array($data['addresses'])) {
+                            $addressResults = $this->processAddresses($data['addresses'], $patient->id, PersonType::PATIENT);
+                            $patientResult['addresses'] = $addressResults;
                         }
+                        // Backward compatibility for single address
+                        else if (isset($data['address']) && is_array($data['address'])) {
+                            $addressData = $data['address'];
+                            $addressResult = $this->processSingleAddress($addressData, $patient->id, PersonType::PATIENT);
+                            if ($addressResult) {
+                                $patientResult['addresses'][] = $addressResult;
+                            }
+                        }
+
+                        $results['success'][] = $patientResult;
 
                     } catch (Exception $e) {
                         $results['failed'][] = [
@@ -1096,6 +1002,95 @@ class BulkController extends BaseController {
         } catch (Exception $e) {
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
+    }
+
+    /**
+     * Process multiple addresses for a person
+     *
+     * @param array $addresses Array of address data
+     * @param int $personId The person ID (user or patient)
+     * @param int $personType The person type (0 = user, 1 = patient)
+     * @return array Results of address processing
+     */
+    private function processAddresses(array $addresses, int $personId, int $personType): array {
+        $results = [];
+
+        foreach ($addresses as $index => $addressData) {
+            $result = $this->processSingleAddress($addressData, $personId, $personType);
+            if ($result) {
+                $results[] = $result;
+            }
+        }
+
+        return $results;
+    }
+
+    /**
+     * Process a single address for a person
+     *
+     * @param array $addressData Address data
+     * @param int $personId The person ID (user or patient)
+     * @param int $personType The person type (0 = user, 1 = patient)
+     * @return array|null Result of address processing or null if failed
+     */
+    private function processSingleAddress(array $addressData, int $personId, int $personType): ?array {
+        // Check for required address fields
+        $requiredAddressFields = [
+            Address::TYPE,
+            Address::ADDRESS,
+            Address::CITY,
+            Address::COUNTY,
+            Address::STATE,
+            Address::ZIPCODE
+        ];
+
+        $missingAddressFields = [];
+        foreach ($requiredAddressFields as $field) {
+            if (empty($addressData[$field])) {
+                $missingAddressFields[] = $field;
+            }
+        }
+
+        if (!empty($missingAddressFields)) {
+            return [
+                'status' => 'not created',
+                'missing_fields' => $missingAddressFields
+            ];
+        }
+
+        $address = new Address();
+        $address->person_id = $personId;
+        $address->person_type = $personType;
+        $address->type = $addressData[Address::TYPE];
+        $address->address = $addressData[Address::ADDRESS];
+        $address->city = $addressData[Address::CITY];
+        $address->county = $addressData[Address::COUNTY];
+        $address->state = strtoupper($addressData[Address::STATE]);
+        $address->zipcode = $addressData[Address::ZIPCODE];
+
+        if (isset($addressData[Address::COUNTRY])) {
+            $address->country = $addressData[Address::COUNTRY];
+        }
+
+        if (isset($addressData[Address::LATITUDE]) && isset($addressData[Address::LONGITUDE])) {
+            $address->latitude = (float)$addressData[Address::LATITUDE];
+            $address->longitude = (float)$addressData[Address::LONGITUDE];
+        }
+
+        if (!$address->save()) {
+            return [
+                'status' => 'failed',
+                'errors' => $address->getMessages()
+            ];
+        }
+
+        return [
+            'address_id' => $address->id,
+            'status' => 'created',
+            'type' => $address->type,
+            'address' => $address->address,
+            'city' => $address->city
+        ];
     }
 
 }
