@@ -109,7 +109,7 @@ Authorization: {{maxmila.token}}
 ### ========================================
 
 ### Get all addresses for a user
-GET {{maxmila.baseUrl}}/address/person/1/0
+GET {{maxmila.baseUrl}}/address/person/5/0
 Authorization: {{maxmila.token}}
 
 ### Get all addresses for a patient
@@ -139,20 +139,13 @@ GET {{maxmila.baseUrl}}/address/nearby?latitude=34.0522&longitude=-118.2437&radi
 ### ========================================
 
 ### Update complete address
-PUT {{maxmila.baseUrl}}/address/1
+PUT {{maxmila.baseUrl}}/address/5
 Authorization: {{maxmila.token}}
 Content-Type: application/json
 
 {
-  "type": "House",
-  "address": "123 Updated Street",
-  "city": "New City",
-  "county": "New County",
-  "state": "NY",
-  "zipcode": "10001",
-  "country": "United States",
-  "latitude": 40.7128,
-  "longitude": -74.0060
+  "latitude": 42.5085371,
+  "longitude": -83.0866839
 }
 
 ### Update only specific fields

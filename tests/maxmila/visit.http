@@ -1,0 +1,502 @@
+### Visit API Endpoints Testing
+### ========================================
+### Create Visit - POST /visit
+### ========================================
+
+### Create a new visit with all fields
+POST {{maxmila.baseUrl}}/visit
+Authorization: {{maxmila.token}}
+Content-Type: application/json
+
+{
+  "user_id": 1,
+  "patient_id": 1,
+  "start_time": "{{date("yyyy-MM-dd")}}T09:00:00",
+  "end_time": "{{date("yyyy-MM-dd")}}T10:30:00",
+  "note": "Regular check-up visit"
+}
+
+### Create a visit in the past
+POST {{maxmila.baseUrl}}/visit
+Authorization: {{maxmila.token}}
+Content-Type: application/json
+
+{
+  "user_id": 2,
+  "patient_id": 2,
+  "start_time": "{{$datetime 'YYYY-MM-DD' -1}}T14:00:00",
+  "end_time": "{{$datetime 'YYYY-MM-DD' -1}}T15:30:00",
+  "note": "Past visit for testing"
+}
+
+### Create a visit in the future
+POST {{maxmila.baseUrl}}/visit
+Authorization: {{maxmila.token}}
+Content-Type: application/json
+
+{
+  "user_id": 3,
+  "patient_id": 3,
+  "start_time": "{{$datetime 'YYYY-MM-DD' 2}}T10:00:00",
+  "end_time": "{{$datetime 'YYYY-MM-DD' 2}}T11:30:00",
+  "note": "Future scheduled visit"
+}
+
+### Create a visit with explicit progress status (admin/manager only)
+POST {{maxmila.baseUrl}}/visit
+Authorization: {{maxmila.token}}
+Content-Type: application/json
+
+{
+  "user_id": 4,
+  "patient_id": 4,
+  "start_time": "{{$datetime 'YYYY-MM-DD'}}T13:00:00",
+  "end_time": "{{$datetime 'YYYY-MM-DD'}}T14:30:00",
+  "note": "Explicitly marked as completed",
+  "progress": 2
+}
+
+### Create a visit with invalid time (should fail)
+POST {{maxmila.baseUrl}}/visit
+Authorization: {{maxmila.token}}
+Content-Type: application/json
+
+{
+  "user_id": 1,
+  "patient_id": 1,
+  "start_time": "{{$datetime 'YYYY-MM-DD'}}T16:00:00",
+  "end_time": "{{$datetime 'YYYY-MM-DD'}}T15:00:00",
+  "note": "End time is before start time"
+}
+
+### ========================================
+### Get Visit by ID - GET /visit/{id}
+### ========================================
+
+### Get a specific visit
+GET {{maxmila.baseUrl}}/visit/1
+Authorization: {{maxmila.token}}
+
+### Get a non-existent visit (should return 404)
+GET {{maxmila.baseUrl}}/visit/9999
+Authorization: {{maxmila.token}}
+
+### ========================================
+### Get Visits with Filtering - GET /visits
+### ========================================
+
+### Get all visits
+GET {{maxmila.baseUrl}}/visits
+Authorization: {{maxmila.token}}
+
+### Filter visits by user
+GET {{maxmila.baseUrl}}/visits?user_id=1
+Authorization: {{maxmila.token}}
+
+### Filter visits by patient
+GET {{maxmila.baseUrl}}/visits?patient_id=1
+Authorization: {{maxmila.token}}
+
+### Filter visits by progress (scheduled)
+GET {{maxmila.baseUrl}}/visits?progress=0
+Authorization: {{maxmila.token}}
+
+### Filter visits by progress (in-progress)
+GET {{maxmila.baseUrl}}/visits?progress=1
+Authorization: {{maxmila.token}}
+
+### Filter visits by progress (completed)
+GET {{maxmila.baseUrl}}/visits?progress=2
+Authorization: {{maxmila.token}}
+
+### Filter visits by progress (paid)
+GET {{maxmila.baseUrl}}/visits?progress=3
+Authorization: {{maxmila.token}}
+
+### Filter visits by progress (canceled)
+GET {{maxmila.baseUrl}}/visits?progress=-1
+Authorization: {{maxmila.token}}
+
+### Filter visits by status (active)
+GET {{maxmila.baseUrl}}/visits?status=1
+Authorization: {{maxmila.token}}
+
+### Filter visits by date range
+GET {{maxmila.baseUrl}}/visits?start_date={{date("YYYY-MM-DD" -7)}}&end_date={{date("YYYY-MM-DD")}}
+Authorization: {{maxmila.token}}
+
+### Filter with multiple parameters
+GET {{maxmila.baseUrl}}/visits?user_id=1&progress=2&start_date={{date("YYYY-MM-DD" -30)}}&end_date={{date("YYYY-MM-DD")}}
+Authorization: {{maxmila.token}}
+
+### ========================================
+### Get Visits for a Specific User - GET /visits/user/{userId}
+### ========================================
+
+### Get all visits for a specific user
+GET {{maxmila.baseUrl}}/visits/user/1
+Authorization: {{maxmila.token}}
+
+### Filter user visits by progress
+GET {{maxmila.baseUrl}}/visits/user/1?progress=0
+Authorization: {{maxmila.token}}
+
+### Filter user visits by date range
+GET {{maxmila.baseUrl}}/visits/user/1?start_date={{date("YYYY-MM-DD" -30)}}&end_date={{date("YYYY-MM-DD")}}
+Authorization: {{maxmila.token}}
+
+### ========================================
+### Get Visits for a Specific Patient - GET /visits/patient/{patientId}
+### ========================================
+
+### Get all visits for a specific patient
+GET {{maxmila.baseUrl}}/visits/patient/1
+Authorization: {{maxmila.token}}
+
+### Filter patient visits by progress
+GET {{maxmila.baseUrl}}/visits/patient/1?progress=0
+Authorization: {{maxmila.token}}
+
+### Filter patient visits by date range
+GET {{maxmila.baseUrl}}/visits/patient/1?start_date={{date("YYYY-MM-DD" -30)}}&end_date={{date("YYYY-MM-DD")}}
+Authorization: {{maxmila.token}}
+
+### ========================================
+### Get Today's Visits - GET /visits/today
+### ========================================
+
+### Get all visits scheduled for today
+GET {{maxmila.baseUrl}}/visits/today
+Authorization: {{maxmila.token}}
+
+### ========================================
+### Update Visit - PUT /visit/{id}
+### ========================================
+
+### Update a visit's basic information
+PUT {{maxmila.baseUrl}}/visit/1
+Authorization: {{maxmila.token}}
+Content-Type: application/json
+
+{
+  "note": "Updated visit note",
+  "start_time": "{{$datetime 'YYYY-MM-DD'}}T10:00:00",
+  "end_time": "{{$datetime 'YYYY-MM-DD'}}T11:30:00"
+}
+
+### Update a visit's assigned user
+PUT {{maxmila.baseUrl}}/visit/2
+Authorization: {{maxmila.token}}
+Content-Type: application/json
+
+{
+  "user_id": 2
+}
+
+### Update a visit's patient
+PUT {{maxmila.baseUrl}}/visit/2
+Authorization: {{maxmila.token}}
+Content-Type: application/json
+
+{
+  "patient_id": 2
+}
+
+### Update a visit's progress status
+PUT {{maxmila.baseUrl}}/visit/3
+Authorization: {{maxmila.token}}
+Content-Type: application/json
+
+{
+  "progress": 2
+}
+
+### Update a visit's status
+PUT {{maxmila.baseUrl}}/visit/4
+Authorization: {{maxmila.token}}
+Content-Type: application/json
+
+{
+  "status": 2
+}
+
+### Update a visit with invalid times (should fail)
+PUT {{maxmila.baseUrl}}/visit/1
+Authorization: {{maxmila.token}}
+Content-Type: application/json
+
+{
+  "start_time": "{{$datetime 'YYYY-MM-DD'}}T14:00:00",
+  "end_time": "{{$datetime 'YYYY-MM-DD'}}T13:00:00"
+}
+
+### ========================================
+### Update Visit Progress - PUT /visit/{id}/progress
+### ========================================
+
+### Update progress to scheduled
+PUT {{maxmila.baseUrl}}/visit/1/progress
+Authorization: {{maxmila.token}}
+Content-Type: application/json
+
+{
+  "progress": 0
+}
+
+### Update progress to in-progress
+PUT {{maxmila.baseUrl}}/visit/1/progress
+Authorization: {{maxmila.token}}
+Content-Type: application/json
+
+{
+  "progress": 1
+}
+
+### Update progress to completed
+PUT {{maxmila.baseUrl}}/visit/1/progress
+Authorization: {{maxmila.token}}
+Content-Type: application/json
+
+{
+  "progress": 2
+}
+
+### Update progress to paid
+PUT {{maxmila.baseUrl}}/visit/1/progress
+Authorization: {{maxmila.token}}
+Content-Type: application/json
+
+{
+  "progress": 3
+}
+
+### Update progress to canceled
+PUT {{maxmila.baseUrl}}/visit/1/progress
+Authorization: {{maxmila.token}}
+Content-Type: application/json
+
+{
+  "progress": -1
+}
+
+### ========================================
+### Check In to Visit - PUT /visit/{id}/checkin
+### ========================================
+
+### Check in to a scheduled visit
+PUT {{maxmila.baseUrl}}/visit/2/checkin
+Authorization: {{maxmila.token}}
+
+### Check in to a non-scheduled visit (should fail)
+PUT {{maxmila.baseUrl}}/visit/3/checkin
+Authorization: {{maxmila.token}}
+
+### ========================================
+### Check Out from Visit - PUT /visit/{id}/checkout
+### ========================================
+
+### Check out from an in-progress visit
+PUT {{maxmila.baseUrl}}/visit/4/checkout
+Authorization: {{maxmila.token}}
+Content-Type: application/json
+
+{
+  "note": "Visit completed successfully. Patient was in good condition."
+}
+
+### Check out from a non-in-progress visit (should fail)
+PUT {{maxmila.baseUrl}}/visit/5/checkout
+Authorization: {{maxmila.token}}
+Content-Type: application/json
+
+{
+  "note": "This should fail because visit is not in-progress"
+}
+
+### ========================================
+### Cancel Visit - PUT /visit/{id}/cancel
+### ========================================
+
+### Cancel a scheduled visit
+PUT {{maxmila.baseUrl}}/visit/6/cancel
+Authorization: {{maxmila.token}}
+Content-Type: application/json
+
+{
+  "note": "Patient requested cancellation"
+}
+
+### Cancel a completed visit (should fail)
+PUT {{maxmila.baseUrl}}/visit/7/cancel
+Authorization: {{maxmila.token}}
+Content-Type: application/json
+
+{
+  "note": "This should fail because visit is already completed"
+}
+
+### ========================================
+### Delete Visit - DELETE /visit/{id}
+### ========================================
+
+### Soft-delete a visit
+DELETE {{maxmila.baseUrl}}/visit/8
+Authorization: {{maxmila.token}}
+
+### Delete a non-existent visit (should return 404)
+DELETE {{maxmila.baseUrl}}/visit/9999
+Authorization: {{maxmila.token}}
+
+### Delete an already deleted visit (should return 400)
+DELETE {{maxmila.baseUrl}}/visit/9
+Authorization: {{maxmila.token}}
+
+### ========================================
+### Authorization Tests
+### ========================================
+
+### Create visit without authentication (should fail)
+POST {{maxmila.baseUrl}}/visit
+Content-Type: application/json
+
+{
+  "user_id": 1,
+  "patient_id": 1,
+  "start_time": "{{$datetime 'YYYY-MM-DD'}}T09:00:00",
+  "end_time": "{{$datetime 'YYYY-MM-DD'}}T10:30:00"
+}
+
+### Create visit with invalid token (should fail)
+POST {{maxmila.baseUrl}}/visit
+Authorization: invalid_token
+Content-Type: application/json
+
+{
+  "user_id": 1,
+  "patient_id": 1,
+  "start_time": "{{$datetime 'YYYY-MM-DD'}}T09:00:00",
+  "end_time": "{{$datetime 'YYYY-MM-DD'}}T10:30:00"
+}
+
+### Create visit for another user as a regular caregiver (should fail)
+POST {{maxmila.baseUrl}}/visit
+Authorization: {{caregiverToken}}
+Content-Type: application/json
+
+{
+  "user_id": 999,
+  "patient_id": 1,
+  "start_time": "{{$datetime 'YYYY-MM-DD'}}T09:00:00",
+  "end_time": "{{$datetime 'YYYY-MM-DD'}}T10:30:00"
+}
+
+### Access other user's visit as a caregiver (should fail)
+GET {{maxmila.baseUrl}}/visit/10
+Authorization: {{caregiverToken}}
+
+### ========================================
+### Validation Tests
+### ========================================
+
+### Missing required fields (should fail)
+POST {{maxmila.baseUrl}}/visit
+Authorization: {{maxmila.token}}
+Content-Type: application/json
+
+{
+  "user_id": 1,
+  "patient_id": 1
+}
+
+### Invalid user ID (should fail)
+POST {{maxmila.baseUrl}}/visit
+Authorization: {{maxmila.token}}
+Content-Type: application/json
+
+{
+  "user_id": 9999,
+  "patient_id": 1,
+  "start_time": "{{$datetime 'YYYY-MM-DD'}}T09:00:00",
+  "end_time": "{{$datetime 'YYYY-MM-DD'}}T10:30:00"
+}
+
+### Invalid patient ID (should fail)
+POST {{maxmila.baseUrl}}/visit
+Authorization: {{maxmila.token}}
+Content-Type: application/json
+
+{
+  "user_id": 1,
+  "patient_id": 9999,
+  "start_time": "{{$datetime 'YYYY-MM-DD'}}T09:00:00",
+  "end_time": "{{$datetime 'YYYY-MM-DD'}}T10:30:00"
+}
+
+### Invalid progress status (should fail)
+POST {{maxmila.baseUrl}}/visit
+Authorization: {{maxmila.token}}
+Content-Type: application/json
+
+{
+  "user_id": 1,
+  "patient_id": 1,
+  "start_time": "{{$datetime 'YYYY-MM-DD'}}T09:00:00",
+  "end_time": "{{$datetime 'YYYY-MM-DD'}}T10:30:00",
+  "progress": 99
+}
+
+### ========================================
+### Edge Cases
+### ========================================
+
+### Very long note
+POST {{maxmila.baseUrl}}/visit
+Authorization: {{maxmila.token}}
+Content-Type: application/json
+
+{
+  "user_id": 1,
+  "patient_id": 1,
+  "start_time": "{{$datetime 'YYYY-MM-DD'}}T09:00:00",
+  "end_time": "{{$datetime 'YYYY-MM-DD'}}T10:30:00",
+  "note": "This is a very long note that might exceed the database column limit. It contains detailed information about the patient's condition, symptoms, treatments, and observations. The purpose is to test how the system handles text that approaches or exceeds the maximum allowed length for the note field in the database."
+}
+
+### Visit with very short duration (1 minute)
+POST {{maxmila.baseUrl}}/visit
+Authorization: {{maxmila.token}}
+Content-Type: application/json
+
+{
+  "user_id": 1,
+  "patient_id": 1,
+  "start_time": "{{$datetime 'YYYY-MM-DD'}}T09:00:00",
+  "end_time": "{{$datetime 'YYYY-MM-DD'}}T09:01:00",
+  "note": "Very short visit for testing"
+}
+
+### Visit with very long duration (12 hours)
+POST {{maxmila.baseUrl}}/visit
+Authorization: {{maxmila.token}}
+Content-Type: application/json
+
+{
+  "user_id": 1,
+  "patient_id": 1,
+  "start_time": "{{$datetime 'YYYY-MM-DD'}}T08:00:00",
+  "end_time": "{{$datetime 'YYYY-MM-DD'}}T20:00:00",
+  "note": "Very long visit for testing"
+}
+
+### Visit crossing midnight
+POST {{maxmila.baseUrl}}/visit
+Authorization: {{maxmila.token}}
+Content-Type: application/json
+
+{
+  "user_id": 1,
+  "patient_id": 1,
+  "start_time": "{{$datetime 'YYYY-MM-DD'}}T22:00:00",
+  "end_time": "{{$datetime 'YYYY-MM-DD' 1}}T02:00:00",
+  "note": "Visit that crosses midnight"
+}

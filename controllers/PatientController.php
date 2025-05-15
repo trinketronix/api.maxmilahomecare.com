@@ -365,7 +365,7 @@ class PatientController extends BaseController {
                 $patientData = $patient->toArray();
 
                 // Get patient's addresses
-                $addresses = $patient->getAddresses();
+                $addresses = Address::findByPerson($patient->id,PersonType::PATIENT);
                 if ($addresses && $addresses->count() > 0) {
                     $patientData['addresses'] = $addresses->toArray();
                 } else {
