@@ -58,100 +58,100 @@ class Visit extends Model {
     public int $status = Status::ACTIVE;
 
     // Timestamps
-    public string $created_at;
-    public string $updated_at;
+    public ?string $created_at = null;
+    public ?string $updated_at = null;
 
     /**
      * Initialize model relationships and behaviors
      */
     public function initialize(): void {
         $this->setSource('visit');
-
-        // Define relationships
-        $this->belongsTo(
-            'user_id',
-            User::class,
-            'id',
-            [
-                'alias' => 'user',
-                'reusable' => true
-            ]
-        );
-
-        $this->belongsTo(
-            'patient_id',
-            Patient::class,
-            'id',
-            [
-                'alias' => 'patient',
-                'reusable' => true
-            ]
-        );
-
-        // Define relationships for tracking fields
-        $this->belongsTo(
-            'scheduled_by',
-            User::class,
-            'id',
-            [
-                'alias' => 'scheduledByUser',
-                'reusable' => true
-            ]
-        );
-
-        $this->belongsTo(
-            'checkin_by',
-            User::class,
-            'id',
-            [
-                'alias' => 'checkinByUser',
-                'reusable' => true
-            ]
-        );
-
-        $this->belongsTo(
-            'checkout_by',
-            User::class,
-            'id',
-            [
-                'alias' => 'checkoutByUser',
-                'reusable' => true
-            ]
-        );
-
-        $this->belongsTo(
-            'canceled_by',
-            User::class,
-            'id',
-            [
-                'alias' => 'canceledByUser',
-                'reusable' => true
-            ]
-        );
-
-        $this->belongsTo(
-            'approved_by',
-            User::class,
-            'id',
-            [
-                'alias' => 'approvedByUser',
-                'reusable' => true
-            ]
-        );
-
-        // Add automatic timestamp behavior
-        $this->addBehavior(
-            new Timestampable([
-                'beforeCreate' => [
-                    'field' => 'created_at',
-                    'format' => 'Y-m-d H:i:s'
-                ],
-                'beforeUpdate' => [
-                    'field' => 'updated_at',
-                    'format' => 'Y-m-d H:i:s'
-                ]
-            ])
-        );
+//
+//        // Define relationships
+//        $this->belongsTo(
+//            'user_id',
+//            User::class,
+//            'id',
+//            [
+//                'alias' => 'user',
+//                'reusable' => true
+//            ]
+//        );
+//
+//        $this->belongsTo(
+//            'patient_id',
+//            Patient::class,
+//            'id',
+//            [
+//                'alias' => 'patient',
+//                'reusable' => true
+//            ]
+//        );
+//
+//        // Define relationships for tracking fields
+//        $this->belongsTo(
+//            'scheduled_by',
+//            User::class,
+//            'id',
+//            [
+//                'alias' => 'scheduledByUser',
+//                'reusable' => true
+//            ]
+//        );
+//
+//        $this->belongsTo(
+//            'checkin_by',
+//            User::class,
+//            'id',
+//            [
+//                'alias' => 'checkinByUser',
+//                'reusable' => true
+//            ]
+//        );
+//
+//        $this->belongsTo(
+//            'checkout_by',
+//            User::class,
+//            'id',
+//            [
+//                'alias' => 'checkoutByUser',
+//                'reusable' => true
+//            ]
+//        );
+//
+//        $this->belongsTo(
+//            'canceled_by',
+//            User::class,
+//            'id',
+//            [
+//                'alias' => 'canceledByUser',
+//                'reusable' => true
+//            ]
+//        );
+//
+//        $this->belongsTo(
+//            'approved_by',
+//            User::class,
+//            'id',
+//            [
+//                'alias' => 'approvedByUser',
+//                'reusable' => true
+//            ]
+//        );
+//
+//        // Add automatic timestamp behavior
+//        $this->addBehavior(
+//            new Timestampable([
+//                'beforeCreate' => [
+//                    'field' => 'created_at',
+//                    'format' => 'Y-m-d H:i:s'
+//                ],
+//                'beforeUpdate' => [
+//                    'field' => 'updated_at',
+//                    'format' => 'Y-m-d H:i:s'
+//                ]
+//            ])
+//        );
     }
 
     /**

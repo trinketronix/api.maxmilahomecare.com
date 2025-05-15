@@ -37,16 +37,16 @@ try {
 
     // Load routes by group
     $routeFiles = [
-        'auth',
         'account',
         'address',
+        'auth',
         'bulk',
-        'user',
-        'patient',
-        'visit',
+        'default',
         'email',
+        'patient',
         'tool',
-        'default'
+        'user',
+        'visit'
     ];
 
     foreach ($routeFiles as $routeFile) {
