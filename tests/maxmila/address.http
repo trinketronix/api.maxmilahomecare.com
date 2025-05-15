@@ -22,6 +22,25 @@ Content-Type: application/json
   "longitude": -118.2437
 }
 
+### Create appartment address for a user
+POST {{maxmila.baseUrl}}/address
+Authorization: {{maxmila.token}}
+Content-Type: application/json
+
+{
+  "person_id": 1,
+  "person_type": 0,
+  "type": "Ranch",
+  "address": "234 Halsted Road",
+  "city": "Plano",
+  "county": "Rosario",
+  "state": "TX",
+  "zipcode": "68136",
+  "country": "United States",
+  "latitude": 34.0522,
+  "longitude": -118.2437
+}
+
 ### Create address for a patient
 POST {{maxmila.baseUrl}}/address
 Authorization: {{maxmila.token}}
@@ -78,7 +97,7 @@ Content-Type: application/json
 ### ========================================
 
 ### Get specific address by ID
-GET {{maxmila.baseUrl}}/address/{{addressId}}
+GET {{maxmila.baseUrl}}/address/1
 Authorization: {{maxmila.token}}
 
 ### Get non-existent address (should return 404)
@@ -107,6 +126,7 @@ Authorization: {{maxmila.token}}
 
 ### Find addresses within specific radius
 GET {{maxmila.baseUrl}}/address/nearby?latitude=34.0522&longitude=-118.2437&radius=5
+Authorization: {{maxmila.token}}
 
 ### Find user addresses within radius
 GET {{maxmila.baseUrl}}/address/nearby?latitude=34.0522&longitude=-118.2437&radius=10&person_type=0
@@ -119,7 +139,7 @@ GET {{maxmila.baseUrl}}/address/nearby?latitude=34.0522&longitude=-118.2437&radi
 ### ========================================
 
 ### Update complete address
-PUT {{maxmila.baseUrl}}/address/{{addressId}}
+PUT {{maxmila.baseUrl}}/address/1
 Authorization: {{maxmila.token}}
 Content-Type: application/json
 

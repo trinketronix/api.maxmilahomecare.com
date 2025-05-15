@@ -1,0 +1,307 @@
+### Patient API Endpoints Testing
+### ========================================
+### Create Patient - POST /patient
+### ========================================
+
+### Create a patient with all fields
+POST {{maxmila.baseUrl}}/patient
+Authorization: {{maxmila.token}}
+Content-Type: application/json
+
+{
+  "firstname": "John",
+  "middlename": "Robert",
+  "lastname": "Smith",
+  "phone": "734-555-1234",
+  "patient": "PAT-001",
+  "admission": "ADM-001",
+  "address": {
+    "type": "Home",
+    "address": "123 Main Street",
+    "city": "Anytown",
+    "county": "Anycounty",
+    "state": "MI",
+    "zipcode": "48185",
+    "country": "United States",
+    "latitude": 42.34229,
+    "longitude": -83.39545
+  }
+}
+
+### Create a patient with minimal fields
+POST {{maxmila.baseUrl}}/patient
+Authorization: {{maxmila.token}}
+Content-Type: application/json
+
+{
+  "firstname": "Jane",
+  "lastname": "Doe",
+  "phone": "734-555-5678"
+}
+
+### Create a patient with invalid state (should fail)
+POST {{maxmila.baseUrl}}/patient
+Authorization: {{maxmila.token}}
+Content-Type: application/json
+
+{
+  "firstname": "Error",
+  "lastname": "Test",
+  "phone": "734-555-9012",
+  "address": {
+    "type": "Home",
+    "address": "456 Error Lane",
+    "city": "Errorville",
+    "county": "Errorcounty",
+    "state": "Error",
+    "zipcode": "12345"
+  }
+}
+
+### ========================================
+### Get Patient by ID - GET /patient/{id}
+### ========================================
+
+### Get a specific patient
+GET {{maxmila.baseUrl}}/patient/1
+Authorization: {{maxmila.token}}
+
+### Get a non-existent patient (should return 404)
+GET {{maxmila.baseUrl}}/patient/9999
+Authorization: {{maxmila.token}}
+
+### ========================================
+### Get All Patients - GET /patients
+### ========================================
+
+### Get all patients
+GET {{maxmila.baseUrl}}/patients
+Authorization: {{maxmila.token}}
+
+### ========================================
+### Update Patient - PUT /patient/{id}
+### ========================================
+
+### Update a patient's basic information
+PUT {{maxmila.baseUrl}}/patient/1
+Authorization: {{maxmila.token}}
+Content-Type: application/json
+
+{
+  "firstname": "John",
+  "lastname": "Smith-Updated",
+  "phone": "734-555-4321"
+}
+
+### Update patient with HHA exchange IDs
+PUT {{maxmila.baseUrl}}/patient/1
+Authorization: {{maxmila.token}}
+Content-Type: application/json
+
+{
+  "patient": "PAT-001-UPDATED",
+  "admission": "ADM-001-UPDATED"
+}
+
+### Update a patient with invalid state (should fail)
+PUT {{maxmila.baseUrl}}/patient/1
+Authorization: {{maxmila.token}}
+Content-Type: application/json
+
+{
+  "status": 9999
+}
+
+### ========================================
+### Archive Patient - PUT /patient/{id}/archive
+### ========================================
+
+### Archive a patient
+PUT {{maxmila.baseUrl}}/patient/1/archive
+Authorization: {{maxmila.token}}
+
+### Archive a non-existent patient (should return 404)
+PUT {{maxmila.baseUrl}}/patient/9999/archive
+Authorization: {{maxmila.token}}
+
+### Archive an already archived patient (should return 400)
+PUT {{maxmila.baseUrl}}/patient/2/archive
+Authorization: {{maxmila.token}}
+
+### ========================================
+### Restore Patient - PUT /patient/{id}/restore
+### ========================================
+
+### Restore a previously archived or deleted patient
+PUT {{maxmila.baseUrl}}/patient/2/restore
+Authorization: {{maxmila.token}}
+
+### Restore a non-existent patient (should return 404)
+PUT {{maxmila.baseUrl}}/patient/9999/restore
+Authorization: {{maxmila.token}}
+
+### Restore an already active patient (should return 400)
+PUT {{maxmila.baseUrl}}/patient/1/restore
+Authorization: {{maxmila.token}}
+
+### ========================================
+### Delete Patient - DELETE /patient/{id}
+### ========================================
+
+### Soft-delete a patient
+DELETE {{maxmila.baseUrl}}/patient/3
+Authorization: {{maxmila.token}}
+
+### Delete a non-existent patient (should return 404)
+DELETE {{maxmila.baseUrl}}/patient/9999
+Authorization: {{maxmila.token}}
+
+### Delete an already deleted patient (should return 400)
+DELETE {{maxmila.baseUrl}}/patient/4
+Authorization: {{maxmila.token}}
+
+### ========================================
+### Authorization Tests
+### ========================================
+
+### Create patient without authentication (should fail)
+POST {{maxmila.baseUrl}}/patient
+Content-Type: application/json
+
+{
+  "firstname": "Auth",
+  "lastname": "Test",
+  "phone": "734-555-7890"
+}
+
+### Create patient with invalid token (should fail)
+POST {{maxmila.baseUrl}}/patient
+Authorization: invalid_token
+Content-Type: application/json
+
+{
+  "firstname": "Token",
+  "lastname": "Test",
+  "phone": "734-555-7890"
+}
+
+### Create patient as regular user (should fail with 403 Forbidden)
+# Note: This assumes you have a caregiver-level user token
+POST {{maxmila.baseUrl}}/patient
+Authorization: {{caregiverToken}}
+Content-Type: application/json
+
+{
+  "firstname": "Role",
+  "lastname": "Test",
+  "phone": "734-555-7890"
+}
+
+### ========================================
+### Validation Tests
+### ========================================
+
+### Missing required fields (should fail)
+POST {{maxmila.baseUrl}}/patient
+Authorization: {{maxmila.token}}
+Content-Type: application/json
+
+{
+  "firstname": "Missing",
+  "lastname": "Fields"
+}
+
+### Invalid zipcode in address (should warn about incomplete address)
+POST {{maxmila.baseUrl}}/patient
+Authorization: {{maxmila.token}}
+Content-Type: application/json
+
+{
+  "firstname": "Invalid",
+  "lastname": "Zipcode",
+  "phone": "734-555-1111",
+  "address": {
+    "type": "Home",
+    "address": "789 Validation St",
+    "city": "Test City",
+    "county": "Test County",
+    "state": "MI",
+    "zipcode": "1234"
+  }
+}
+
+### ========================================
+### Edge Cases Testing
+### ========================================
+
+### Very long name
+POST {{maxmila.baseUrl}}/patient
+Authorization: {{maxmila.token}}
+Content-Type: application/json
+
+{
+  "firstname": "ThisIsAVeryLongFirstNameThatMightExceedTheColumnLimitsInTheDatabase",
+  "lastname": "ThisIsAVeryLongLastNameThatMightExceedTheColumnLimitsInTheDatabase",
+  "phone": "734-555-2222"
+}
+
+### Special characters in name
+POST {{maxmila.baseUrl}}/patient
+Authorization: {{maxmila.token}}
+Content-Type: application/json
+
+{
+  "firstname": "José-María",
+  "middlename": "François",
+  "lastname": "García-López",
+  "phone": "734-555-3333"
+}
+
+### Create multiple patients for testing bulk operations
+POST {{maxmila.baseUrl}}/patient
+Authorization: {{maxmila.token}}
+Content-Type: application/json
+
+{
+  "firstname": "Test1",
+  "lastname": "Patient",
+  "phone": "734-555-4444"
+}
+
+###
+POST {{maxmila.baseUrl}}/patient
+Authorization: {{maxmila.token}}
+Content-Type: application/json
+
+{
+  "firstname": "Test2",
+  "lastname": "Patient",
+  "phone": "734-555-5555"
+}
+
+###
+POST {{maxmila.baseUrl}}/patient
+Authorization: {{maxmila.token}}
+Content-Type: application/json
+
+{
+  "firstname": "Test3",
+  "lastname": "Patient",
+  "phone": "734-555-6666"
+}
+
+### ========================================
+### Searching and Filtering (if supported)
+### ========================================
+
+### Get patients by name (if supported by your API)
+GET {{maxmila.baseUrl}}/patients?search=Smith
+Authorization: {{maxmila.token}}
+
+### Get active patients only (if supported by your API)
+GET {{maxmila.baseUrl}}/patients?status=1
+Authorization: {{maxmila.token}}
+
+### Get archived patients only (if supported by your API)
+GET {{maxmila.baseUrl}}/patients?status=2
+Authorization: {{maxmila.token}}
