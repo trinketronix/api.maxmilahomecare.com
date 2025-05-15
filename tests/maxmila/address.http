@@ -47,7 +47,7 @@ Authorization: {{maxmila.token}}
 Content-Type: application/json
 
 {
-  "person_id": 5,
+  "person_id": 1,
   "person_type": 1,
   "type": "Apartment",
   "address": "456 Oak Avenue, Apt 2B",
@@ -113,7 +113,7 @@ GET {{maxmila.baseUrl}}/address/person/1/0
 Authorization: {{maxmila.token}}
 
 ### Get all addresses for a patient
-GET {{maxmila.baseUrl}}/address/person/{{patientId}}/1
+GET {{maxmila.baseUrl}}/address/person/1/1
 Authorization: {{maxmila.token}}
 
 ### Get addresses for non-existent person (should return 404)
