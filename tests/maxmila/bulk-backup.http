@@ -1,7 +1,7 @@
 ###
 # group: Backup Recovery
 # @name Add Bulk Accounts
-POST {{maxmila.baseUrl}}/auth/bulk
+POST {{maxmila.baseUrl}}/bulk/auths
 Content-Type: application/json
 
 [
@@ -538,7 +538,7 @@ Content-Type: application/json
 ###
 # group: Backup Recovery
 # @name Update Bulk Users
-PUT {{baseUrl}}/bulk-users
+PUT {{baseUrl}}/bulk/users
 Content-Type: application/json
 
 [
@@ -2294,7 +2294,7 @@ Content-Type: application/json
 ###
 # group: Backup Recovery
 # @name Add Bulk Patients
-POST {{baseUrl}}/bulk-patients
+POST {{baseUrl}}/bulk/patients
 Content-Type: application/json
 
 [
