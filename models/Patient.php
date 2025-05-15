@@ -42,8 +42,8 @@ class Patient extends Model {
     public int $status = Status::ACTIVE;
 
     // Timestamps
-    public string $created_at;
-    public string $updated_at;
+    public ?string $created_at = null;
+    public ?string $updated_at = null;
 
     /**
      * Initialize model relationships and behaviors
@@ -90,20 +90,20 @@ class Patient extends Model {
 //                'reusable' => true
 //            ]
 //        );
-
-        // Add automatic timestamp behavior
-        $this->addBehavior(
-            new Timestampable([
-                'beforeCreate' => [
-                    'field' => 'created_at',
-                    'format' => 'Y-m-d H:i:s'
-                ],
-                'beforeUpdate' => [
-                    'field' => 'updated_at',
-                    'format' => 'Y-m-d H:i:s'
-                ]
-            ])
-        );
+//
+//        // Add automatic timestamp behavior
+//        $this->addBehavior(
+//            new Timestampable([
+//                'beforeCreate' => [
+//                    'field' => 'created_at',
+//                    'format' => 'Y-m-d H:i:s'
+//                ],
+//                'beforeUpdate' => [
+//                    'field' => 'updated_at',
+//                    'format' => 'Y-m-d H:i:s'
+//                ]
+//            ])
+//        );
     }
 
     /**
