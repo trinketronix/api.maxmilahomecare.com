@@ -64,7 +64,7 @@ Content-Type: application/json
 
 ### Get a specific patient
 GET {{maxmila.baseUrl}}/patient/1
-Authorization: {{maxmila.token}}
+Authorization: {{maxmila.manager.token}}
 
 ### Get a non-existent patient (should return 404)
 GET {{maxmila.baseUrl}}/patient/9999
@@ -76,7 +76,7 @@ Authorization: {{maxmila.token}}
 
 ### Get all patients
 GET {{maxmila.baseUrl}}/patients
-Authorization: {{maxmila.token}}
+Authorization: {{maxmila.manager.token}}
 
 ### ========================================
 ### Update Patient - PUT /patient/{id}
@@ -84,7 +84,7 @@ Authorization: {{maxmila.token}}
 
 ### Update a patient's basic information
 PUT {{maxmila.baseUrl}}/patient/1
-Authorization: {{maxmila.token}}
+Authorization: {{maxmila.manager.token}}
 Content-Type: application/json
 
 {

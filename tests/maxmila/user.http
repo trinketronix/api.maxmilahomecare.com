@@ -273,3 +273,14 @@ Content-Type: application/json
   "firstname": "Carol",
   "lastname": "Davis"
 }
+
+### User assigng patient
+PUT {{baseUrl}}/user/assign/patient
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "user_id": 1,
+  "patient_id": 1
+}
+

@@ -5,18 +5,38 @@ POST {{maxmila.baseUrl}}/auth/register
 Content-Type: application/json
 
 {
-  "username": "edmundo_ch@hotmail.com",
+  "username": "username@email.com",
   "password": "edmundo2025"
 }
 
 ###
-# @name Login
+# @name Login Administrator
 POST {{maxmila.baseUrl}}/auth/login
 Content-Type: application/json
 
 {
-  "username": "{{maxmila.username}}",
-  "password": "{{maxmila.password}}"
+  "username": "{{maxmila.administrator.username}}",
+  "password": "{{maxmila.administrator.password}}"
+}
+
+###
+# @name Login Manager
+POST {{maxmila.baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "{{maxmila.manager.username}}",
+  "password": "{{maxmila.manager.password}}"
+}
+
+###
+# @name Login Manager
+POST {{maxmila.baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "{{maxmila.caregiver.username}}",
+  "password": "{{maxmila.caregiver.password}}"
 }
 
 ###
