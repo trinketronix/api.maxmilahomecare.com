@@ -275,8 +275,8 @@ Content-Type: application/json
 }
 
 ### User assigng patient
-PUT {{baseUrl}}/user/assign/patient
-Authorization: {{token}}
+POST {{maxmila.baseUrl}}/user/assign/patient
+Authorization: {{maxmila.administrator.token}}
 Content-Type: application/json
 
 {

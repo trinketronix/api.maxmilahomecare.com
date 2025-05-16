@@ -26,8 +26,8 @@ class UserPatient extends Model {
     public int $assigned_by;
     public ?string $notes = null;
     public int $status = Status::ACTIVE;
-    public string $created_at;
-    public string $updated_at;
+    public ?string $created_at = null;
+    public ?string $updated_at = null;
 
     /**
      * Initialize model relationships and behaviors

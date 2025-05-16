@@ -30,7 +30,7 @@ Content-Type: application/json
 }
 
 ###
-# @name Login Manager
+# @name Login Caregiver
 POST {{maxmila.baseUrl}}/auth/login
 Content-Type: application/json
 
