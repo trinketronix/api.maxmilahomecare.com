@@ -11,7 +11,7 @@ if (isset($app)) {
 
     // Add the new route for user-patient assignment
     $userPatient = new UserPatientController();
-    $app->post('/user/assign/patient', [$userPatient, 'createAssignment']);
+    $app->post('/user/assign/patient', [$userPatient, 'create']);
 
     // New route to get patients by user ID
     $app->get('/user/{userId}/patients', [$userPatient, 'getUserPatients']);
