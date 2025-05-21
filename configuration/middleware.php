@@ -91,6 +91,7 @@ if (isset($app)) {
         $allowedOrigins = [
             'https://maxmilahomecare.com',
             'https://app.maxmilahomecare.com',
+            'https://app-test.maxmilahomecare.com',
             'https://api.maxmilahomecare.com',
             'https://api-test.maxmilahomecare.com',
             'https://www.maxmilahomecare.com',
