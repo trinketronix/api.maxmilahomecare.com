@@ -7,12 +7,11 @@ namespace Api\Models;
 use Api\Constants\Message;
 use Api\Constants\Progress;
 use Api\Constants\Status;
-use Phalcon\Filter\Validation;
-use Phalcon\Filter\Validation\Validator\PresenceOf;
-use Phalcon\Filter\Validation\Validator\InclusionIn;
-use Phalcon\Mvc\Model;
-use Phalcon\Mvc\Model\Behavior\Timestampable;
 use DateTime;
+use Phalcon\Filter\Validation;
+use Phalcon\Filter\Validation\Validator\InclusionIn;
+use Phalcon\Filter\Validation\Validator\PresenceOf;
+use Phalcon\Mvc\Model;
 
 class Visit extends Model {
     // Column constants

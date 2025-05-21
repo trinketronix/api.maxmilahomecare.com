@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Api\Controllers;
 
-use Api\Constants\Role;
 use Api\Constants\Message;
 use Api\Models\UserAuthView;
 use Exception;

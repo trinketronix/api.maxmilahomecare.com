@@ -6,12 +6,11 @@ namespace Api\Models;
 
 use Api\Constants\PersonType;
 use Phalcon\Filter\Validation;
-use Phalcon\Filter\Validation\Validator\PresenceOf;
 use Phalcon\Filter\Validation\Validator\InclusionIn;
-use Phalcon\Filter\Validation\Validator\Regex;
 use Phalcon\Filter\Validation\Validator\Numericality;
+use Phalcon\Filter\Validation\Validator\PresenceOf;
+use Phalcon\Filter\Validation\Validator\Regex;
 use Phalcon\Mvc\Model;
-use Phalcon\Mvc\Model\Behavior\Timestampable;
 
 class Address extends Model {
     // Common address types

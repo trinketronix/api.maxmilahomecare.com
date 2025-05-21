@@ -6,7 +6,6 @@ namespace Api\Models;
 
 use Api\Constants\Status;
 use Phalcon\Mvc\Model;
-use Phalcon\Mvc\Model\Behavior\Timestampable;
 
 class UserPatient extends Model {
     // Column constants

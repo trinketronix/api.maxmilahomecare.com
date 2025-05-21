@@ -1,7 +1,6 @@
 <?php
 
 namespace Api\Constants;
-
 class Status {
     // -1: Not Verified (the user is pending of verification. Just for user authentication)
     public const int NOT_VERIFIED = -1;

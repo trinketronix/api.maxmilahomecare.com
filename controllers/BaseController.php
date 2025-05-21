@@ -6,12 +6,9 @@ namespace Api\Controllers;
 
 use Api\Email\Sender;
 use Api\Email\SMTP;
-use Exception;
-use JsonException;
 use Api\Models\Auth;
-use Api\Services\TokenService;
+use Exception;
 use Phalcon\Mvc\Controller;
-use Phalcon\Http\Response;
 
 class BaseController extends Controller {
     /**

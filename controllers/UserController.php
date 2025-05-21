@@ -11,7 +11,6 @@ use Api\Encoding\Base64;
 use Api\Models\Address;
 use Api\Models\User;
 use Exception;
-use JsonException;
 
 class UserController extends BaseController {
     /**
