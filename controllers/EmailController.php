@@ -6,6 +6,7 @@ use Api\Constants\Email;
 use Api\Constants\Message;
 use Api\Email\Sender;
 use Api\Email\SMTP;
+use Exception;
 use Phalcon\Http\Response;
 
 class EmailController extends BaseController{
@@ -54,7 +55,8 @@ class EmailController extends BaseController{
             } else {
                 return $this->respondWithError($message, 417);
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
+            error_log('Exception: ' . $e->getMessage());
             return $this->respondWithError('Exception: ' . $e->getMessage(), 417);
         }
     }

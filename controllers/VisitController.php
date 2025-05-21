@@ -146,6 +146,7 @@ class VisitController extends BaseController {
             });
 
         } catch (Exception $e) {
+            error_log('Exception: ' . $e->getMessage());
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }
@@ -179,6 +180,7 @@ class VisitController extends BaseController {
             return $this->respondWithSuccess($visitData);
 
         } catch (Exception $e) {
+            error_log('Exception: ' . $e->getMessage());
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }
@@ -254,6 +256,7 @@ class VisitController extends BaseController {
             ]);
 
         } catch (Exception $e) {
+            error_log('Exception: ' . $e->getMessage());
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }
@@ -306,6 +309,7 @@ class VisitController extends BaseController {
             return $this->respondWithSuccess($visitArray);
 
         } catch (Exception $e) {
+            error_log('Exception: ' . $e->getMessage());
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }
@@ -357,6 +361,7 @@ class VisitController extends BaseController {
             return $this->respondWithSuccess($visitArray);
 
         } catch (Exception $e) {
+            error_log('Exception: ' . $e->getMessage());
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }
@@ -392,6 +397,7 @@ class VisitController extends BaseController {
             return $this->respondWithSuccess($visitArray);
 
         } catch (Exception $e) {
+            error_log('Exception: ' . $e->getMessage());
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }
@@ -621,6 +627,7 @@ class VisitController extends BaseController {
             });
 
         } catch (Exception $e) {
+            error_log('Exception: ' . $e->getMessage());
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }
@@ -666,6 +673,7 @@ class VisitController extends BaseController {
             });
 
         } catch (Exception $e) {
+            error_log('Exception: ' . $e->getMessage());
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }
@@ -733,6 +741,7 @@ class VisitController extends BaseController {
             });
 
         } catch (Exception $e) {
+            error_log('Exception: ' . $e->getMessage());
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }
@@ -782,6 +791,7 @@ class VisitController extends BaseController {
             });
 
         } catch (Exception $e) {
+            error_log('Exception: ' . $e->getMessage());
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }
@@ -839,6 +849,7 @@ class VisitController extends BaseController {
             });
 
         } catch (Exception $e) {
+            error_log('Exception: ' . $e->getMessage());
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }
@@ -898,6 +909,7 @@ class VisitController extends BaseController {
             });
 
         } catch (Exception $e) {
+            error_log('Exception: ' . $e->getMessage());
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }

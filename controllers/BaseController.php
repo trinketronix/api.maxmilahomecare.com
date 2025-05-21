@@ -25,8 +25,9 @@ class BaseController extends Controller {
             if ($this->getDI()->has('request_body')) {
                 return $this->getDI()->getRaw('request_body') ?? [];
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // If any error, return empty array
+            error_log('Exception: ' . $e->getMessage());
         }
         return [];
     }
@@ -40,8 +41,9 @@ class BaseController extends Controller {
             if ($this->getDI()->has('decodedToken')) {
                 return $this->getDI()->getRaw('decodedToken') ?? [];
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // If any error, return empty array
+            error_log('Exception: ' . $e->getMessage());
         }
         return [];
     }
@@ -181,7 +183,7 @@ class BaseController extends Controller {
 
                 // If still not available, throw a meaningful exception
                 if (!$this->db) {
-                    throw new \Exception("Database service not available");
+                    throw new Exception("Database service not available");
                 }
             }
 
@@ -189,7 +191,8 @@ class BaseController extends Controller {
             $result = $operation();
             $this->commitTransaction();
             return $result;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
+            error_log('Exception: ' . $e->getMessage());
             if ($this->db && $this->db->isUnderTransaction()) {
                 $this->rollbackTransaction();
             }
@@ -218,7 +221,7 @@ class BaseController extends Controller {
             if($isHtml) $mail->AltBody = strip_tags($body);
 
             return $mail->send();
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             error_log("BaseController->processEmail(): Exception: " . $e->getMessage(). " Sender:" . $mail->ErrorInfo);
             return null;
         }
