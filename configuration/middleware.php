@@ -91,21 +91,20 @@ if (isset($app)) {
         $allowedOrigins = [
             'https://maxmilahomecare.com',
             'https://app.maxmilahomecare.com',
-            'https://app-test.maxmilahomecare.com',
             'https://api.maxmilahomecare.com',
             'https://api-test.maxmilahomecare.com',
             'https://www.maxmilahomecare.com',
-            // Add more allowed origins as needed
+            'null'  // Add 'null' to allowed origins for testing with file:// or direct console
         ];
 
-        // For development, allow all origins
+        // For development, always allow all origins
         if (APP_ENV === 'dev') {
-            // Just set the wildcard origin directly
             $app->response->setHeader('Access-Control-Allow-Origin', '*');
         } else {
             // For production, check if origin is in allowed list
-            if (in_array($origin, $allowedOrigins)) {
-                $app->response->setHeader('Access-Control-Allow-Origin', $origin);
+            // Special handling for 'null' origin
+            if ($origin === 'null' || in_array($origin, $allowedOrigins)) {
+                $app->response->setHeader('Access-Control-Allow-Origin', $origin === 'null' ? 'null' : $origin);
                 $app->response->setHeader('Access-Control-Allow-Credentials', 'true');
             } else {
                 // Default to first allowed origin if not matched (could also be restrictive)
