@@ -85,54 +85,57 @@ if (isset($app)) {
      * Handles Cross-Origin Resource Sharing headers
      */
     $eventsManager->attach('micro:beforeHandleRoute', function (Event $event, Micro $app) {
-        $origin = $app->request->getHeader('ORIGIN') ?: $app->request->getHeader('Origin');
 
-        // Allow from specific origins or use * for development
-        $allowedOrigins = [
-            'https://maxmilahomecare.com',
-            'https://app.maxmilahomecare.com',
-            'https://app-test.maxmilahomecare.com',
-            'https://api.maxmilahomecare.com',
-            'https://api-test.maxmilahomecare.com',
-            'https://www.maxmilahomecare.com',
-            'null'  // Add 'null' to allowed origins for testing with file:// or direct console
-        ];
+//        $origin = $app->request->getHeader('ORIGIN') ?: $app->request->getHeader('Origin');
+//
+//        // Allow from specific origins or use * for development
+//        $allowedOrigins = [
+//            'https://maxmilahomecare.com',
+//            'https://app.maxmilahomecare.com',
+//            'https://app-test.maxmilahomecare.com',
+//            'https://api.maxmilahomecare.com',
+//            'https://api-test.maxmilahomecare.com',
+//            'https://www.maxmilahomecare.com',
+//            'null'  // Add 'null' to allowed origins for testing with file:// or direct console
+//        ];
 
         // For development, always allow all origins
-        if (APP_ENV === 'dev') {
-            $app->response->setHeader('Access-Control-Allow-Origin', '*');
-        } else {
-            // For production, check if origin is in allowed list
-            // Special handling for 'null' origin
-            if ($origin === 'null' || in_array($origin, $allowedOrigins)) {
-                $app->response->setHeader('Access-Control-Allow-Origin', $origin === 'null' ? 'null' : $origin);
-                $app->response->setHeader('Access-Control-Allow-Credentials', 'true');
-            } else {
-                // Default to first allowed origin if not matched (could also be restrictive)
-                $app->response->setHeader('Access-Control-Allow-Origin', $allowedOrigins[0]);
-            }
-        }
+//        if (APP_ENV === 'dev') {
+//            $app->response->setHeader('Access-Control-Allow-Origin', '*');
+//        } else {
+//            // For production, check if origin is in allowed list
+//            // Special handling for 'null' origin
+//            if ($origin === 'null' || in_array($origin, $allowedOrigins)) {
+//                $app->response->setHeader('Access-Control-Allow-Origin', $origin === 'null' ? 'null' : $origin);
+//                $app->response->setHeader('Access-Control-Allow-Credentials', 'true');
+//            } else {
+//                // Default to first allowed origin if not matched (could also be restrictive)
+//                $app->response->setHeader('Access-Control-Allow-Origin', $allowedOrigins[0]);
+//            }
+//        }
 
         // Common CORS headers for all environments
-        $app->response->setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+        // other methods not implemented yet (OPTIONS, PATCH, HEAD, OPTIONS, TRACE, CONNECT)
+        $app->response->setHeader('Access-Control-Allow-Origin', '*');
+        $app->response->setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
         $app->response->setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
         $app->response->setHeader('Access-Control-Max-Age', '86400'); // Cache preflight request for 24 hours
 
         // Handle preflight OPTIONS requests
-        if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
-            // Set status code to 200 OK
-            $app->response->setStatusCode(200, 'OK');
-
-            // Set content type to prevent browser warnings
-            $app->response->setContentType('application/json', 'UTF-8');
-
-            // Empty response body for OPTIONS
-            $app->response->setJsonContent([]);
-
-            // Send the response
-            $app->response->send();
-            exit();
-        }
+//        if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
+//            // Set status code to 200 OK
+//            $app->response->setStatusCode(200, 'OK');
+//
+//            // Set content type to prevent browser warnings
+//            $app->response->setContentType('application/json', 'UTF-8');
+//
+//            // Empty response body for OPTIONS
+//            $app->response->setJsonContent([]);
+//
+//            // Send the response
+//            $app->response->send();
+//            exit();
+//        }
 
         return true;
     });
