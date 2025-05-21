@@ -1,7 +1,6 @@
 <?php
 
 namespace Api\Constants;
-
 class Email {
     public const string TO = 'to';
     public const string CC = 'cc';

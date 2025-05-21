@@ -1,7 +1,6 @@
 <?php
 
 namespace Api\Constants;
-
 class Message {
     // Authentication related
     public const CREDENTIALS_REQUIRED = 'Username and password are required.';

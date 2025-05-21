@@ -4,10 +4,7 @@ namespace Api\Controllers;
 
 use Api\Constants\Email;
 use Api\Constants\Message;
-use Api\Email\Sender;
-use Api\Email\SMTP;
 use Exception;
-use Phalcon\Http\Response;
 
 class EmailController extends BaseController{
 

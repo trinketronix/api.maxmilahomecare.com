@@ -1,7 +1,6 @@
 <?php
 
 namespace Api\Constants;
-
 class Progress {
     public const int CANCELED = -1;
     public const int SCHEDULED = 0;

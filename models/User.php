@@ -5,11 +5,10 @@ declare(strict_types=1);
 namespace Api\Models;
 
 use Api\Constants\Message;
-use Api\Constants\Status;
 use Phalcon\Filter\Validation;
-use Phalcon\Filter\Validation\Validator\Uniqueness;
 use Phalcon\Filter\Validation\Validator\Email;
 use Phalcon\Filter\Validation\Validator\PresenceOf;
+use Phalcon\Filter\Validation\Validator\Uniqueness;
 use Phalcon\Mvc\Model;
 use Phalcon\Mvc\Model\Behavior\Timestampable;
 
