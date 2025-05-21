@@ -209,7 +209,7 @@ class BaseController extends Controller {
             $mail->SMTPSecure = Sender::ENCRYPTION_SMTPS;
             $mail->SMTPDebug = SMTP::DEBUG_OFF;
 
-            $mail->setFrom(getenv('EMAIL_REP_ADDR') ?: 'no-reply@maxmilahomecare.com', getenv('EMAIL_REP_NAME') ?: 'Maxmila Homecare Test System');
+            $mail->setFrom(getenv('EMAIL_REP_ADDR') ?: 'failsafe@maxmilahomecare.com', getenv('EMAIL_REP_NAME') ?: 'Maxmila Homecare Failsafe System');
             $mail->addAddress($to);
 
             $mail->isHTML($isHtml);

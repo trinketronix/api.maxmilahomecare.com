@@ -13,6 +13,8 @@ use Phalcon\Events\Manager as EventsManager;
 
 // Define application environment
 define('APP_ENV', getenv('APP_ENV') ?: 'dev');
+define('BASE_URL', getenv('BASE_URL') ?: 'https://failsafe.maxmmilahomecare.com');
+define('DB_DATABASE', getenv('DB_DATABASE') ?: 'failsafe');
 const BASE_PATH = __DIR__;
 
 // Autoloader
