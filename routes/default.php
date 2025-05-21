@@ -3,6 +3,10 @@
 // Add a Not-Found handler
 use Api\Constants\Api;
 
+
+// Define application environment
+define('APP_ENV', getenv('APP_ENV') ?: 'dev');
+
 if (isset($app)) {
     $app->get(
         '/',
@@ -19,6 +23,7 @@ if (isset($app)) {
                     'name' => $appName,
                     'version' => $appVersion,
                     'copyright' => $appCopyright,
+                    'environment' => APP_ENV,
                     'message' => 'rest api is online'
                 ]
             ]);
