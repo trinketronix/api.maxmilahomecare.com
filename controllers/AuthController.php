@@ -326,7 +326,7 @@ class AuthController extends BaseController {
      */
     private function sendActivationEmail(string $address, string $code): bool {
 
-        $baseUrl =
+        $baseUrl = BASE_URL;
 
         $subject = 'Activate Maxmila Account';
         $edoc= strrev($code);
