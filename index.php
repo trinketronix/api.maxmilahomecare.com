@@ -44,6 +44,7 @@ try {
         'default',
         'email',
         'patient',
+        'proxy',
         'tool',
         'user',
         'visit'
