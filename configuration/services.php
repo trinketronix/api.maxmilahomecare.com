@@ -19,8 +19,8 @@ if (isset($container)) {
                     'value' => [
                         'host' => getenv('DB_HOSTPATH') ?: 'localhost',
                         'username' => getenv('DB_USERNAME') ?: 'root',
-                        'password' => getenv('DB_PASSWORD') ?: '',
-                        'dbname' => getenv('DB_DATABASE') ?: '',
+                        'password' => getenv('DB_PASSWORD') ?: '********',
+                        'dbname' => getenv('DB_DATABASE') ?: 'failsafe',
                         'charset' => 'utf8mb4',
                         'options' => [
                             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,

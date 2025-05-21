@@ -93,6 +93,5 @@ class Message {
     public const BATCH_CREATED_SUFFIX = ' accounts created successfully';
 
     // System
-    public const BASE_URL = 'https://api.maxmilahomecare.com';
     public const ALGORITHM = 'sha512';
 }
