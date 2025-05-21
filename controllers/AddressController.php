@@ -119,6 +119,7 @@ class AddressController extends BaseController {
             });
 
         } catch (Exception $e) {
+            error_log('Exception: ' . $e->getMessage());
             return $this->respondWithError('Exception: ' . $e->getMessage() . ' trace: ' . $e->getTraceAsString() . ' line:'. $e->getLine(), 400);
         }
     }
@@ -162,6 +163,7 @@ class AddressController extends BaseController {
             return $this->respondWithSuccess($addresses->toArray());
 
         } catch (Exception $e) {
+            error_log('Exception: ' . $e->getMessage());
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }
@@ -188,6 +190,7 @@ class AddressController extends BaseController {
             return $this->respondWithSuccess($address->toArray());
 
         } catch (Exception $e) {
+            error_log('Exception: ' . $e->getMessage());
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }
@@ -273,6 +276,7 @@ class AddressController extends BaseController {
             });
 
         } catch (Exception $e) {
+            error_log('Exception: ' . $e->getMessage());
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }
@@ -307,6 +311,7 @@ class AddressController extends BaseController {
             });
 
         } catch (Exception $e) {
+            error_log('Exception: ' . $e->getMessage());
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }
@@ -389,6 +394,7 @@ class AddressController extends BaseController {
             return $this->respondWithSuccess($result);
 
         } catch (Exception $e) {
+            error_log('Exception: ' . $e->getMessage());
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }

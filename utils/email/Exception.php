@@ -24,15 +24,13 @@ namespace Api\Email;
 /**
  * Sender exception handler.
  */
-class Exception extends \Exception
-{
+class Exception extends \Exception{
     /**
      * Prettify error message output.
      *
      * @return string
      */
-    public function errorMessage()
-    {
+    public function errorMessage(){
         return '<strong>' . htmlspecialchars($this->getMessage(), ENT_COMPAT | ENT_HTML401) . "</strong><br />\n";
     }
 }

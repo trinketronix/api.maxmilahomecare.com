@@ -267,7 +267,8 @@ if (isset($app)) {
             $app->getDI()->setShared('decodedToken', $decoded);
 
             return true;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
+            error_log('Exception: ' . $e->getMessage());
             $app->response->setStatusCode(401, 'Unauthorized');
             $app->response->setJsonContent([
                 'status' => 'error',
@@ -313,6 +314,7 @@ if (isset($app)) {
                     // Alternative: $app->getDI()->requestBody = [];
                 }
             } catch (\JsonException $e) {
+                error_log('Exception: ' . $e->getMessage());
                 $app->response->setStatusCode(400, 'Bad Request');
                 $app->response->setJsonContent([
                     'status' => 'error',

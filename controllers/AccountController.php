@@ -48,6 +48,7 @@ class AccountController extends BaseController {
             ]);
 
         } catch (Exception $e) {
+            error_log('Exception: ' . $e->getMessage());
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }
@@ -99,6 +100,7 @@ class AccountController extends BaseController {
             return $this->respondWithSuccess($userData);
 
         } catch (Exception $e) {
+            error_log('Exception: ' . $e->getMessage());
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }

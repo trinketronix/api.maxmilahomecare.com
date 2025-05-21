@@ -7,9 +7,9 @@ if (isset($app)) {
     $app->get(
         '/',
         function () {
-            $appName = Api::NAME;
-            $appVersion = Api::VERSION;
-            $appCopyright = Api::COPYRIGHT;
+            $appName = Api::getAppName();
+            $appVersion = Api::getVersion();
+            $appCopyright = Api::getCopyright();
             $response = new Phalcon\Http\Response();
             $response->setStatusCode(200, 'OK');
             $response->setJsonContent([

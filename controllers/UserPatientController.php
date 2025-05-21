@@ -95,6 +95,7 @@ class UserPatientController extends BaseController {
             });
 
         } catch (Exception $e) {
+            error_log('Exception: ' . $e->getMessage());
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }
@@ -135,6 +136,7 @@ class UserPatientController extends BaseController {
             });
 
         } catch (Exception $e) {
+            error_log('Exception: ' . $e->getMessage());
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }
@@ -205,6 +207,7 @@ class UserPatientController extends BaseController {
             ]);
 
         } catch (Exception $e) {
+            error_log('Exception: ' . $e->getMessage());
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }
@@ -242,6 +245,7 @@ class UserPatientController extends BaseController {
             ]);
 
         } catch (Exception $e) {
+            error_log('Exception: ' . $e->getMessage());
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }

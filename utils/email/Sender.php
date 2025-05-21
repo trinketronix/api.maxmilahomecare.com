@@ -2,6 +2,7 @@
 
 namespace Api\Email;
 
+use Exception;
 /**
  * Sender - PHP email creation and transport class.
  */
@@ -1504,16 +1505,17 @@ class Sender
                 'message' => $result ? 'Message sent successfully' : $this->ErrorInfo
             ];
 
-        } catch (Exception $exc) {
+        } catch (Exception $e) {
+            error_log('Exception: ' . $e->getMessage());
             $this->mailHeader = '';
-            $this->setError($exc->getMessage());
+            $this->setError($e->getMessage());
             if ($this->exceptions) {
-                throw $exc;
+                throw $e;
             }
 
             return [
                 'success' => false,
-                'message' => $exc->getMessage()
+                'message' => $e->getMessage()
             ];
         }
     }
@@ -1646,10 +1648,11 @@ class Sender
             }
 
             return true;
-        } catch (Exception $exc) {
-            $this->setError($exc->getMessage());
+        } catch (Exception $e) {
+            error_log('Exception: ' . $e->getMessage());
+            $this->setError($e->getMessage());
             if ($this->exceptions) {
-                throw $exc;
+                throw $e;
             }
 
             return false;
@@ -1682,14 +1685,15 @@ class Sender
                     }
                     return $this->mailSend($this->MIMEHeader, $this->MIMEBody);
             }
-        } catch (Exception $exc) {
-            $this->setError($exc->getMessage());
-            $this->edebug($exc->getMessage());
+        } catch (Exception $e) {
+            error_log('Exception: ' . $e->getMessage());
+            $this->setError($e->getMessage());
+            $this->edebug($e->getMessage());
             if ($this->Mailer === 'smtp' && $this->SMTPKeepAlive == true && $this->smtp->connected()) {
                 $this->smtp->reset();
             }
             if ($this->exceptions) {
-                throw $exc;
+                throw $e;
             }
         }
         return false;
@@ -2248,9 +2252,10 @@ class Sender
                     }
 
                     return true;
-                } catch (Exception $exc) {
-                    $lastexception = $exc;
-                    $this->edebug($exc->getMessage());
+                } catch (Exception $e) {
+                    error_log('Exception: ' . $e->getMessage());
+                    $lastexception = $e;
+                    $this->edebug($e->getMessage());
                     //We must have connected, but then failed TLS or Auth, so close connection nicely
                     $this->smtp->quit();
                 }
@@ -2816,8 +2821,8 @@ class Sender
         if (function_exists('random_bytes')) {
             try {
                 $bytes = random_bytes($len);
-            } catch (\Exception $e) {
-                //Do nothing
+            } catch (Exception $e) {
+                error_log('Exception: ' . $e->getMessage());
             }
         } elseif (function_exists('openssl_random_pseudo_bytes')) {
             /** @noinspection CryptographicallySecureRandomnessInspection */
@@ -3106,10 +3111,11 @@ class Sender
                     @unlink($signed);
                     throw new Exception($this->lang('signing') . openssl_error_string());
                 }
-            } catch (Exception $exc) {
+            } catch (Exception $e) {
+                error_log('Exception: ' . $e->getMessage());
                 $body = '';
                 if ($this->exceptions) {
-                    throw $exc;
+                    throw $e;
                 }
             }
         }
@@ -3275,11 +3281,12 @@ class Sender
                 6 => $disposition,
                 7 => $name,
             ];
-        } catch (Exception $exc) {
-            $this->setError($exc->getMessage());
-            $this->edebug($exc->getMessage());
+        } catch (Exception $e) {
+            error_log('Exception: ' . $e->getMessage());
+            $this->setError($e->getMessage());
+            $this->edebug($e->getMessage());
             if ($this->exceptions) {
-                throw $exc;
+                throw $e;
             }
 
             return false;
@@ -3432,11 +3439,12 @@ class Sender
             $file_buffer = $this->encodeString($file_buffer, $encoding);
 
             return $file_buffer;
-        } catch (Exception $exc) {
-            $this->setError($exc->getMessage());
-            $this->edebug($exc->getMessage());
+        } catch (Exception $e) {
+            error_log('Exception: ' . $e->getMessage());
+            $this->setError($e->getMessage());
+            $this->edebug($e->getMessage());
             if ($this->exceptions) {
-                throw $exc;
+                throw $e;
             }
 
             return '';
@@ -3765,11 +3773,12 @@ class Sender
                 6 => $disposition,
                 7 => 0,
             ];
-        } catch (Exception $exc) {
-            $this->setError($exc->getMessage());
-            $this->edebug($exc->getMessage());
+        } catch (Exception $e) {
+            error_log('Exception: ' . $e->getMessage());
+            $this->setError($e->getMessage());
+            $this->edebug($e->getMessage());
             if ($this->exceptions) {
-                throw $exc;
+                throw $e;
             }
 
             return false;
@@ -3838,11 +3847,12 @@ class Sender
                 6 => $disposition,
                 7 => $cid,
             ];
-        } catch (Exception $exc) {
-            $this->setError($exc->getMessage());
-            $this->edebug($exc->getMessage());
+        } catch (Exception $e) {
+            error_log('Exception: ' . $e->getMessage());
+            $this->setError($e->getMessage());
+            $this->edebug($e->getMessage());
             if ($this->exceptions) {
-                throw $exc;
+                throw $e;
             }
 
             return false;
@@ -3899,11 +3909,12 @@ class Sender
                 6 => $disposition,
                 7 => $cid,
             ];
-        } catch (Exception $exc) {
-            $this->setError($exc->getMessage());
-            $this->edebug($exc->getMessage());
+        } catch (Exception $e) {
+            error_log('Exception: ' . $e->getMessage());
+            $this->setError($e->getMessage());
+            $this->edebug($e->getMessage());
             if ($this->exceptions) {
-                throw $exc;
+                throw $e;
             }
 
             return false;
