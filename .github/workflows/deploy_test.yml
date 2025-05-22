@@ -14,7 +14,213 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Sync files for Testing
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: phalcon, mbstring, json
+          tools: composer
+
+      - name: Install Node.js for minification tools
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install minification dependencies
+        run: |
+          npm install -g uglify-js
+          # Install PHP minifier
+          composer global require matthiasmullie/minify
+
+      - name: Create minified build directory
+        run: |
+          mkdir -p build/minified
+          cp -r . build/minified/
+          cd build/minified
+
+      - name: Minify PHP files
+        run: |
+          cd build/minified
+          
+          # Create the minification script
+          cat > minify_php.php << 'EOF'
+          <?php
+          /**
+           * PHP Minification Script for Production Deployment
+           * Removes comments, unnecessary whitespace, and optimizes PHP files
+           */
+          
+          function minifyPHP($source) {
+              // Remove PHP opening/closing tags temporarily for processing
+              $source = preg_replace('/^<\?php\s*/', '', $source);
+              $source = preg_replace('/\s*\?>$/', '', $source);
+          
+              // Remove single-line comments (// and #) but preserve URLs
+              $source = preg_replace('/(?<!:)\/\/(?![\/\*]).*?(?=\r?\n|$)/m', '', $source);
+              $source = preg_replace('/(?<!:)#(?![\/\*]).*?(?=\r?\n|$)/m', '', $source);
+          
+              // Remove multi-line comments /* ... */ but preserve important ones
+              $source = preg_replace('/\/\*(?![\*!]).*?\*\//s', '', $source);
+          
+              // Remove DocBlocks but keep essential license/copyright comments
+              $source = preg_replace('/\/\*\*(?!\s*\*\s*@license|\s*\*\s*@copyright).*?\*\//s', '', $source);
+          
+              // Remove declare directives in production (optional - be careful)
+              // $source = preg_replace('/declare\s*\(\s*strict_types\s*=\s*1\s*\)\s*;/', '', $source);
+          
+              // Normalize whitespace
+              $source = preg_replace('/\s+/', ' ', $source);
+          
+              // Remove unnecessary spaces around operators and punctuation
+              $source = preg_replace('/\s*([{}();,=+\-*\/&|<>!])\s*/', '$1', $source);
+          
+              // Remove spaces after control structures
+              $source = preg_replace('/\b(if|for|foreach|while|switch|catch|function|class|interface|trait)\s*\(/i', '$1(', $source);
+          
+              // Clean up namespace and use statements
+              $source = preg_replace('/\s*(namespace|use|extends|implements)\s+/', ' $1 ', $source);
+          
+              // Remove empty lines
+              $source = preg_replace('/\n\s*\n/', "\n", $source);
+          
+              // Trim and add PHP opening tag back
+              $source = trim($source);
+              if (!empty($source)) {
+                  $source = "<?php " . $source;
+              }
+          
+              return $source;
+          }
+          
+          function minifyFile($filePath) {
+              if (!file_exists($filePath) || !is_readable($filePath)) {
+                  return false;
+              }
+          
+              $content = file_get_contents($filePath);
+              if ($content === false) {
+                  return false;
+              }
+          
+              // Only minify if it's a PHP file with actual content
+              if (strpos($content, '<?php') !== false) {
+                  $minified = minifyPHP($content);
+                  return file_put_contents($filePath, $minified) !== false;
+              }
+          
+              return true;
+          }
+          
+          function minifyDirectory($dir, $excludes = []) {
+              $iterator = new RecursiveIteratorIterator(
+                  new RecursiveDirectoryIterator($dir, RecursiveDirectoryIterator::SKIP_DOTS),
+                  RecursiveIteratorIterator::LEAVES_ONLY
+              );
+          
+              $processed = 0;
+              $errors = 0;
+          
+              foreach ($iterator as $file) {
+                  $filePath = $file->getPathname();
+                  $relativePath = str_replace($dir . '/', '', $filePath);
+          
+                  // Skip excluded files/directories
+                  $skip = false;
+                  foreach ($excludes as $exclude) {
+                      if (strpos($relativePath, $exclude) === 0) {
+                          $skip = true;
+                          break;
+                      }
+                  }
+          
+                  if ($skip) {
+                      echo "Skipped: $relativePath\n";
+                      continue;
+                  }
+          
+                  // Only process PHP files
+                  if ($file->getExtension() === 'php') {
+                      $originalSize = filesize($filePath);
+          
+                      if (minifyFile($filePath)) {
+                          $newSize = filesize($filePath);
+                          $saved = $originalSize - $newSize;
+                          $percent = $originalSize > 0 ? round(($saved / $originalSize) * 100, 1) : 0;
+          
+                          echo "Minified: $relativePath (saved {$saved} bytes, {$percent}%)\n";
+                          $processed++;
+                      } else {
+                          echo "Error: Failed to minify $relativePath\n";
+                          $errors++;
+                      }
+                  }
+              }
+          
+              echo "\nMinification complete!\n";
+              echo "Files processed: $processed\n";
+              echo "Errors: $errors\n";
+          
+              return $errors === 0;
+          }
+          
+          // Define directories/files to exclude from minification
+          $excludes = [
+              '.git',
+              'node_modules',
+              'vendor',
+              'tests',
+              'database',
+              '.github',
+              'minify_php.php',
+              'README.md',
+              'LICENSE'
+          ];
+          
+          // Run minification
+          $success = minifyDirectory('.', $excludes);
+          exit($success ? 0 : 1);
+          EOF
+          
+          # Run the minification
+          php minify_php.php
+
+      - name: Remove development files
+        run: |
+          cd build/minified
+          
+          # Remove development and build files that aren't needed in production
+          rm -rf .git*
+          rm -rf tests/
+          rm -rf database/
+          rm -rf node_modules/
+          rm -f minify_php.php
+          rm -f composer.json
+          rm -f composer.lock
+          rm -f package*.json
+          rm -f *.md
+          rm -f LICENSE
+          rm -f secrets.txt
+          rm -f http-client.env.json
+          
+          # Remove any backup files
+          find . -name "*.bak" -delete
+          find . -name "*.tmp" -delete
+          find . -name "*~" -delete
+          
+          echo "Build directory cleaned up"
+
+      - name: Display minification results
+        run: |
+          echo "=== Minification Summary ==="
+          echo "Original size:"
+          du -sh . --exclude=build
+          echo "Minified size:"
+          du -sh build/minified
+          echo "Files in minified build:"
+          find build/minified -name "*.php" | wc -l
+          echo "==========================="
+
+      - name: Sync minified files for Testing
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_MAX_SERVER }}
@@ -25,7 +231,8 @@ jobs:
           max-retries: 3          # Add retry attempts
           log-level: verbose      # More detailed logging
           dangerous-clean-slate: false  # Prevent full directory cleanup
-          exclude: |              # Exclude unnecessary files
+          local-dir: ./build/minified/  # Deploy the minified version
+          exclude: |              # Additional exclusions for safety
             **/.git*
             **/.git*/**
             **/.env*
@@ -38,5 +245,11 @@ jobs:
             LICENSE
             README.md
             secrets.txt
+            minify_php.php
           state-name: .ftp-deploy-sync-state.json    # Keep track of sync state
           server-dir: /          # Specify your root directory if needed
+
+      - name: Cleanup build directory
+        if: always()
+        run: |
+          rm -rf build/
