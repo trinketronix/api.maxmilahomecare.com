@@ -390,7 +390,7 @@ if (isset($app)) {
 
         // Format the response based on content
         if (is_array($content) && isset($content['status'])) {
-            // Response is already formatted
+            // Response is already formatted (including not-found responses)
             $response->setJsonContent($content);
 
             // Set appropriate status code
@@ -406,6 +406,16 @@ if (isset($app)) {
                 'status' => 'error',
                 'code' => $statusCode,
                 'message' => $content['message'] ?? 'Unknown error'
+            ]);
+        }
+        else if ($content === null) {
+            // Handle case where no content is returned (404 case)
+            $response->setStatusCode(404, 'Not Found');
+            $response->setJsonContent([
+                'status' => 'error',
+                'code' => 404,
+                'message' => 'Endpoint not found',
+                'path' => $_SERVER['REQUEST_URI'] ?? 'unknown'
             ]);
         }
         else {

@@ -34,7 +34,7 @@ try {
     $eventsManager = new EventsManager();
     $app->setEventsManager($eventsManager);
 
-    // Register middleware
+    // Register middleware (this handles CORS, auth, response formatting, etc.)
     require_once BASE_PATH . '/configuration/middleware.php';
 
     // Load routes by group
@@ -55,19 +55,36 @@ try {
         require_once BASE_PATH . "/routes/{$routeFile}.php";
     }
 
-    // Handle request
-    $app->handle($_SERVER["REQUEST_URI"]);
+    // Simple Not-Found handler (middleware will handle response formatting)
+    $app->notFound(function () {
+        // Return a simple array that middleware will format properly
+        return [
+            'status' => 'error',
+            'code' => 404,
+            'message' => 'Endpoint not found',
+            'path' => $_SERVER['REQUEST_URI'] ?? 'unknown'
+        ];
+    });
+
+    // Handle request - Let Phalcon handle URI parsing automatically
+    $app->handle();
 
 } catch (\Throwable $e) {
+    // Log the error
     $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-    // Global exception handler
-    header('Content-Type: application/json');
-    http_response_code(500);
-    echo json_encode([
-        'success' => false,
-        'message' => $e->getMessage(),
-        'code' => $e->getCode(),
-        'trace' => APP_ENV === 'dev' ? $e->getTraceAsString() : null
-    ]);
+    error_log('Application Exception: ' . $message);
+
+    // Simple fallback response (only if middleware fails to load)
+    if (!headers_sent()) {
+        header('Content-Type: application/json');
+        header('Access-Control-Allow-Origin: *');
+        http_response_code(500);
+
+        echo json_encode([
+            'status' => 'error',
+            'code' => 500,
+            'message' => 'Application initialization failed',
+            'debug' => APP_ENV === 'dev' ? $e->getMessage() : null
+        ]);
+    }
 }
