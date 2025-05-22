@@ -17,6 +17,65 @@ if (isset($app)) {
     $eventsManager = $app->getEventsManager();
 
     /**
+     * CORS middleware - MUST BE FIRST
+     * Handles Cross-Origin Resource Sharing headers
+     */
+    $eventsManager->attach('micro:beforeHandleRoute', function (Event $event, Micro $app) {
+        // Handle preflight OPTIONS requests FIRST
+        if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
+            $response = new Response();
+
+            // Allow all origins
+            $response->setHeader('Access-Control-Allow-Origin', '*');
+
+            // Allow all common methods
+            $response->setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD');
+
+            // Allow all common headers
+            $response->setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Pragma');
+
+            // Allow credentials if needed
+            $response->setHeader('Access-Control-Allow-Credentials', 'true');
+
+            // Cache preflight request for 24 hours
+            $response->setHeader('Access-Control-Max-Age', '86400');
+
+            // Set content type
+            $response->setContentType('application/json', 'UTF-8');
+
+            // Set status code to 200 OK
+            $response->setStatusCode(200, 'OK');
+
+            // Empty response body for OPTIONS
+            $response->setJsonContent([]);
+
+            // Send the response immediately
+            $response->send();
+            exit();
+        }
+
+        // For all other requests, set CORS headers
+        $response = $app->response;
+
+        // Allow all origins
+        $response->setHeader('Access-Control-Allow-Origin', '*');
+
+        // Allow all common methods
+        $response->setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD');
+
+        // Allow all common headers
+        $response->setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Pragma');
+
+        // Allow credentials if needed
+        $response->setHeader('Access-Control-Allow-Credentials', 'true');
+
+        // Cache preflight request for 24 hours
+        $response->setHeader('Access-Control-Max-Age', '86400');
+
+        return true;
+    });
+
+    /**
      * Headers validation middleware
      * Ensures proper Content-Type and other headers
      */
@@ -81,66 +140,6 @@ if (isset($app)) {
     });
 
     /**
-     * CORS middleware
-     * Handles Cross-Origin Resource Sharing headers
-     */
-    $eventsManager->attach('micro:beforeHandleRoute', function (Event $event, Micro $app) {
-
-//        $origin = $app->request->getHeader('ORIGIN') ?: $app->request->getHeader('Origin');
-//
-//        // Allow from specific origins or use * for development
-//        $allowedOrigins = [
-//            'https://maxmilahomecare.com',
-//            'https://app.maxmilahomecare.com',
-//            'https://app-test.maxmilahomecare.com',
-//            'https://api.maxmilahomecare.com',
-//            'https://api-test.maxmilahomecare.com',
-//            'https://www.maxmilahomecare.com',
-//            'null'  // Add 'null' to allowed origins for testing with file:// or direct console
-//        ];
-
-        // For development, always allow all origins
-//        if (APP_ENV === 'dev') {
-//            $app->response->setHeader('Access-Control-Allow-Origin', '*');
-//        } else {
-//            // For production, check if origin is in allowed list
-//            // Special handling for 'null' origin
-//            if ($origin === 'null' || in_array($origin, $allowedOrigins)) {
-//                $app->response->setHeader('Access-Control-Allow-Origin', $origin === 'null' ? 'null' : $origin);
-//                $app->response->setHeader('Access-Control-Allow-Credentials', 'true');
-//            } else {
-//                // Default to first allowed origin if not matched (could also be restrictive)
-//                $app->response->setHeader('Access-Control-Allow-Origin', $allowedOrigins[0]);
-//            }
-//        }
-
-        // Common CORS headers for all environments
-        // other methods not implemented yet (OPTIONS, PATCH, HEAD, OPTIONS, TRACE, CONNECT)
-        $app->response->setHeader('Access-Control-Allow-Origin', '*');
-        $app->response->setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
-        $app->response->setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-        $app->response->setHeader('Access-Control-Max-Age', '86400'); // Cache preflight request for 24 hours
-
-        // Handle preflight OPTIONS requests
-//        if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
-//            // Set status code to 200 OK
-//            $app->response->setStatusCode(200, 'OK');
-//
-//            // Set content type to prevent browser warnings
-//            $app->response->setContentType('application/json', 'UTF-8');
-//
-//            // Empty response body for OPTIONS
-//            $app->response->setJsonContent([]);
-//
-//            // Send the response
-//            $app->response->send();
-//            exit();
-//        }
-
-        return true;
-    });
-
-    /**
      * Authentication middleware
      * Verifies JWT tokens where required
      */
@@ -167,8 +166,8 @@ if (isset($app)) {
             '/bulk/user-patient',
             '/bulk/visits',
             '/send/email',
-            '/tools',  // Add this line to make the getAll route public
-            //'/api/tools/search', // If you have a separate search endpoint
+            '/tools',  // Make the getAll route public
+            '/tool/{id}', // Make individual tool route public
             // Add other public routes
         ];
 
@@ -310,11 +309,8 @@ if (isset($app)) {
 
                     // Store parsed body using setShared/setData instead of set
                     $app->getDI()->setShared('request_body', $decodedBody ?: []);
-                    // Alternative: use a property in the DI container
-                    // $app->getDI()->requestBody = $decodedBody ?: [];
                 } else {
                     $app->getDI()->setShared('request_body', []);
-                    // Alternative: $app->getDI()->requestBody = [];
                 }
             } catch (\JsonException $e) {
                 error_log('Exception: ' . $e->getMessage());
@@ -330,16 +326,13 @@ if (isset($app)) {
         } else if ($baseContentType === 'multipart/form-data') {
             // For form data, we can use the standard $_POST and $_FILES
             $app->getDI()->setShared('request_body', $_POST ?: []);
-            // Alternative: $app->getDI()->requestBody = $_POST ?: [];
         } else if ($baseContentType === 'application/x-www-form-urlencoded') {
             $rawBody = $app->request->getRawBody() ?: '';
             if (!empty($rawBody)) {
                 parse_str($rawBody, $parsedData);
                 $app->getDI()->setShared('request_body', $parsedData ?: []);
-                // Alternative: $app->getDI()->requestBody = $parsedData ?: [];
             } else {
                 $app->getDI()->setShared('request_body', []);
-                // Alternative: $app->getDI()->requestBody = [];
             }
         }
 
@@ -366,7 +359,7 @@ if (isset($app)) {
 
         // Check if this is the activation route
         $matchedRoute = $app->router->getMatchedRoute();
-        if ($matchedRoute && strpos($matchedRoute->getPattern(), '/activate/') === 0) {
+        if ($matchedRoute && strpos($matchedRoute->getPattern(), '/activation/') === 0) {
             // For the activation route, we expect a Response object to be returned
             // If we reach here, something went wrong
             $response = new Response();
@@ -386,6 +379,12 @@ if (isset($app)) {
         $response->setHeader('X-Frame-Options', 'DENY');
         $response->setHeader('X-XSS-Protection', '1; mode=block');
         $response->setContentType('application/json', 'UTF-8');
+
+        // Ensure CORS headers are set on the response
+        $response->setHeader('Access-Control-Allow-Origin', '*');
+        $response->setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD');
+        $response->setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Pragma');
+        $response->setHeader('Access-Control-Allow-Credentials', 'true');
 
         // Format the response based on content
         if (is_array($content) && isset($content['status'])) {
