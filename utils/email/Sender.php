@@ -1506,7 +1506,8 @@ class Sender
             ];
 
         } catch (Exception $e) {
-            error_log('Exception: ' . $e->getMessage());
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
             $this->mailHeader = '';
             $this->setError($e->getMessage());
             if ($this->exceptions) {
@@ -1649,7 +1650,8 @@ class Sender
 
             return true;
         } catch (Exception $e) {
-            error_log('Exception: ' . $e->getMessage());
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
             $this->setError($e->getMessage());
             if ($this->exceptions) {
                 throw $e;
@@ -1686,7 +1688,8 @@ class Sender
                     return $this->mailSend($this->MIMEHeader, $this->MIMEBody);
             }
         } catch (Exception $e) {
-            error_log('Exception: ' . $e->getMessage());
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
             $this->setError($e->getMessage());
             $this->edebug($e->getMessage());
             if ($this->Mailer === 'smtp' && $this->SMTPKeepAlive == true && $this->smtp->connected()) {
@@ -2253,7 +2256,8 @@ class Sender
 
                     return true;
                 } catch (Exception $e) {
-                    error_log('Exception: ' . $e->getMessage());
+                    $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
                     $lastexception = $e;
                     $this->edebug($e->getMessage());
                     //We must have connected, but then failed TLS or Auth, so close connection nicely
@@ -2822,7 +2826,8 @@ class Sender
             try {
                 $bytes = random_bytes($len);
             } catch (Exception $e) {
-                error_log('Exception: ' . $e->getMessage());
+                $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
             }
         } elseif (function_exists('openssl_random_pseudo_bytes')) {
             /** @noinspection CryptographicallySecureRandomnessInspection */
@@ -3112,7 +3117,8 @@ class Sender
                     throw new Exception($this->lang('signing') . openssl_error_string());
                 }
             } catch (Exception $e) {
-                error_log('Exception: ' . $e->getMessage());
+                $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
                 $body = '';
                 if ($this->exceptions) {
                     throw $e;
@@ -3282,7 +3288,8 @@ class Sender
                 7 => $name,
             ];
         } catch (Exception $e) {
-            error_log('Exception: ' . $e->getMessage());
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
             $this->setError($e->getMessage());
             $this->edebug($e->getMessage());
             if ($this->exceptions) {
@@ -3440,7 +3447,8 @@ class Sender
 
             return $file_buffer;
         } catch (Exception $e) {
-            error_log('Exception: ' . $e->getMessage());
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
             $this->setError($e->getMessage());
             $this->edebug($e->getMessage());
             if ($this->exceptions) {
@@ -3774,7 +3782,8 @@ class Sender
                 7 => 0,
             ];
         } catch (Exception $e) {
-            error_log('Exception: ' . $e->getMessage());
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
             $this->setError($e->getMessage());
             $this->edebug($e->getMessage());
             if ($this->exceptions) {
@@ -3848,7 +3857,8 @@ class Sender
                 7 => $cid,
             ];
         } catch (Exception $e) {
-            error_log('Exception: ' . $e->getMessage());
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
             $this->setError($e->getMessage());
             $this->edebug($e->getMessage());
             if ($this->exceptions) {
@@ -3910,7 +3920,8 @@ class Sender
                 7 => $cid,
             ];
         } catch (Exception $e) {
-            error_log('Exception: ' . $e->getMessage());
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
             $this->setError($e->getMessage());
             $this->edebug($e->getMessage());
             if ($this->exceptions) {

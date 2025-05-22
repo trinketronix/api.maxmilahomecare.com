@@ -59,7 +59,8 @@ try {
     $app->handle($_SERVER["REQUEST_URI"]);
 
 } catch (\Throwable $e) {
-    error_log('Exception: ' . $e->getMessage());
+    $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
     // Global exception handler
     header('Content-Type: application/json');
     http_response_code(500);

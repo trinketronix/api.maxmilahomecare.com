@@ -106,7 +106,8 @@ class ApiSslProxyController extends Controller {
             $response->setContent($responseBody);
 
         } catch (Exception $e) {
-            error_log('Exception: ' . $e->getMessage());
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
             // Handle exceptions
             $response->setStatusCode(500, 'Internal Server Error');
             $response->setJsonContent([

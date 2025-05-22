@@ -43,7 +43,8 @@ class TokenService {
         try {
             return json_decode($decoded, true, 512, JSON_THROW_ON_ERROR);
         } catch (\JsonException $e) {
-            error_log('Exception: ' . $e->getMessage());
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
             return null; // Invalid JSON
         }
     }

@@ -90,7 +90,8 @@ class UserController extends BaseController {
                             'to' => $ssn
                         ];
                     } catch (Exception $e) {
-                        error_log('Exception: ' . $e->getMessage());
+                        $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
                         return $this->respondWithError(Message::SSN_PROCESSING_ERROR, 500);
                     }
                 }
@@ -118,7 +119,8 @@ class UserController extends BaseController {
             });
 
         } catch (Exception $e) {
-            error_log('Exception: ' . $e->getMessage());
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }
@@ -156,7 +158,8 @@ class UserController extends BaseController {
                 try {
                     $userData[User::SSN] = Base64::decodingSaltedPeppered($userData[User::SSN]);
                 } catch (Exception $e) {
-                    error_log('Exception: ' . $e->getMessage());
+                    $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
                     // If there's an error decoding, just remove it from response
                     unset($userData[User::SSN]);
                 }
@@ -173,7 +176,8 @@ class UserController extends BaseController {
             return $this->respondWithSuccess($userData);
 
         } catch (Exception $e) {
-            error_log('Exception: ' . $e->getMessage());
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }
@@ -323,7 +327,8 @@ class UserController extends BaseController {
             });
 
         } catch (Exception $e) {
-            error_log('Exception: ' . $e->getMessage());
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }
@@ -425,7 +430,8 @@ class UserController extends BaseController {
             });
 
         } catch (Exception $e) {
-            error_log('Exception: ' . $e->getMessage());
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }

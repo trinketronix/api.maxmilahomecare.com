@@ -136,7 +136,8 @@ class PatientController extends BaseController {
             });
 
         } catch (Exception $e) {
-            error_log('Exception: ' . $e->getMessage());
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }
@@ -207,7 +208,8 @@ class PatientController extends BaseController {
             });
 
         } catch (Exception $e) {
-            error_log('Exception: ' . $e->getMessage());
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }
@@ -249,7 +251,8 @@ class PatientController extends BaseController {
             });
 
         } catch (Exception $e) {
-            error_log('Exception: ' . $e->getMessage());
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }
@@ -296,7 +299,8 @@ class PatientController extends BaseController {
             });
 
         } catch (Exception $e) {
-            error_log('Exception: ' . $e->getMessage());
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }
@@ -338,7 +342,8 @@ class PatientController extends BaseController {
             });
 
         } catch (Exception $e) {
-            error_log('Exception: ' . $e->getMessage());
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }
@@ -386,7 +391,8 @@ class PatientController extends BaseController {
             ]);
 
         } catch (Exception $e) {
-            error_log('Exception: ' . $e->getMessage());
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }
@@ -410,7 +416,8 @@ class PatientController extends BaseController {
             return $this->respondWithSuccess($patient->toArray());
 
         } catch (Exception $e) {
-            error_log('Exception: ' . $e->getMessage());
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }

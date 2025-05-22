@@ -24,7 +24,8 @@ class BaseController extends Controller {
             }
         } catch (Exception $e) {
             // If any error, return empty array
-            error_log('Exception: ' . $e->getMessage());
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
         }
         return [];
     }
@@ -40,7 +41,8 @@ class BaseController extends Controller {
             }
         } catch (Exception $e) {
             // If any error, return empty array
-            error_log('Exception: ' . $e->getMessage());
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
         }
         return [];
     }
@@ -189,7 +191,8 @@ class BaseController extends Controller {
             $this->commitTransaction();
             return $result;
         } catch (Exception $e) {
-            error_log('Exception: ' . $e->getMessage());
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
             if ($this->db && $this->db->isUnderTransaction()) {
                 $this->rollbackTransaction();
             }
