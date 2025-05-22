@@ -16,12 +16,6 @@ on:
         options:
           - production
           - staging
-      minify:
-        description: 'Enable minification'
-        required: false
-        default: true
-        type: boolean
-
 jobs:
   deploy:
     name: Deploy Production
@@ -38,226 +32,6 @@ jobs:
           echo "Manual deployment triggered"
           echo "Reason: ${{ github.event.inputs.reason }}"
           echo "Environment: ${{ github.event.inputs.environment }}"
-          echo "Minification: ${{ github.event.inputs.minify }}"
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.4'
-          extensions: phalcon, mbstring, json
-          tools: composer
-
-      - name: Install Node.js for minification tools
-        if: github.event.inputs.minify != 'false'
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-
-      - name: Install minification dependencies
-        if: github.event.inputs.minify != 'false'
-        run: |
-          npm install -g uglify-js
-          composer global require matthiasmullie/minify
-
-      - name: Create production build
-        run: |
-          mkdir -p build/production
-          cp -r . build/production/
-          cd build/production
-
-      - name: Minify PHP files for production
-        if: github.event.inputs.minify != 'false'
-        run: |
-          cd build/production
-          
-          # Create advanced minification script for production
-          cat > minify_production.php << 'EOF'
-          <?php
-          /**
-           * Advanced PHP Minification Script for Production Deployment
-           * More aggressive optimization for production environment
-           */
-          
-          function minifyPHPProduction($source) {
-              // Remove PHP opening/closing tags temporarily for processing
-              $source = preg_replace('/^<\?php\s*/', '', $source);
-              $source = preg_replace('/\s*\?>$/', '', $source);
-          
-              // Remove all comments except license/copyright
-              $source = preg_replace('/(?<!:)\/\/(?![\/\*]).*?(?=\r?\n|$)/m', '', $source);
-              $source = preg_replace('/(?<!:)#(?![\/\*]).*?(?=\r?\n|$)/m', '', $source);
-              $source = preg_replace('/\/\*(?![\*!]).*?\*\//s', '', $source);
-              $source = preg_replace('/\/\*\*(?!\s*\*\s*@license|\s*\*\s*@copyright).*?\*\//s', '', $source);
-          
-              // Remove declare directives for production (reduces overhead)
-              $source = preg_replace('/declare\s*\(\s*strict_types\s*=\s*1\s*\)\s*;/', '', $source);
-          
-              // More aggressive whitespace removal
-              $source = preg_replace('/\s+/', ' ', $source);
-              $source = preg_replace('/\s*([{}();,=+\-*\/&|<>!.\[\]])\s*/', '$1', $source);
-              $source = preg_replace('/\b(if|for|foreach|while|switch|catch|function|class|interface|trait|namespace|use|extends|implements|public|private|protected|static|final|abstract)\s*([({])/i', '$1$2', $source);
-          
-              // Remove unnecessary spaces in strings and arrays
-              $source = preg_replace('/\s*=>\s*/', '=>', $source);
-              $source = preg_replace('/,\s+/', ',', $source);
-          
-              // Remove empty lines and excessive whitespace
-              $source = preg_replace('/\n\s*\n/', "\n", $source);
-              $source = preg_replace('/^\s+|\s+$/m', '', $source);
-          
-              // Trim and add PHP opening tag back
-              $source = trim($source);
-              if (!empty($source)) {
-                  $source = "<?php " . $source;
-              }
-          
-              return $source;
-          }
-          
-          function minifyFileProduction($filePath) {
-              if (!file_exists($filePath) || !is_readable($filePath)) {
-                  return false;
-              }
-          
-              $content = file_get_contents($filePath);
-              if ($content === false) {
-                  return false;
-              }
-          
-              // Only minify if it's a PHP file with actual content
-              if (strpos($content, '<?php') !== false) {
-                  $minified = minifyPHPProduction($content);
-                  return file_put_contents($filePath, $minified) !== false;
-              }
-          
-              return true;
-          }
-          
-          function minifyDirectoryProduction($dir, $excludes = []) {
-              $iterator = new RecursiveIteratorIterator(
-                  new RecursiveDirectoryIterator($dir, RecursiveDirectoryIterator::SKIP_DOTS),
-                  RecursiveIteratorIterator::LEAVES_ONLY
-              );
-          
-              $processed = 0;
-              $errors = 0;
-              $totalSaved = 0;
-          
-              foreach ($iterator as $file) {
-                  $filePath = $file->getPathname();
-                  $relativePath = str_replace($dir . '/', '', $filePath);
-          
-                  // Skip excluded files/directories
-                  $skip = false;
-                  foreach ($excludes as $exclude) {
-                      if (strpos($relativePath, $exclude) === 0) {
-                          $skip = true;
-                          break;
-                      }
-                  }
-          
-                  if ($skip) {
-                      continue;
-                  }
-          
-                  // Only process PHP files
-                  if ($file->getExtension() === 'php') {
-                      $originalSize = filesize($filePath);
-          
-                      if (minifyFileProduction($filePath)) {
-                          $newSize = filesize($filePath);
-                          $saved = $originalSize - $newSize;
-                          $totalSaved += $saved;
-                          $percent = $originalSize > 0 ? round(($saved / $originalSize) * 100, 1) : 0;
-          
-                          echo "✓ $relativePath ({$percent}% reduction)\n";
-                          $processed++;
-                      } else {
-                          echo "✗ Failed: $relativePath\n";
-                          $errors++;
-                      }
-                  }
-              }
-          
-              echo "\n=== PRODUCTION MINIFICATION COMPLETE ===\n";
-              echo "Files processed: $processed\n";
-              echo "Total space saved: " . round($totalSaved / 1024, 2) . " KB\n";
-              echo "Errors: $errors\n";
-              echo "========================================\n";
-          
-              return $errors === 0;
-          }
-          
-          // Production exclusions
-          $excludes = [
-              '.git',
-              'node_modules',
-              'vendor',
-              'tests',
-              'database',
-              '.github',
-              'minify_production.php'
-          ];
-          
-          // Run production minification
-          $success = minifyDirectoryProduction('.', $excludes);
-          exit($success ? 0 : 1);
-          EOF
-          
-          # Run the production minification
-          php minify_production.php
-
-      - name: Clean production build
-        run: |
-          cd build/production
-          
-          # Remove all development files
-          rm -rf .git*
-          rm -rf tests/
-          rm -rf database/
-          rm -rf node_modules/
-          rm -rf .github/
-          rm -f minify_production.php
-          rm -f composer.json
-          rm -f composer.lock
-          rm -f package*.json
-          rm -f *.md
-          rm -f LICENSE
-          rm -f secrets.txt
-          rm -f http-client.env.json
-          rm -f .htrouter.php  # Remove if not needed in production
-          
-          # Remove any backup or temporary files
-          find . -name "*.bak" -delete
-          find . -name "*.tmp" -delete
-          find . -name "*~" -delete
-          find . -name ".DS_Store" -delete
-          
-          # Create production marker
-          echo "production" > .environment
-          echo "$(date)" > .build_date
-          
-          echo "Production build cleaned and prepared"
-
-      - name: Generate deployment report
-        run: |
-          echo "=== PRODUCTION DEPLOYMENT REPORT ===" > deployment_report.txt
-          echo "Deployment Date: $(date)" >> deployment_report.txt
-          echo "Git Commit: $GITHUB_SHA" >> deployment_report.txt
-          echo "Environment: ${{ github.event.inputs.environment || 'production' }}" >> deployment_report.txt
-          echo "Minification: ${{ github.event.inputs.minify || 'true' }}" >> deployment_report.txt
-          echo "" >> deployment_report.txt
-          echo "Build Size:" >> deployment_report.txt
-          du -sh build/production >> deployment_report.txt
-          echo "" >> deployment_report.txt
-          echo "File Count:" >> deployment_report.txt
-          find build/production -type f | wc -l >> deployment_report.txt
-          echo "" >> deployment_report.txt
-          echo "PHP Files:" >> deployment_report.txt
-          find build/production -name "*.php" | wc -l >> deployment_report.txt
-          echo "==================================" >> deployment_report.txt
-          
-          cat deployment_report.txt
 
       - name: Sync files for Production
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
@@ -266,12 +40,11 @@ jobs:
           username: ${{ secrets.FTP_API_USERNAME_PROD }}
           password: ${{ secrets.FTP_API_PASSWORD_PROD }}
           protocol: ftps
-          timeout: 90000          # Increased timeout to 90s
+          timeout: 90000          # Increased timeout to 60s
           max-retries: 3          # Add retry attempts
           log-level: verbose      # More detailed logging
           dangerous-clean-slate: false  # Prevent full directory cleanup
-          local-dir: ./build/production/  # Deploy the production build
-          exclude: |              # Final exclusions for safety
+          exclude: |              # Exclude unnecessary files
             **/.git*
             **/.git*/**
             **/.env*
@@ -284,19 +57,5 @@ jobs:
             LICENSE
             README.md
             secrets.txt
-            deployment_report.txt
           state-name: .ftp-deploy-sync-state.json    # Keep track of sync state
           server-dir: /          # Specify your root directory if needed
-
-      - name: Upload deployment report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: deployment-report-${{ github.sha }}
-          path: deployment_report.txt
-          retention-days: 30
-
-      - name: Cleanup build directory
-        if: always()
-        run: |
-          rm -rf build/
