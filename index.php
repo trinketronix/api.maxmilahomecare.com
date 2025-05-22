@@ -67,7 +67,7 @@ try {
     });
 
     // Handle request - Let Phalcon handle URI parsing automatically
-    $app->handle($_SERVER['REQUEST_URI']);
+    $app->handle();
 
 } catch (\Throwable $e) {
     // Log the error
