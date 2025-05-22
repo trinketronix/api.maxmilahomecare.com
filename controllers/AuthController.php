@@ -54,7 +54,8 @@ class AuthController extends BaseController {
             });
 
         } catch (Exception $e) {
-            error_log('Exception: ' . $e->getMessage());
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }
@@ -66,7 +67,8 @@ class AuthController extends BaseController {
         try {
             return $this->processLogin($this->getRequestBody());
         } catch (Exception $e) {
-            error_log('Exception: ' . $e->getMessage());
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }
@@ -104,7 +106,8 @@ class AuthController extends BaseController {
             });
 
         } catch (Exception $e) {
-            error_log('Exception: ' . $e->getMessage());
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }
@@ -148,7 +151,8 @@ class AuthController extends BaseController {
             return $response;
 
         } catch (Exception $e) {
-            error_log('Exception: ' . $e->getMessage());
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
             $response = new \Phalcon\Http\Response();
             $response->setContentType('text/html', 'UTF-8');
             $htmlResponse = $this->getActivationResponseHtml(false, 'An error occurred: ' . $e->getMessage());
@@ -184,7 +188,8 @@ class AuthController extends BaseController {
             });
 
         } catch (Exception $e) {
-            error_log('Exception: ' . $e->getMessage());
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }
@@ -226,7 +231,8 @@ class AuthController extends BaseController {
             });
 
         } catch (Exception $e) {
-            error_log('Exception: ' . $e->getMessage());
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }
@@ -259,7 +265,8 @@ class AuthController extends BaseController {
             });
 
         } catch (Exception $e) {
-            error_log('Exception: ' . $e->getMessage());
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }
@@ -286,7 +293,8 @@ class AuthController extends BaseController {
             return $this->respondWithSuccess($auth->toArray());
 
         } catch (Exception $e) {
-            error_log('Exception: ' . $e->getMessage());
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }
@@ -324,7 +332,8 @@ class AuthController extends BaseController {
             });
 
         } catch (Exception $e) {
-            error_log('Exception: ' . $e->getMessage());
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
             if ($this->db->isUnderTransaction()) $this->rollbackTransaction();
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }

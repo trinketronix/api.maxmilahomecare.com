@@ -111,7 +111,8 @@ class BulkController extends BaseController {
                     ];
 
                 } catch (Exception $e) {
-                    error_log('Exception: ' . $e->getMessage());
+                    $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
                     $results['failed'][] = [
                         'index' => $index,
                         'username' => $data[Auth::USERNAME] ?? 'unknown',
@@ -140,7 +141,8 @@ class BulkController extends BaseController {
             ], 201);
 
         } catch (Exception $e) {
-            error_log('Exception: ' . $e->getMessage());
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
             $this->rollbackTransaction();
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
@@ -244,7 +246,8 @@ class BulkController extends BaseController {
                         $results['success'][] = $successResult;
 
                     } catch (Exception $e) {
-                        error_log('Exception: ' . $e->getMessage());
+                        $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
                         $results['failed'][] = [
                             'index' => $index,
                             'id' => $data['id'] ?? 'unknown',
@@ -272,12 +275,14 @@ class BulkController extends BaseController {
                 ]);
 
             } catch (Exception $e) {
-                error_log('Exception: ' . $e->getMessage());
+                $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
                 $this->rollbackTransaction();
                 throw $e;
             }
         } catch (Exception $e) {
-            error_log('Exception: ' . $e->getMessage());
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }
@@ -388,7 +393,8 @@ class BulkController extends BaseController {
                         $results['success'][] = $patientResult;
 
                     } catch (Exception $e) {
-                        error_log('Exception: ' . $e->getMessage());
+                        $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
                         $results['failed'][] = [
                             'index' => $index,
                             'error' => $e->getMessage()
@@ -415,13 +421,15 @@ class BulkController extends BaseController {
                 ], 201);
 
             } catch (Exception $e) {
-                error_log('Exception: ' . $e->getMessage());
+                $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
                 $this->rollbackTransaction();
                 throw $e;
             }
 
         } catch (Exception $e) {
-            error_log('Exception: ' . $e->getMessage());
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }
@@ -580,7 +588,8 @@ class BulkController extends BaseController {
                         ];
 
                     } catch (Exception $e) {
-                        error_log('Exception: ' . $e->getMessage());
+                        $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
                         $results['failed'][] = [
                             'index' => $index,
                             'error' => $e->getMessage()
@@ -607,13 +616,15 @@ class BulkController extends BaseController {
                 ], 201);
 
             } catch (Exception $e) {
-                error_log('Exception: ' . $e->getMessage());
+                $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
                 $this->rollbackTransaction();
                 throw $e;
             }
 
         } catch (Exception $e) {
-            error_log('Exception: ' . $e->getMessage());
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }
@@ -745,7 +756,8 @@ class BulkController extends BaseController {
                         ];
 
                     } catch (Exception $e) {
-                        error_log('Exception: ' . $e->getMessage());
+                        $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
                         $results['failed'][] = [
                             'index' => $index,
                             'error' => $e->getMessage()
@@ -772,13 +784,15 @@ class BulkController extends BaseController {
                 ], 201);
 
             } catch (Exception $e) {
-                error_log('Exception: ' . $e->getMessage());
+                $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
                 $this->rollbackTransaction();
                 throw $e;
             }
 
         } catch (Exception $e) {
-            error_log('Exception: ' . $e->getMessage());
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }
@@ -881,7 +895,8 @@ class BulkController extends BaseController {
                             $visit->start_time = $startTime->format('Y-m-d H:i:s');
                             $visit->end_time = $endTime->format('Y-m-d H:i:s');
                         } catch (Exception $e) {
-                            error_log('Exception: ' . $e->getMessage());
+                            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
                             $results['failed'][] = [
                                 'index' => $index,
                                 'error' => "Invalid date format: " . $e->getMessage()
@@ -980,7 +995,8 @@ class BulkController extends BaseController {
                         ];
 
                     } catch (Exception $e) {
-                        error_log('Exception: ' . $e->getMessage());
+                        $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
                         $results['failed'][] = [
                             'index' => $index,
                             'error' => $e->getMessage()
@@ -1007,13 +1023,15 @@ class BulkController extends BaseController {
                 ], 201);
 
             } catch (Exception $e) {
-                error_log('Exception: ' . $e->getMessage());
+                $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
                 $this->rollbackTransaction();
                 throw $e;
             }
 
         } catch (Exception $e) {
-            error_log('Exception: ' . $e->getMessage());
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }

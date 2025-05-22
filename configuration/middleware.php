@@ -270,7 +270,8 @@ if (isset($app)) {
 
             return true;
         } catch (Exception $e) {
-            error_log('Exception: ' . $e->getMessage());
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
             $app->response->setStatusCode(401, 'Unauthorized');
             $app->response->setJsonContent([
                 'status' => 'error',
@@ -313,7 +314,8 @@ if (isset($app)) {
                     $app->getDI()->setShared('request_body', []);
                 }
             } catch (\JsonException $e) {
-                error_log('Exception: ' . $e->getMessage());
+                $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
                 $app->response->setStatusCode(400, 'Bad Request');
                 $app->response->setJsonContent([
                     'status' => 'error',
