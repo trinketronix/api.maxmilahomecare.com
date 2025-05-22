@@ -34,7 +34,7 @@ try {
     $eventsManager = new EventsManager();
     $app->setEventsManager($eventsManager);
 
-    // Register middleware (this handles CORS, auth, response formatting, etc.)
+    // Register middleware
     require_once BASE_PATH . '/configuration/middleware.php';
 
     // Load routes by group
@@ -55,9 +55,9 @@ try {
         require_once BASE_PATH . "/routes/{$routeFile}.php";
     }
 
-    // Simple Not-Found handler (middleware will handle response formatting)
+    // Add Not-Found handler
     $app->notFound(function () {
-        // Return a simple array that middleware will format properly
+        // Return array that will be processed by your middleware
         return [
             'status' => 'error',
             'code' => 404,
@@ -66,25 +66,24 @@ try {
         ];
     });
 
-    // Handle request - Let Phalcon handle URI parsing automatically
-    $app->handle();
+    // Get the URI - this is the key fix!
+    $uri = $_SERVER["REQUEST_URI"];
+
+    // Handle request with the URI parameter as your Phalcon version expects
+    $app->handle($uri);
 
 } catch (\Throwable $e) {
-    // Log the error
     $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-    error_log('Application Exception: ' . $message);
+    error_log('Exception: ' . $message);
 
-    // Simple fallback response (only if middleware fails to load)
-    if (!headers_sent()) {
-        header('Content-Type: application/json');
-        header('Access-Control-Allow-Origin: *');
-        http_response_code(500);
-
-        echo json_encode([
-            'status' => 'error',
-            'code' => 500,
-            'message' => 'Application initialization failed',
-            'debug' => APP_ENV === 'dev' ? $e->getMessage() : null
-        ]);
-    }
+    // Global exception handler
+    header('Content-Type: application/json');
+    header('Access-Control-Allow-Origin: *');
+    http_response_code(500);
+    echo json_encode([
+        'status' => 'error',
+        'code' => 500,
+        'message' => 'Application initialization failed',
+        'debug' => APP_ENV === 'dev' ? $e->getMessage() : null
+    ]);
 }
