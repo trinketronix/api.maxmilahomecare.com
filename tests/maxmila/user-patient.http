@@ -1,0 +1,3 @@
+### Get asigned patients by userid
+GET {{maxmila.baseUrl}}/user/2/patients
+Authorization: {{maxmila.administrator.token}}
