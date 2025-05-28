@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Api\Controllers;
 
+use Api\Constants\PersonType;
 use Api\Constants\Status;
+use Api\Models\Address;
 use Api\Models\User;
 use Api\Models\Patient;
 use Api\Models\UserPatient;
@@ -166,23 +168,29 @@ class UserPatientController extends BaseController {
             if ($currentUserId !== $userId && !$this->isManagerOrHigher())
                 return $this->respondWithError(Message::UNAUTHORIZED_ACCESS, 403);
 
-            // Get all active patients for this user
-            $patients = $user->patients;
+            // Get all active patient assignments for this user
+            $assignments = UserPatient::findActiveByUserId($userId);
 
-            if (count($patients) === 0) {
+            if ($assignments->count() === 0) {
                 return $this->respondWithSuccess([
                     'count' => 0,
                     'patients' => []
                 ]);
             }
 
-            // Prepare patient data with additional information
+            // Get patient data with assignment details
             $patientsData = [];
-            foreach ($patients as $patient) {
+            foreach ($assignments as $assignment) {
+                // Get the patient
+                $patient = Patient::findFirst($assignment->patient_id);
+                if (!$patient) {
+                    continue; // Skip if patient not found
+                }
+
                 $patientInfo = $patient->toArray();
 
                 // Get patient's addresses
-                $addresses = $patient->getAddresses();
+                $addresses = Address::findByPerson($patient->id, PersonType::PATIENT);
                 if ($addresses && $addresses->count() > 0) {
                     $patientInfo['addresses'] = $addresses->toArray();
                 } else {
@@ -190,21 +198,18 @@ class UserPatientController extends BaseController {
                 }
 
                 // Add assignment details
-                $assignment = UserPatient::findAssignment($userId, $patient->id);
-                if ($assignment) {
-                    $patientInfo['assignment'] = [
-                        'assigned_at' => $assignment->assigned_at,
-                        'assigned_by' => $assignment->assigned_by,
-                        'notes' => $assignment->notes,
-                        'status' => $assignment->status
-                    ];
-                }
+                $patientInfo['assignment'] = [
+                    'assigned_at' => $assignment->assigned_at,
+                    'assigned_by' => $assignment->assigned_by,
+                    'notes' => $assignment->notes,
+                    'status' => $assignment->status
+                ];
 
                 $patientsData[] = $patientInfo;
             }
 
             return $this->respondWithSuccess([
-                'count' => count($patients),
+                'count' => count($patientsData),
                 'patients' => $patientsData
             ]);
 

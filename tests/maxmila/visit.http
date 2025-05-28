@@ -3,16 +3,17 @@
 ### Create Visit - POST /visit
 ### ========================================
 
+
 ### Create a new visit with all fields
 POST {{maxmila.baseUrl}}/visit
-Authorization: {{maxmila.token}}
+Authorization: {{maxmila.administrator.token}}
 Content-Type: application/json
 
 {
   "user_id": 1,
   "patient_id": 1,
-  "start_time": "{{date("yyyy-MM-dd")}}T09:00:00",
-  "end_time": "{{date("yyyy-MM-dd")}}T10:30:00",
+  "start_time": "$timestamp",
+  "end_time": "$timestamp",
   "note": "Regular check-up visit"
 }
 
