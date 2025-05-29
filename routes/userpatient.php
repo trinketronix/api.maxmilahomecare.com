@@ -6,20 +6,13 @@ if (isset($app)) {
     // JSON Body example { "user_id": 2, "patient_id": 12}
     $userPatient = new UserPatientController();
 
-
-    $app->post('/user/assign/patient', [$userPatient, 'create']);
+    // Post to assign patients
+    $app->post('/assign/patient', [$userPatient, 'create']);
 
     // Get assigned patients by user ID
-    $app->get('/user/{userId}/patients', [$userPatient, 'getUserAssignedPatients']);
+    $app->get('/assigned/patients/{userId}', [$userPatient, 'getUserAssignedPatients']);
     // Get patients NOT assigned to user ID
-//    $app->get('/unassigned/patients/{userId}', [$userPatient, 'getUserUnassignedPatients']);
-
-//    $app->post('/assign/patient', [$userPatient, 'create']);
-//
-//    // Get assigned patients by user ID
-//    $app->get('/assigned/patients/{userId}', [$userPatient, 'getUserAssignedPatients']);
-//    // Get patients NOT assigned to user ID
-//    $app->get('/unassigned/patients/{userId}', [$userPatient, 'getUserUnassignedPatients']);
+    $app->get('/unassigned/patients/{userId}', [$userPatient, 'getUserUnassignedPatients']);
 
 
     // Get assigned users by patient ID

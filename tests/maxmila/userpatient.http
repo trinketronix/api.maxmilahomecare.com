@@ -6,3 +6,8 @@ Authorization: {{maxmila.administrator.token}}
 ### Get unasigned patients by userid
 GET {{maxmila.baseUrl}}/unassigned/patients/2
 Authorization: {{maxmila.administrator.token}}
+
+
+### Get asigned patients by userid
+GET {{maxmila.baseUrl}}/user/36/patients
+Authorization: {{maxmila.administrator.token}}
