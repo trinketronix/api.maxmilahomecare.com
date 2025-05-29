@@ -13,6 +13,7 @@ use Api\Constants\Message;
 use Phalcon\Http\Response;
 
 class AuthController extends BaseController {
+    private $baseUrl = BASE_URL;
     /**
      * Create a new user account
      */
@@ -344,7 +345,7 @@ class AuthController extends BaseController {
      */
     private function sendActivationEmail(string $address, string $code): bool {
 
-        $baseUrl = BASE_URL;
+        $baseUrl = $this->baseUrl;
 
         $subject = 'Activate Maxmila Account';
         $edoc= strrev($code);
@@ -377,6 +378,7 @@ class AuthController extends BaseController {
      */
     private function getActivationResponseHtml(bool $success, string $message): string
     {
+        $baseUrl = $this->baseUrl;
         $title = $success ? 'Account Activated' : 'Activation Failed';
         $color = $success ? '#4CAF50' : '#F44336';
         $appName = \Api\Constants\Api::NAME;
@@ -441,7 +443,7 @@ class AuthController extends BaseController {
         </div>
         <h1>{$title}</h1>
         <p>{$message}</p>
-        <a href="https://app.maxmilahomecare.com/login" class="button">Go to Login</a>
+        <a href="{$baseUrl}/login" class="button">Go to Login</a>
     </div>
 </body>
 </html>
