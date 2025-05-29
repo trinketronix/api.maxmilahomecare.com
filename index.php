@@ -265,15 +265,16 @@ try {
      * @var array $routeFiles List of route configuration files to load
      */
     $routeFiles = [
-        'account',    // User account management and retrieval
-        'address',    // Address CRUD operations and geocoding
-        'auth',       // Authentication, registration, and token management
-        'bulk',       // Bulk data operations for system maintenance
-        'default',    // Root endpoint and API information
-        'email',      // Email sending and notification services
-        'patient',    // Patient management and medical records
-        'tool',       // Development and testing utilities
-        'user',       // User profile management and photo uploads
+        'account',     // User account management and retrieval
+        'address',     // Address CRUD operations and geocoding
+        'auth',        // Authentication, registration, and token management
+        'bulk',        // Bulk data operations for system maintenance
+        'default',     // Root endpoint and API information
+        'email',       // Email sending and notification services
+        'patient',     // Patient management and medical records
+        'tool',        // Development and testing utilities
+        'user',        // User profile management and photo uploads
+        'userpatient', // User-Patient  management data
         'visit'       // Visit scheduling, tracking, and reporting
     ];
 
