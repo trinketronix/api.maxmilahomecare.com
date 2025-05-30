@@ -142,7 +142,7 @@ class VisitController extends BaseController {
                     'visit_id' => $visit->id,
                     'progress' => $visit->progress,
                     'duration_minutes' => $visit->getDurationMinutes()
-                ], 201);
+                ], 201, 'Visit created successfully');
             });
 
         } catch (Exception $e) {
@@ -629,7 +629,7 @@ class VisitController extends BaseController {
                     'visit_id' => $visit->id,
                     'progress' => $visit->progress,
                     'duration_minutes' => $visit->getDurationMinutes()
-                ]);
+                ], 201, 'Visit updated successfully');
             });
 
         } catch (Exception $e) {
@@ -676,7 +676,7 @@ class VisitController extends BaseController {
                 return $this->respondWithSuccess([
                     'message' => 'Visit deleted successfully',
                     'visit_id' => $visit->id
-                ]);
+                ], 201, 'Visit deleted successfully');
             });
 
         } catch (Exception $e) {
@@ -745,7 +745,7 @@ class VisitController extends BaseController {
                     'old_progress' => $oldProgress,
                     'new_progress' => $progress,
                     'progress_description' => $visit->getProgressDescription()
-                ]);
+                ],201,'Visit progress updated successfully');
             });
 
         } catch (Exception $e) {
@@ -796,7 +796,7 @@ class VisitController extends BaseController {
                     'message' => 'Successfully checked in to visit',
                     'visit_id' => $visit->id,
                     'progress' => $visit->getProgressDescription()
-                ]);
+                ], 200, 'Successfully checked in to visit');
             });
 
         } catch (Exception $e) {
@@ -855,7 +855,7 @@ class VisitController extends BaseController {
                     'visit_id' => $visit->id,
                     'progress' => $visit->getProgressDescription(),
                     'duration_minutes' => $visit->getDurationMinutes()
-                ]);
+                ], 201, 'Successfully checked out from visit');
             });
 
         } catch (Exception $e) {
@@ -916,7 +916,7 @@ class VisitController extends BaseController {
                 return $this->respondWithSuccess([
                     'message' => 'Visit canceled successfully',
                     'visit_id' => $visit->id
-                ]);
+                ], 201, 'Visit canceled successfully');
             });
 
         } catch (Exception $e) {

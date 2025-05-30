@@ -59,7 +59,7 @@ class ToolController extends BaseController {
                     'message' => 'Tool created successfully',
                     'id' => $tool->id,
                     'tool' => $tool->toArray()
-                ], 201);
+                ], 201, 'Tool created successfully');
             });
 
         } catch (Exception $e) {
@@ -185,7 +185,7 @@ class ToolController extends BaseController {
                 return $this->respondWithSuccess([
                     'message' => 'Tool updated successfully',
                     'tool' => $tool->toArray()
-                ]);
+                ], 201, 'Tool updated successfully');
             });
 
         } catch (Exception $e) {
@@ -218,7 +218,7 @@ class ToolController extends BaseController {
                 return $this->respondWithSuccess([
                     'message' => 'Tool deleted successfully',
                     'id' => $tool->id
-                ]);
+                ], 201, 'Tool deleted successfully');
             });
 
         } catch (Exception $e) {

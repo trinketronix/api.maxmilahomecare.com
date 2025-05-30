@@ -92,7 +92,7 @@ class PatientController extends BaseController {
                             'message' => 'Patient created but address was incomplete',
                             'patient_id' => $patient->id,
                             'missing_address_fields' => $missingFields
-                        ], 201);
+                        ], 201, 'Patient created but address was incomplete');
                     }
 
                     $address = new Address();
@@ -119,20 +119,20 @@ class PatientController extends BaseController {
                             'message' => 'Patient created but address save failed',
                             'patient_id' => $patient->id,
                             'address_errors' => $address->getMessages()
-                        ], 201);
+                        ], 201, 'Patient created but address save failed');
                     }
 
                     return $this->respondWithSuccess([
                         'message' => 'Patient created with address',
                         'patient_id' => $patient->id,
                         'address_id' => $address->id
-                    ], 201);
+                    ], 201, 'Patient created with address');
                 }
 
                 return $this->respondWithSuccess([
                     'message' => 'Patient created successfully',
                     'patient_id' => $patient->id
-                ], 201);
+                ], 201, 'Patient created successfully');
             });
 
         } catch (Exception $e) {
@@ -204,7 +204,7 @@ class PatientController extends BaseController {
                 return $this->respondWithSuccess([
                     'message' => 'Patient updated successfully',
                     'patient_id' => $patient->id
-                ]);
+                ], 201, 'Patient updated successfully');
             });
 
         } catch (Exception $e) {
@@ -247,7 +247,7 @@ class PatientController extends BaseController {
                 return $this->respondWithSuccess([
                     'message' => 'Patient deleted successfully',
                     'patient_id' => $patient->id
-                ]);
+                ],201, 'Patient deleted successfully');
             });
 
         } catch (Exception $e) {
@@ -295,7 +295,7 @@ class PatientController extends BaseController {
                 return $this->respondWithSuccess([
                     'message' => 'Patient archived successfully',
                     'patient_id' => $patient->id
-                ]);
+                ], 201, 'Patient archived successfully');
             });
 
         } catch (Exception $e) {
@@ -338,7 +338,7 @@ class PatientController extends BaseController {
                 return $this->respondWithSuccess([
                     'message' => 'Patient restored successfully',
                     'patient_id' => $patient->id
-                ]);
+                ], 201, 'Patient restored successfully');
             });
 
         } catch (Exception $e) {
@@ -367,7 +367,7 @@ class PatientController extends BaseController {
                 return $this->respondWithError(Message::DB_QUERY_FAILED, 500);
 
             if ($patients->count() === 0)
-                return $this->respondWithSuccess(Message::DB_NO_RECORDS, 204);
+                return $this->respondWithSuccess(Message::DB_NO_RECORDS, 204, Message::DB_NO_RECORDS);
 
             // Get patient data
             $patientsArray = [];

@@ -2,6 +2,8 @@
 
 namespace Api\Constants;
 class Message {
+
+    public const NO_MSG = "No message";
     // Authentication related
     public const CREDENTIALS_REQUIRED = 'Username and password are required.';
     public const INVALID_CREDENTIALS = 'Invalid credentials.';

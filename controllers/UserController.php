@@ -115,7 +115,7 @@ class UserController extends BaseController {
                     'message' => Message::USER_UPDATED,
                     'user' => $responseData,
                     'updates' => $updates
-                ]);
+                ], 201, Message::USER_UPDATED);
             });
 
         } catch (Exception $e) {
@@ -323,7 +323,7 @@ class UserController extends BaseController {
                     'path' => $upath,
                     'filename' => $filename,
                     'processed' => true // Indicates image was processed with ImageMagick
-                ]);
+                ], 201, Message::UPLOAD_PHOTO_SUCCESS);
             });
 
         } catch (Exception $e) {
@@ -426,7 +426,7 @@ class UserController extends BaseController {
                     'path' => $upath,
                     'filename' => $filename,
                     'processed' => true
-                ]);
+                ], 201, Message::UPLOAD_PHOTO_SUCCESS);
             });
 
         } catch (Exception $e) {

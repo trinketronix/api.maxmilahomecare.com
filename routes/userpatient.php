@@ -7,9 +7,11 @@ if (isset($app)) {
     $userPatient = new UserPatientController();
 
     // Post to assign patients
+    // before '/user/assign/patient'
     $app->post('/assign/patient', [$userPatient, 'create']);
 
     // Get assigned patients by user ID
+    // before `/user/{userId}/patients`
     $app->get('/assigned/patients/{userId}', [$userPatient, 'getUserAssignedPatients']);
     // Get patients NOT assigned to user ID
     $app->get('/unassigned/patients/{userId}', [$userPatient, 'getUserUnassignedPatients']);

@@ -48,7 +48,7 @@ class EmailController extends BaseController{
                     'to' => $to,
                     'message' => $message
                 ];
-                return $this->respondWithSuccess($data, 201);
+                return $this->respondWithSuccess($data, 201, $message);
             } else {
                 return $this->respondWithError($message, 417);
             }

@@ -115,7 +115,7 @@ class AddressController extends BaseController {
                 return $this->respondWithSuccess([
                     'message' => 'Address created successfully',
                     'id' => $address->id
-                ], 201);
+                ], 201, 'Address created successfully');
             });
 
         } catch (Exception $e) {
@@ -275,7 +275,7 @@ class AddressController extends BaseController {
 
                 return $this->respondWithSuccess([
                     'message' => 'Address updated successfully'
-                ]);
+                ],201, 'Address updated successfully');
             });
 
         } catch (Exception $e) {
@@ -311,7 +311,7 @@ class AddressController extends BaseController {
 
                 return $this->respondWithSuccess([
                     'message' => 'Address deleted successfully'
-                ]);
+                ], 201, 'Address deleted successfully');
             });
 
         } catch (Exception $e) {

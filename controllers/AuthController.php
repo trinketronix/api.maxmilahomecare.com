@@ -50,9 +50,9 @@ class AuthController extends BaseController {
                     return $this->respondWithError(Message::DB_SESSION_UPDATE_FAILED, 422);
 
                 if(!$this->sendActivationEmail($auth->username, $auth->password))
-                    return $this->respondWithSuccess(Message::USER_CREATED." activation email fail", 201);
+                    return $this->respondWithSuccess(Message::USER_CREATED." activation email fail", 201, Message::USER_CREATED." activation email fail");
 
-                return $this->respondWithSuccess(Message::USER_CREATED." and ". Message::EMAIL_ACTIVATION_SENT, 201);
+                return $this->respondWithSuccess(Message::USER_CREATED." and ". Message::EMAIL_ACTIVATION_SENT, 201, Message::USER_CREATED." and ". Message::EMAIL_ACTIVATION_SENT);
             });
 
         } catch (Exception $e) {
@@ -104,7 +104,7 @@ class AuthController extends BaseController {
 
                 return $this->respondWithSuccess([
                     'message' => Message::USER_ACTIVATED
-                ], 202);
+                ], 202, Message::USER_ACTIVATED);
             });
 
         } catch (Exception $e) {
@@ -229,7 +229,7 @@ class AuthController extends BaseController {
 
                 return $this->respondWithSuccess([
                     'message' => Message::ROLE_CHANGED
-                ], 202);
+                ], 202, Message::ROLE_CHANGED);
             });
 
         } catch (Exception $e) {
@@ -263,7 +263,7 @@ class AuthController extends BaseController {
 
                 return $this->respondWithSuccess([
                     'message' => Message::PASSWORD_CHANGED . ' ' . Message::PLEASE_RENEW_TOKEN
-                ], 202);
+                ], 202, Message::PASSWORD_CHANGED . ' ' . Message::PLEASE_RENEW_TOKEN);
             });
 
         } catch (Exception $e) {
@@ -289,7 +289,7 @@ class AuthController extends BaseController {
             }
 
             if ($auth->count() === 0) {
-                return $this->respondWithSuccess(Message::DB_NO_RECORDS, 204);
+                return $this->respondWithSuccess(Message::DB_NO_RECORDS, 204, Message::DB_NO_RECORDS);
             }
 
             return $this->respondWithSuccess($auth->toArray());

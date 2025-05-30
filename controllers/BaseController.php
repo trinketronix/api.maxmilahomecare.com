@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Api\Controllers;
 
+use Api\Constants\Message;
 use Api\Email\Sender;
 use Api\Email\SMTP;
 use Api\Models\Auth;
@@ -80,11 +81,12 @@ class BaseController extends Controller {
     /**
      * Create a standardized success response
      */
-    protected function respondWithSuccess(array|string $data, int $statusCode = 200): array {
+    protected function respondWithSuccess(array|string $data, int $statusCode = 200, array|string $message = Message::NO_MSG): array {
         return [
             'status' => 'success',
             'code' => $statusCode,
-            'data' => $data
+            'data' => $data,
+            'message' => $message,
         ];
     }
 
