@@ -66,7 +66,7 @@ class AuthController extends BaseController {
                 if(!$this->sendActivationEmail($auth->username, $auth->password))
                     return $this->respondWithSuccess(Message::USER_CREATED." activation email fail", 201, Message::USER_CREATED." activation email fail");
 
-                return $this->respondWithSuccess(Message::USER_CREATED." and ". Message::EMAIL_ACTIVATION_SENT, 201, Message::USER_CREATED." and ". Message::EMAIL_ACTIVATION_SENT);
+                return $this->respondWithSuccess(Message::USER_CREATED." and ". Message::EMAIL_ACTIVATION_SENT . ' to: ' . $auth->username, 201, Message::USER_CREATED." and ". Message::EMAIL_ACTIVATION_SENT . ' to: ' . $auth->username);
             });
 
         } catch (Exception $e) {
