@@ -278,7 +278,7 @@ class UserPatientController extends BaseController {
                         $results['success'][] = [
                             UserPatient::PATIENT_ID => $patientId,
                             'patient_name' => $patient->getFullName(),
-                            'action' => 'created'
+                            'action' => 'assigned'
                         ];
 
                     } catch (Exception $e) {
@@ -321,6 +321,184 @@ class UserPatientController extends BaseController {
                 $message = "{$totalSuccess} patient(s) assigned successfully";
                 if ($totalSkipped > 0) {
                     $message .= ", {$totalSkipped} already assigned";
+                }
+                if ($totalFailed > 0) {
+                    $message .= ", {$totalFailed} failed";
+                }
+
+                return $this->respondWithSuccess([
+                    'message' => $message,
+                    UserPatient::USER_ID => $userId,
+                    'total_requested' => $totalRequested,
+                    'total_success' => $totalSuccess,
+                    'total_failed' => $totalFailed,
+                    'total_skipped' => $totalSkipped,
+                    'results' => $results
+                ], 201, $message);
+            });
+
+        } catch (Exception $e) {
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
+            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        }
+    }
+
+    /**
+     * Unassign multiple patients from a single user
+     *
+     * @return array Response data
+     */
+    public function unassignPatients(): array
+    {
+        try {
+            // Verify manager role or higher
+            if (!$this->isManagerOrHigher())
+                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
+
+            $data = $this->getRequestBody();
+
+            // Validate required fields
+            if (empty($data[UserPatient::USER_ID]))
+                return $this->respondWithError('User ID is required', 400);
+
+            if (empty($data[UserPatient::PATIENT_IDS]) || !is_array($data[UserPatient::PATIENT_IDS]))
+                return $this->respondWithError('Patient IDs array is required', 400);
+
+            if (count($data[UserPatient::PATIENT_IDS]) === 0)
+                return $this->respondWithError('At least one patient ID is required', 400);
+
+            $userId = (int)$data[UserPatient::USER_ID];
+            $patientIds = array_map('intval', $data[UserPatient::PATIENT_IDS]); // Convert all to integers
+
+            // Check if user exists
+            $user = User::findFirst($userId);
+            if (!$user)
+                return $this->respondWithError(Message::USER_NOT_FOUND, 404);
+
+            // Validate all patient IDs exist before processing
+            $validPatients = [];
+            $invalidPatients = [];
+
+            foreach ($patientIds as $patientId) {
+                $patient = Patient::findFirst($patientId);
+                if ($patient) {
+                    $validPatients[] = $patient;
+                } else {
+                    $invalidPatients[] = $patientId;
+                }
+            }
+
+            // If any patients don't exist, return error with details
+            if (!empty($invalidPatients)) {
+                return $this->respondWithError([
+                    'message' => 'Some patient IDs were not found',
+                    'invalid_patient_ids' => $invalidPatients
+                ], 404);
+            }
+
+            $results = [
+                'success' => [],
+                'failed' => [],
+                'skipped' => []
+            ];
+
+            // Process unassignments within transaction
+            return $this->withTransaction(function () use ($userId, $validPatients, &$results) {
+                foreach ($validPatients as $patient) {
+                    try {
+                        $patientId = $patient->id;
+
+                        // Check if assignment exists
+                        $existingAssignment = UserPatient::findAssignment($userId, $patientId);
+
+                        if (!$existingAssignment) {
+                            // Assignment doesn't exist - skip
+                            $results['skipped'][] = [
+                                UserPatient::PATIENT_ID => $patientId,
+                                'patient_name' => $patient->getFullName(),
+                                'reason' => 'not_assigned'
+                            ];
+                            continue;
+                        }
+
+                        // Check if assignment is already inactive
+                        if ($existingAssignment->status === Status::INACTIVE) {
+                            // Already inactive - skip
+                            $results['skipped'][] = [
+                                UserPatient::PATIENT_ID => $patientId,
+                                'patient_name' => $patient->getFullName(),
+                                'reason' => 'already_inactive'
+                            ];
+                            continue;
+                        }
+
+                        // Deactivate the assignment (soft delete approach)
+                        $existingAssignment->status = Status::INACTIVE;
+
+                        if (!$existingAssignment->save()) {
+                            $messages = $existingAssignment->getMessages();
+                            $msg = "An unknown error occurred.";
+
+                            if (count($messages) > 0) {
+                                $obj = $messages[0];
+                                $msg = $obj->getMessage();
+                            }
+
+                            $results['failed'][] = [
+                                UserPatient::PATIENT_ID => $patientId,
+                                'patient_name' => $patient->getFullName(),
+                                'error' => 'Failed to deactivate assignment: ' . $msg
+                            ];
+                            continue;
+                        }
+
+                        $results['success'][] = [
+                            UserPatient::PATIENT_ID => $patientId,
+                            'patient_name' => $patient->getFullName(),
+                            'action' => 'unassigned'
+                        ];
+
+                    } catch (Exception $e) {
+                        $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+                        error_log('Exception: ' . $message);
+                        $results['failed'][] = [
+                            UserPatient::PATIENT_ID => $patient->id,
+                            'patient_name' => $patient->getFullName(),
+                            'error' => $e->getMessage()
+                        ];
+                        continue;
+                    }
+                }
+
+                // Determine response based on results
+                $totalRequested = count($validPatients);
+                $totalSuccess = count($results['success']);
+                $totalFailed = count($results['failed']);
+                $totalSkipped = count($results['skipped']);
+
+                // If no assignments were removed, but some were skipped
+                if ($totalSuccess === 0 && $totalSkipped > 0 && $totalFailed === 0) {
+                    return $this->respondWithSuccess([
+                        'message' => "No patients were unassigned - all {$totalSkipped} were either not assigned or already inactive",
+                        UserPatient::USER_ID => $userId,
+                        'results' => $results
+                    ], 200, "No patients needed to be unassigned");
+                }
+
+                // If no unassignments were successful at all
+                if ($totalSuccess === 0) {
+                    return $this->respondWithError([
+                        'message' => 'No patient unassignments were completed',
+                        UserPatient::USER_ID => $userId,
+                        'results' => $results
+                    ], 422);
+                }
+
+                // Success response with details
+                $message = "{$totalSuccess} patient(s) unassigned successfully";
+                if ($totalSkipped > 0) {
+                    $message .= ", {$totalSkipped} were not assigned";
                 }
                 if ($totalFailed > 0) {
                     $message .= ", {$totalFailed} failed";
