@@ -285,14 +285,14 @@ Content-Type: application/json
 }
 
 ### User assigng patient with notes
-POST {{maxmila.baseUrl}}/user/assign/patient
-Authorization: {{maxmila.administrator.token}}
+POST {{maxmila.baseUrl}}/assign/patient
+Authorization: {{maxmila.manager.token}}
 Content-Type: application/json
 
 {
-  "user_id": 83,
-  "patient_id": 3,
-  "notes": "No mamesToyBañando"
+  "user_id": 3,
+  "patient_id": 105,
+  "notes": "Panchito Villa"
 }
 
 ### User assigng patient
@@ -303,4 +303,24 @@ Content-Type: application/json
 {
   "user_id": 83,
   "patient_id": 2
+}
+
+
+
+### User assigng many patientsto user
+POST {{maxmila.baseUrl}}/assign/patients
+Authorization: {{maxmila.manager.token}}
+Content-Type: application/json
+
+{
+  "user_id": 3,
+  "patients": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+  ]
 }

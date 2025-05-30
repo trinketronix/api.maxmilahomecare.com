@@ -28,7 +28,7 @@ class AccountController extends BaseController {
                 return $this->respondWithError(Message::DB_QUERY_FAILED, 500);
 
             if ($users->count() === 0)
-                return $this->respondWithSuccess(Message::DB_NO_RECORDS, 204);
+                return $this->respondWithSuccess(Message::DB_NO_RECORDS, 204, Message::DB_NO_RECORDS);
 
             $usersArray = $users->toArray();
 

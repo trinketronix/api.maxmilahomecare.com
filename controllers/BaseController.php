@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Api\Controllers;
 
+use Api\Constants\Message;
 use Api\Email\Sender;
 use Api\Email\SMTP;
 use Api\Models\Auth;
@@ -80,12 +81,17 @@ class BaseController extends Controller {
     /**
      * Create a standardized success response
      */
-    protected function respondWithSuccess(array|string $data, int $statusCode = 200): array {
-        return [
+    protected function respondWithSuccess(array|string $data, int $statusCode = 200, array|string $message = Message::NA): array {
+        $response = [
             'status' => 'success',
             'code' => $statusCode,
-            'data' => $data
+            'data' => $data,
         ];
+
+        // Only add the 'message' key if $message is not the string 'na'
+        if ($message !== Message::NA) $response['message'] = $message;
+
+        return $response;
     }
 
     /**

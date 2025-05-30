@@ -71,7 +71,7 @@ class UserPatientController extends BaseController {
                         return $this->respondWithSuccess([
                             'message' => 'User-patient assignment reactivated successfully',
                             'assignment' => $existingAssignment->toArray()
-                        ]);
+                        ], 201, 'User-patient assignment reactivated successfully');
                     });
                 }
 
@@ -94,7 +94,7 @@ class UserPatientController extends BaseController {
                 return $this->respondWithSuccess([
                     'message' => 'User-patient assignment created successfully',
                     'assignment' => $assignment->toArray()
-                ], 201);
+                ], 201, 'User-patient assignment created successfully');
             });
 
         } catch (Exception $e) {
@@ -136,7 +136,7 @@ class UserPatientController extends BaseController {
                 return $this->respondWithSuccess([
                     'message' => 'Assignment deactivated successfully',
                     'assignment' => $assignment->toArray()
-                ]);
+                ], 201, 'Assignment deactivated successfully');
             });
 
         } catch (Exception $e) {

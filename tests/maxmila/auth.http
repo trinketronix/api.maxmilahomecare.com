@@ -5,7 +5,7 @@ POST {{maxmila.baseUrl}}/auth/register
 Content-Type: application/json
 
 {
-  "username": "pancemail.com",
+  "username": "toddsalpen@gmail.com",
   "password": "pancho2025"
 }
 

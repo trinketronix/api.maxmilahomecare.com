@@ -138,7 +138,7 @@ class BulkController extends BaseController {
             return $this->respondWithSuccess([
                 'message' => count($results['success']) . Message::BATCH_CREATED_SUFFIX,
                 'results' => $results
-            ], 201);
+            ], 201, count($results['success']) . Message::BATCH_CREATED_SUFFIX);
 
         } catch (Exception $e) {
             $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
@@ -272,7 +272,7 @@ class BulkController extends BaseController {
                 return $this->respondWithSuccess([
                     'message' => count($results['success']) . ' users updated successfully',
                     'results' => $results
-                ]);
+                ], 201, count($results['success']) . ' users updated successfully');
 
             } catch (Exception $e) {
                 $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
@@ -418,7 +418,7 @@ class BulkController extends BaseController {
                 return $this->respondWithSuccess([
                     'message' => count($results['success']) . ' patients created successfully',
                     'results' => $results
-                ], 201);
+                ], 201, count($results['success']) . ' patients created successfully');
 
             } catch (Exception $e) {
                 $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
@@ -613,7 +613,7 @@ class BulkController extends BaseController {
                 return $this->respondWithSuccess([
                     'message' => count($results['success']) . ' addresses created successfully',
                     'results' => $results
-                ], 201);
+                ], 201, count($results['success']) . ' addresses created successfully');
 
             } catch (Exception $e) {
                 $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
@@ -781,7 +781,7 @@ class BulkController extends BaseController {
                 return $this->respondWithSuccess([
                     'message' => count($results['success']) . ' assignments created successfully',
                     'results' => $results
-                ], 201);
+                ], 201, count($results['success']) . ' assignments created successfully');
 
             } catch (Exception $e) {
                 $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
@@ -1020,7 +1020,7 @@ class BulkController extends BaseController {
                 return $this->respondWithSuccess([
                     'message' => count($results['success']) . ' visits created successfully',
                     'results' => $results
-                ], 201);
+                ], 201, count($results['success']) . ' visits created successfully');
 
             } catch (Exception $e) {
                 $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
