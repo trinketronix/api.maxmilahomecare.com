@@ -65,8 +65,22 @@ class UserPatientController extends BaseController {
                         if (isset($data[UserPatient::NOTES]))
                             $existingAssignment->notes = $data[UserPatient::NOTES];
 
-                        if (!$existingAssignment->save())
-                            return $this->respondWithError($existingAssignment->getMessages(), 422);
+                        if (!$existingAssignment->save()) {
+                            $messages = $existingAssignment->getMessages(); // This is Phalcon\Messages\MessageInterface[]
+                            $msg = "An unknown error occurred."; // Default/fallback
+
+                            if (count($messages) > 0) {
+                                // Get the first message object from the array
+                                $obj = $messages[0]; // or current($phalconMessages)
+
+                                // Extract the string message from the object
+                                // The MessageInterface guarantees the getMessage() method.
+                                $msg = $obj->getMessage();
+                            }
+
+                            // Pass the extracted string message to your responder
+                            return $this->respondWithError($msg, 422);
+                        }
 
                         return $this->respondWithSuccess([
                             'message' => 'User-patient assignment reactivated successfully',
@@ -88,8 +102,22 @@ class UserPatientController extends BaseController {
                 if (isset($data[UserPatient::NOTES]))
                     $assignment->notes = $data[UserPatient::NOTES];
 
-                if (!$assignment->save())
-                    return $this->respondWithError($assignment->getMessages(), 422);
+                if (!$assignment->save()) {
+                    $messages = $assignment->getMessages(); // This is Phalcon\Messages\MessageInterface[]
+                    $msg = "An unknown error occurred."; // Default/fallback
+
+                    if (count($messages) > 0) {
+                        // Get the first message object from the array
+                        $obj = $messages[0]; // or current($phalconMessages)
+
+                        // Extract the string message from the object
+                        // The MessageInterface guarantees the getMessage() method.
+                        $msg = $obj->getMessage();
+                    }
+
+                    // Pass the extracted string message to your responder
+                    return $this->respondWithError($msg, 422);
+                }
 
                 return $this->respondWithSuccess([
                     'message' => 'User-patient assignment created successfully',
@@ -130,9 +158,22 @@ class UserPatientController extends BaseController {
             return $this->withTransaction(function() use ($assignment) {
                 $assignment->status = Status::INACTIVE;
 
-                if (!$assignment->save())
-                    return $this->respondWithError($assignment->getMessages(), 422);
+                if (!$assignment->save()) {
+                    $messages = $assignment->getMessages(); // This is Phalcon\Messages\MessageInterface[]
+                    $msg = "An unknown error occurred."; // Default/fallback
 
+                    if (count($messages) > 0) {
+                        // Get the first message object from the array
+                        $obj = $messages[0]; // or current($phalconMessages)
+
+                        // Extract the string message from the object
+                        // The MessageInterface guarantees the getMessage() method.
+                        $msg = $obj->getMessage();
+                    }
+
+                    // Pass the extracted string message to your responder
+                    return $this->respondWithError($msg, 422);
+                }
                 return $this->respondWithSuccess([
                     'message' => 'Assignment deactivated successfully',
                     'assignment' => $assignment->toArray()

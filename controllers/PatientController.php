@@ -63,7 +63,20 @@ class PatientController extends BaseController {
                 $patient->status = Status::ACTIVE;
 
                 if (!$patient->save()) {
-                    return $this->respondWithError($patient->getMessages(), 422);
+                    $messages = $patient->getMessages(); // This is Phalcon\Messages\MessageInterface[]
+                    $msg = "An unknown error occurred."; // Default/fallback
+
+                    if (count($messages) > 0) {
+                        // Get the first message object from the array
+                        $obj = $messages[0]; // or current($phalconMessages)
+
+                        // Extract the string message from the object
+                        // The MessageInterface guarantees the getMessage() method.
+                        $msg = $obj->getMessage();
+                    }
+
+                    // Pass the extracted string message to your responder
+                    return $this->respondWithError($msg, 422);
                 }
 
                 // If address data is included, create an address for the patient
@@ -198,7 +211,20 @@ class PatientController extends BaseController {
                 }
 
                 if (!$patient->save()) {
-                    return $this->respondWithError($patient->getMessages(), 422);
+                    $messages = $patient->getMessages(); // This is Phalcon\Messages\MessageInterface[]
+                    $msg = "An unknown error occurred."; // Default/fallback
+
+                    if (count($messages) > 0) {
+                        // Get the first message object from the array
+                        $obj = $messages[0]; // or current($phalconMessages)
+
+                        // Extract the string message from the object
+                        // The MessageInterface guarantees the getMessage() method.
+                        $msg = $obj->getMessage();
+                    }
+
+                    // Pass the extracted string message to your responder
+                    return $this->respondWithError($msg, 422);
                 }
 
                 return $this->respondWithSuccess([
@@ -241,7 +267,20 @@ class PatientController extends BaseController {
                 $patient->status = Status::SOFT_DELETED;
 
                 if (!$patient->save()) {
-                    return $this->respondWithError($patient->getMessages(), 422);
+                    $messages = $patient->getMessages(); // This is Phalcon\Messages\MessageInterface[]
+                    $msg = "An unknown error occurred."; // Default/fallback
+
+                    if (count($messages) > 0) {
+                        // Get the first message object from the array
+                        $obj = $messages[0]; // or current($phalconMessages)
+
+                        // Extract the string message from the object
+                        // The MessageInterface guarantees the getMessage() method.
+                        $msg = $obj->getMessage();
+                    }
+
+                    // Pass the extracted string message to your responder
+                    return $this->respondWithError($msg, 422);
                 }
 
                 return $this->respondWithSuccess([
@@ -289,7 +328,20 @@ class PatientController extends BaseController {
                 $patient->status = Status::ARCHIVED;
 
                 if (!$patient->save()) {
-                    return $this->respondWithError($patient->getMessages(), 422);
+                    $messages = $patient->getMessages(); // This is Phalcon\Messages\MessageInterface[]
+                    $msg = "An unknown error occurred."; // Default/fallback
+
+                    if (count($messages) > 0) {
+                        // Get the first message object from the array
+                        $obj = $messages[0]; // or current($phalconMessages)
+
+                        // Extract the string message from the object
+                        // The MessageInterface guarantees the getMessage() method.
+                        $msg = $obj->getMessage();
+                    }
+
+                    // Pass the extracted string message to your responder
+                    return $this->respondWithError($msg, 422);
                 }
 
                 return $this->respondWithSuccess([
@@ -332,7 +384,20 @@ class PatientController extends BaseController {
                 $patient->status = Status::ACTIVE;
 
                 if (!$patient->save()) {
-                    return $this->respondWithError($patient->getMessages(), 422);
+                    $messages = $patient->getMessages(); // This is Phalcon\Messages\MessageInterface[]
+                    $msg = "An unknown error occurred."; // Default/fallback
+
+                    if (count($messages) > 0) {
+                        // Get the first message object from the array
+                        $obj = $messages[0]; // or current($phalconMessages)
+
+                        // Extract the string message from the object
+                        // The MessageInterface guarantees the getMessage() method.
+                        $msg = $obj->getMessage();
+                    }
+
+                    // Pass the extracted string message to your responder
+                    return $this->respondWithError($msg, 422);
                 }
 
                 return $this->respondWithSuccess([

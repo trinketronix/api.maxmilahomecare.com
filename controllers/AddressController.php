@@ -109,7 +109,20 @@ class AddressController extends BaseController {
                 }
 
                 if (!$address->save()) {
-                    return $this->respondWithError($address->getMessages(), 422);
+                    $messages = $address->getMessages(); // This is Phalcon\Messages\MessageInterface[]
+                    $msg = "An unknown error occurred."; // Default/fallback
+
+                    if (count($messages) > 0) {
+                        // Get the first message object from the array
+                        $obj = $messages[0]; // or current($phalconMessages)
+
+                        // Extract the string message from the object
+                        // The MessageInterface guarantees the getMessage() method.
+                        $msg = $obj->getMessage();
+                    }
+
+                    // Pass the extracted string message to your responder
+                    return $this->respondWithError($msg, 422);
                 }
 
                 return $this->respondWithSuccess([
@@ -270,7 +283,20 @@ class AddressController extends BaseController {
                 }
 
                 if (!$address->save()) {
-                    return $this->respondWithError($address->getMessages(), 422);
+                    $messages = $address->getMessages(); // This is Phalcon\Messages\MessageInterface[]
+                    $msg = "An unknown error occurred."; // Default/fallback
+
+                    if (count($messages) > 0) {
+                        // Get the first message object from the array
+                        $obj = $messages[0]; // or current($phalconMessages)
+
+                        // Extract the string message from the object
+                        // The MessageInterface guarantees the getMessage() method.
+                        $msg = $obj->getMessage();
+                    }
+
+                    // Pass the extracted string message to your responder
+                    return $this->respondWithError($msg, 422);
                 }
 
                 return $this->respondWithSuccess([
@@ -306,7 +332,20 @@ class AddressController extends BaseController {
 
             return $this->withTransaction(function() use ($address) {
                 if (!$address->delete()) {
-                    return $this->respondWithError($address->getMessages(), 422);
+                    $messages = $address->getMessages(); // This is Phalcon\Messages\MessageInterface[]
+                    $msg = "An unknown error occurred."; // Default/fallback
+
+                    if (count($messages) > 0) {
+                        // Get the first message object from the array
+                        $obj = $messages[0]; // or current($phalconMessages)
+
+                        // Extract the string message from the object
+                        // The MessageInterface guarantees the getMessage() method.
+                        $msg = $obj->getMessage();
+                    }
+
+                    // Pass the extracted string message to your responder
+                    return $this->respondWithError($msg, 422);
                 }
 
                 return $this->respondWithSuccess([

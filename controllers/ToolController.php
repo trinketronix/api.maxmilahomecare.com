@@ -52,7 +52,20 @@ class ToolController extends BaseController {
 
                 // Save the tool
                 if (!$tool->save()) {
-                    return $this->respondWithError($tool->getMessages(), 422);
+                    $messages = $tool->getMessages(); // This is Phalcon\Messages\MessageInterface[]
+                    $msg = "An unknown error occurred."; // Default/fallback
+
+                    if (count($messages) > 0) {
+                        // Get the first message object from the array
+                        $obj = $messages[0]; // or current($phalconMessages)
+
+                        // Extract the string message from the object
+                        // The MessageInterface guarantees the getMessage() method.
+                        $msg = $obj->getMessage();
+                    }
+
+                    // Pass the extracted string message to your responder
+                    return $this->respondWithError($msg, 422);
                 }
 
                 return $this->respondWithSuccess([
@@ -179,7 +192,20 @@ class ToolController extends BaseController {
 
                 // Save the tool
                 if (!$tool->save()) {
-                    return $this->respondWithError($tool->getMessages(), 422);
+                    $messages = $tool->getMessages(); // This is Phalcon\Messages\MessageInterface[]
+                    $msg = "An unknown error occurred."; // Default/fallback
+
+                    if (count($messages) > 0) {
+                        // Get the first message object from the array
+                        $obj = $messages[0]; // or current($phalconMessages)
+
+                        // Extract the string message from the object
+                        // The MessageInterface guarantees the getMessage() method.
+                        $msg = $obj->getMessage();
+                    }
+
+                    // Pass the extracted string message to your responder
+                    return $this->respondWithError($msg, 422);
                 }
 
                 return $this->respondWithSuccess([
@@ -212,7 +238,20 @@ class ToolController extends BaseController {
             // Delete the tool within a transaction
             return $this->withTransaction(function() use ($tool) {
                 if (!$tool->delete()) {
-                    return $this->respondWithError($tool->getMessages(), 422);
+                    $messages = $tool->getMessages(); // This is Phalcon\Messages\MessageInterface[]
+                    $msg = "An unknown error occurred."; // Default/fallback
+
+                    if (count($messages) > 0) {
+                        // Get the first message object from the array
+                        $obj = $messages[0]; // or current($phalconMessages)
+
+                        // Extract the string message from the object
+                        // The MessageInterface guarantees the getMessage() method.
+                        $msg = $obj->getMessage();
+                    }
+
+                    // Pass the extracted string message to your responder
+                    return $this->respondWithError($msg, 422);
                 }
 
                 return $this->respondWithSuccess([
