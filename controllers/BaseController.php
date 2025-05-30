@@ -81,7 +81,7 @@ class BaseController extends Controller {
     /**
      * Create a standardized success response
      */
-    protected function respondWithSuccess(array|string $data, int $statusCode = 200, array|string $message = Message::NO_MSG): array {
+    protected function respondWithSuccess(array|string $data, int $statusCode = 200, array|string $message = Message::NA): array {
         $response = [
             'status' => 'success',
             'code' => $statusCode,
@@ -89,7 +89,7 @@ class BaseController extends Controller {
         ];
 
         // Only add the 'message' key if $message is not the string 'na'
-        if ($message !== 'na') $response['message'] = $message;
+        if ($message !== Message::NA) $response['message'] = $message;
 
         return $response;
     }
