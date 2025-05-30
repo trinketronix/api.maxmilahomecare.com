@@ -40,8 +40,22 @@ class AuthController extends BaseController {
                 $auth->role = Role::CAREGIVER;
                 $auth->status = Status::NOT_VERIFIED;
 
-                if (!$auth->save())
-                    return $this->respondWithError($auth->getMessages(), 422);
+                if (!$auth->save()) {
+                    $messages = $auth->getMessages(); // This is Phalcon\Messages\MessageInterface[]
+                    $msg = "An unknown error occurred."; // Default/fallback
+
+                    if (count($messages) > 0) {
+                        // Get the first message object from the array
+                        $obj = $messages[0]; // or current($phalconMessages)
+
+                        // Extract the string message from the object
+                        // The MessageInterface guarantees the getMessage() method.
+                        $msg = $obj->getMessage();
+                    }
+
+                    // Pass the extracted string message to your responder
+                    return $this->respondWithError($msg, 422);
+                }
 
                 if (!$auth->id)
                     return $this->respondWithError(Message::DB_ID_GENERATION_FAILED, 422);
