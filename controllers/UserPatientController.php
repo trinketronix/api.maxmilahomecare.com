@@ -20,7 +20,7 @@ class UserPatientController extends BaseController {
      *
      * @return array Response data
      */
-    public function create(): array {
+    public function assignPatient(): array {
         try {
             // Verify manager role or higher
             if (!$this->isManagerOrHigher())
@@ -147,18 +147,18 @@ class UserPatientController extends BaseController {
             $data = $this->getRequestBody();
 
             // Validate required fields
-            if (empty($data['user_id']))
+            if (empty($data[UserPatient::USER_ID]))
                 return $this->respondWithError('User ID is required', 400);
 
-            if (empty($data['patient_ids']) || !is_array($data['patient_ids']))
+            if (empty($data[UserPatient::PATIENT_IDS]) || !is_array($data[UserPatient::PATIENT_IDS]))
                 return $this->respondWithError('Patient IDs array is required', 400);
 
-            if (count($data['patient_ids']) === 0)
+            if (count($data[UserPatient::PATIENT_IDS]) === 0)
                 return $this->respondWithError('At least one patient ID is required', 400);
 
-            $userId = (int)$data['user_id'];
-            $patientIds = array_map('intval', $data['patient_ids']); // Convert all to integers
-            $notes = $data['notes'] ?? null; // Optional notes for all assignments
+            $userId = (int)$data[UserPatient::USER_ID];
+            $patientIds = array_map('intval', $data[UserPatient::PATIENT_IDS]); // Convert all to integers
+            $notes = $data[UserPatient::NOTES] ?? null; // Optional notes for all assignments
 
             // Check if user exists
             $user = User::findFirst($userId);
@@ -224,7 +224,7 @@ class UserPatientController extends BaseController {
                                     }
 
                                     $results['failed'][] = [
-                                        'patient_id' => $patientId,
+                                        UserPatient::PATIENT_ID => $patientId,
                                         'patient_name' => $patient->getFullName(),
                                         'error' => 'Failed to reactivate assignment: ' . $msg
                                     ];
@@ -232,7 +232,7 @@ class UserPatientController extends BaseController {
                                 }
 
                                 $results['success'][] = [
-                                    'patient_id' => $patientId,
+                                    UserPatient::PATIENT_ID => $patientId,
                                     'patient_name' => $patient->getFullName(),
                                     'action' => 'reactivated'
                                 ];
@@ -241,7 +241,7 @@ class UserPatientController extends BaseController {
 
                             // Assignment already exists and is active
                             $results['skipped'][] = [
-                                'patient_id' => $patientId,
+                                UserPatient::PATIENT_ID => $patientId,
                                 'patient_name' => $patient->getFullName(),
                                 'reason' => 'already_assigned'
                             ];
@@ -268,7 +268,7 @@ class UserPatientController extends BaseController {
                             }
 
                             $results['failed'][] = [
-                                'patient_id' => $patientId,
+                                UserPatient::PATIENT_ID => $patientId,
                                 'patient_name' => $patient->getFullName(),
                                 'error' => 'Failed to create assignment: ' . $msg
                             ];
@@ -276,7 +276,7 @@ class UserPatientController extends BaseController {
                         }
 
                         $results['success'][] = [
-                            'patient_id' => $patientId,
+                            UserPatient::PATIENT_ID => $patientId,
                             'patient_name' => $patient->getFullName(),
                             'action' => 'created'
                         ];
@@ -285,7 +285,7 @@ class UserPatientController extends BaseController {
                         $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
                         error_log('Exception: ' . $message);
                         $results['failed'][] = [
-                            'patient_id' => $patient->id,
+                            UserPatient::PATIENT_ID => $patient->id,
                             'patient_name' => $patient->getFullName(),
                             'error' => $e->getMessage()
                         ];
@@ -303,7 +303,7 @@ class UserPatientController extends BaseController {
                 if ($totalSuccess === 0 && $totalSkipped > 0 && $totalFailed === 0) {
                     return $this->respondWithSuccess([
                         'message' => "All {$totalSkipped} patients were already assigned to this user",
-                        'user_id' => $userId,
+                        UserPatient::USER_ID => $userId,
                         'results' => $results
                     ], 200, "All patients were already assigned");
                 }
@@ -312,7 +312,7 @@ class UserPatientController extends BaseController {
                 if ($totalSuccess === 0) {
                     return $this->respondWithError([
                         'message' => 'No patient assignments were created',
-                        'user_id' => $userId,
+                        UserPatient::USER_ID => $userId,
                         'results' => $results
                     ], 422);
                 }
@@ -328,7 +328,7 @@ class UserPatientController extends BaseController {
 
                 return $this->respondWithSuccess([
                     'message' => $message,
-                    'user_id' => $userId,
+                    UserPatient::USER_ID => $userId,
                     'total_requested' => $totalRequested,
                     'total_success' => $totalSuccess,
                     'total_failed' => $totalFailed,
