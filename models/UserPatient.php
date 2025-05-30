@@ -10,7 +10,9 @@ use Phalcon\Mvc\Model;
 class UserPatient extends Model {
     // Column constants
     public const string USER_ID = 'user_id';
+    public const string USER_IDS = 'user_ids';
     public const string PATIENT_ID = 'patient_id';
+    public const string PATIENT_IDS = 'patient_ids';
     public const string ASSIGNED_AT = 'assigned_at';
     public const string ASSIGNED_BY = 'assigned_by';
     public const string NOTES = 'notes';

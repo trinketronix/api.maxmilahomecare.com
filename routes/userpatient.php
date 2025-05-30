@@ -8,7 +8,11 @@ if (isset($app)) {
 
     // Post to assign patients
     // before '/user/assign/patient'
-    $app->post('/assign/patient', [$userPatient, 'create']);
+    $app->post('/assign/patient', [$userPatient, 'assignPatient']);
+
+    // Post to assign many patients
+    // sample body payload { "user_id": 12, "patient_ids": [1,2,3,4,5,6,7], "" }
+    $app->post('/assign/patients', [$userPatient, 'assignPatients']);
 
     // Get assigned patients by user ID
     // before `/user/{userId}/patients`
