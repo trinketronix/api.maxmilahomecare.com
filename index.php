@@ -66,20 +66,36 @@ use Phalcon\Events\Manager as EventsManager;
 define('APP_ENV', getenv('APP_ENV') ?: 'dev');
 
 /**
- * Base URL Configuration
+ * REST API Base URL Configuration
  *
- * The base URL for the application, used for generating absolute URLs,
+ * The base URL for the api, used for generating absolute URLs, pointing to the REST API
  * email links, and API documentation. This should match the domain
  * where the API is deployed.
  *
- * @var string BASE_URL The application's base URL
+ * @var string API_BASE_URL The REST API base URL
  * @default 'https://failsafe.maxmmilahomecare.com'
- * @env BASE_URL Environment variable to override default
+ * @env API_BASE_URL REST API Environment variable to override default
  *
  * @example https://api.maxmilahomecare.com
  * @example https://api-test.maxmilahomecare.com (for testing)
  */
-define('BASE_URL', getenv('BASE_URL') ?: 'https://failsafe.maxmmilahomecare.com');
+define('API_BASE_URL', getenv('API_BASE_URL') ?: 'https://failsafe.maxmmilahomecare.com');
+
+/**
+ * WEB APP Base URL Configuration
+ *
+ * The base URL for the application, used for generating absolute URLs, pointing to the Web Application
+ * email links, and API documentation. This should match the domain
+ * where the API is deployed.
+ *
+ * @var string APP_BASE_URL The Web App base URL
+ * @default 'https://failsafe.maxmmilahomecare.com'
+ * @env APP_BASE_URL Web App Environment variable to override default
+ *
+ * @example https://app.maxmilahomecare.com
+ * @example https://app-test.maxmilahomecare.com (for testing)
+ */
+define('APP_BASE_URL', getenv('APP_BASE_URL') ?: 'https://failsafe.maxmmilahomecare.com');
 
 /**
  * Database Name Configuration
