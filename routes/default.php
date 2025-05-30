@@ -19,9 +19,11 @@ if (isset($app)) {
                     'name' => $appName,
                     'version' => $appVersion,
                     'copyright' => $appCopyright,
-                    'baseUrl' => BASE_URL,
+                    'apiBaseUrl' => API_BASE_URL,
+                    'appBaseUrl' => APP_BASE_URL,
                     'environment' => APP_ENV,
                     'database' => DB_DATABASE,
+                    'email' => getenv('EMAIL_REP_ADDR') ?: 'failsafe@maxmilahomecare.com',
                     'message' => 'rest api is online'
                 ]
             ]);
