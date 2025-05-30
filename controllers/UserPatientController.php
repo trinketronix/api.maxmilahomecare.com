@@ -133,6 +133,218 @@ class UserPatientController extends BaseController {
     }
 
     /**
+     * Assign multiple patients to a single user
+     *
+     * @return array Response data
+     */
+    public function assignPatients(): array
+    {
+        try {
+            // Verify manager role or higher
+            if (!$this->isManagerOrHigher())
+                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
+
+            $data = $this->getRequestBody();
+
+            // Validate required fields
+            if (empty($data['user_id']))
+                return $this->respondWithError('User ID is required', 400);
+
+            if (empty($data['patient_ids']) || !is_array($data['patient_ids']))
+                return $this->respondWithError('Patient IDs array is required', 400);
+
+            if (count($data['patient_ids']) === 0)
+                return $this->respondWithError('At least one patient ID is required', 400);
+
+            $userId = (int)$data['user_id'];
+            $patientIds = array_map('intval', $data['patient_ids']); // Convert all to integers
+            $notes = $data['notes'] ?? null; // Optional notes for all assignments
+
+            // Check if user exists
+            $user = User::findFirst($userId);
+            if (!$user)
+                return $this->respondWithError(Message::USER_NOT_FOUND, 404);
+
+            // Validate all patient IDs exist before processing
+            $validPatients = [];
+            $invalidPatients = [];
+
+            foreach ($patientIds as $patientId) {
+                $patient = Patient::findFirst($patientId);
+                if ($patient) {
+                    $validPatients[] = $patient;
+                } else {
+                    $invalidPatients[] = $patientId;
+                }
+            }
+
+            // If any patients don't exist, return error with details
+            if (!empty($invalidPatients)) {
+                return $this->respondWithError([
+                    'message' => 'Some patient IDs were not found',
+                    'invalid_patient_ids' => $invalidPatients
+                ], 404);
+            }
+
+            $results = [
+                'success' => [],
+                'failed' => [],
+                'skipped' => []
+            ];
+
+            // Process assignments within transaction
+            return $this->withTransaction(function () use ($userId, $validPatients, $notes, &$results) {
+                $currentUserId = $this->getCurrentUserId();
+
+                foreach ($validPatients as $patient) {
+                    try {
+                        $patientId = $patient->id;
+
+                        // Check if assignment already exists
+                        $existingAssignment = UserPatient::findAssignment($userId, $patientId);
+
+                        if ($existingAssignment) {
+                            // If it exists but is inactive, reactivate it
+                            if ($existingAssignment->status === Status::INACTIVE) {
+                                $existingAssignment->status = Status::ACTIVE;
+                                $existingAssignment->assigned_by = $currentUserId;
+                                $existingAssignment->assigned_at = date('Y-m-d H:i:s');
+
+                                if ($notes) {
+                                    $existingAssignment->notes = $notes;
+                                }
+
+                                if (!$existingAssignment->save()) {
+                                    $messages = $existingAssignment->getMessages();
+                                    $msg = "An unknown error occurred.";
+
+                                    if (count($messages) > 0) {
+                                        $obj = $messages[0];
+                                        $msg = $obj->getMessage();
+                                    }
+
+                                    $results['failed'][] = [
+                                        'patient_id' => $patientId,
+                                        'patient_name' => $patient->getFullName(),
+                                        'error' => 'Failed to reactivate assignment: ' . $msg
+                                    ];
+                                    continue;
+                                }
+
+                                $results['success'][] = [
+                                    'patient_id' => $patientId,
+                                    'patient_name' => $patient->getFullName(),
+                                    'action' => 'reactivated'
+                                ];
+                                continue;
+                            }
+
+                            // Assignment already exists and is active
+                            $results['skipped'][] = [
+                                'patient_id' => $patientId,
+                                'patient_name' => $patient->getFullName(),
+                                'reason' => 'already_assigned'
+                            ];
+                            continue;
+                        }
+
+                        // Create new assignment
+                        $assignment = new UserPatient();
+                        $assignment->user_id = $userId;
+                        $assignment->patient_id = $patientId;
+                        $assignment->assigned_by = $currentUserId;
+
+                        if ($notes) {
+                            $assignment->notes = $notes;
+                        }
+
+                        if (!$assignment->save()) {
+                            $messages = $assignment->getMessages();
+                            $msg = "An unknown error occurred.";
+
+                            if (count($messages) > 0) {
+                                $obj = $messages[0];
+                                $msg = $obj->getMessage();
+                            }
+
+                            $results['failed'][] = [
+                                'patient_id' => $patientId,
+                                'patient_name' => $patient->getFullName(),
+                                'error' => 'Failed to create assignment: ' . $msg
+                            ];
+                            continue;
+                        }
+
+                        $results['success'][] = [
+                            'patient_id' => $patientId,
+                            'patient_name' => $patient->getFullName(),
+                            'action' => 'created'
+                        ];
+
+                    } catch (Exception $e) {
+                        $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+                        error_log('Exception: ' . $message);
+                        $results['failed'][] = [
+                            'patient_id' => $patient->id,
+                            'patient_name' => $patient->getFullName(),
+                            'error' => $e->getMessage()
+                        ];
+                        continue;
+                    }
+                }
+
+                // Determine response based on results
+                $totalRequested = count($validPatients);
+                $totalSuccess = count($results['success']);
+                $totalFailed = count($results['failed']);
+                $totalSkipped = count($results['skipped']);
+
+                // If no assignments were created or reactivated, but some were skipped
+                if ($totalSuccess === 0 && $totalSkipped > 0 && $totalFailed === 0) {
+                    return $this->respondWithSuccess([
+                        'message' => "All {$totalSkipped} patients were already assigned to this user",
+                        'user_id' => $userId,
+                        'results' => $results
+                    ], 200, "All patients were already assigned");
+                }
+
+                // If no assignments were successful at all
+                if ($totalSuccess === 0) {
+                    return $this->respondWithError([
+                        'message' => 'No patient assignments were created',
+                        'user_id' => $userId,
+                        'results' => $results
+                    ], 422);
+                }
+
+                // Success response with details
+                $message = "{$totalSuccess} patient(s) assigned successfully";
+                if ($totalSkipped > 0) {
+                    $message .= ", {$totalSkipped} already assigned";
+                }
+                if ($totalFailed > 0) {
+                    $message .= ", {$totalFailed} failed";
+                }
+
+                return $this->respondWithSuccess([
+                    'message' => $message,
+                    'user_id' => $userId,
+                    'total_requested' => $totalRequested,
+                    'total_success' => $totalSuccess,
+                    'total_failed' => $totalFailed,
+                    'total_skipped' => $totalSkipped,
+                    'results' => $results
+                ], 201, $message);
+            });
+
+        } catch (Exception $e) {
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
+            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        }
+    }
+
+    /**
      * Deactivate a user-patient assignment
      *
      * @param int $userId User ID
