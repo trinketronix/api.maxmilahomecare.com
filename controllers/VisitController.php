@@ -134,7 +134,20 @@ class VisitController extends BaseController {
                 $visit->status = Status::ACTIVE;
 
                 if (!$visit->save()) {
-                    return $this->respondWithError($visit->getMessages(), 422);
+                    $messages = $visit->getMessages(); // This is Phalcon\Messages\MessageInterface[]
+                    $msg = "An unknown error occurred."; // Default/fallback
+
+                    if (count($messages) > 0) {
+                        // Get the first message object from the array
+                        $obj = $messages[0]; // or current($phalconMessages)
+
+                        // Extract the string message from the object
+                        // The MessageInterface guarantees the getMessage() method.
+                        $msg = $obj->getMessage();
+                    }
+
+                    // Pass the extracted string message to your responder
+                    return $this->respondWithError($msg, 422);
                 }
 
                 return $this->respondWithSuccess([
@@ -621,7 +634,20 @@ class VisitController extends BaseController {
                 }
 
                 if (!$visit->save()) {
-                    return $this->respondWithError($visit->getMessages(), 422);
+                    $messages = $visit->getMessages(); // This is Phalcon\Messages\MessageInterface[]
+                    $msg = "An unknown error occurred."; // Default/fallback
+
+                    if (count($messages) > 0) {
+                        // Get the first message object from the array
+                        $obj = $messages[0]; // or current($phalconMessages)
+
+                        // Extract the string message from the object
+                        // The MessageInterface guarantees the getMessage() method.
+                        $msg = $obj->getMessage();
+                    }
+
+                    // Pass the extracted string message to your responder
+                    return $this->respondWithError($msg, 422);
                 }
 
                 return $this->respondWithSuccess([
@@ -670,7 +696,20 @@ class VisitController extends BaseController {
                 $visit->status = Status::SOFT_DELETED;
 
                 if (!$visit->save()) {
-                    return $this->respondWithError($visit->getMessages(), 422);
+                    $messages = $visit->getMessages(); // This is Phalcon\Messages\MessageInterface[]
+                    $msg = "An unknown error occurred."; // Default/fallback
+
+                    if (count($messages) > 0) {
+                        // Get the first message object from the array
+                        $obj = $messages[0]; // or current($phalconMessages)
+
+                        // Extract the string message from the object
+                        // The MessageInterface guarantees the getMessage() method.
+                        $msg = $obj->getMessage();
+                    }
+
+                    // Pass the extracted string message to your responder
+                    return $this->respondWithError($msg, 422);
                 }
 
                 return $this->respondWithSuccess([
@@ -736,7 +775,20 @@ class VisitController extends BaseController {
                 $visit->progress = $progress;
 
                 if (!$visit->save()) {
-                    return $this->respondWithError($visit->getMessages(), 422);
+                    $messages = $visit->getMessages(); // This is Phalcon\Messages\MessageInterface[]
+                    $msg = "An unknown error occurred."; // Default/fallback
+
+                    if (count($messages) > 0) {
+                        // Get the first message object from the array
+                        $obj = $messages[0]; // or current($phalconMessages)
+
+                        // Extract the string message from the object
+                        // The MessageInterface guarantees the getMessage() method.
+                        $msg = $obj->getMessage();
+                    }
+
+                    // Pass the extracted string message to your responder
+                    return $this->respondWithError($msg, 422);
                 }
 
                 return $this->respondWithSuccess([
@@ -789,7 +841,20 @@ class VisitController extends BaseController {
                 $visit->progress = Progress::IN_PROGRESS;
 
                 if (!$visit->save()) {
-                    return $this->respondWithError($visit->getMessages(), 422);
+                    $messages = $visit->getMessages(); // This is Phalcon\Messages\MessageInterface[]
+                    $msg = "An unknown error occurred."; // Default/fallback
+
+                    if (count($messages) > 0) {
+                        // Get the first message object from the array
+                        $obj = $messages[0]; // or current($phalconMessages)
+
+                        // Extract the string message from the object
+                        // The MessageInterface guarantees the getMessage() method.
+                        $msg = $obj->getMessage();
+                    }
+
+                    // Pass the extracted string message to your responder
+                    return $this->respondWithError($msg, 422);
                 }
 
                 return $this->respondWithSuccess([
@@ -847,7 +912,20 @@ class VisitController extends BaseController {
                 }
 
                 if (!$visit->save()) {
-                    return $this->respondWithError($visit->getMessages(), 422);
+                    $messages = $visit->getMessages(); // This is Phalcon\Messages\MessageInterface[]
+                    $msg = "An unknown error occurred."; // Default/fallback
+
+                    if (count($messages) > 0) {
+                        // Get the first message object from the array
+                        $obj = $messages[0]; // or current($phalconMessages)
+
+                        // Extract the string message from the object
+                        // The MessageInterface guarantees the getMessage() method.
+                        $msg = $obj->getMessage();
+                    }
+
+                    // Pass the extracted string message to your responder
+                    return $this->respondWithError($msg, 422);
                 }
 
                 return $this->respondWithSuccess([
@@ -910,7 +988,20 @@ class VisitController extends BaseController {
                 }
 
                 if (!$visit->save()) {
-                    return $this->respondWithError($visit->getMessages(), 422);
+                    $messages = $visit->getMessages(); // This is Phalcon\Messages\MessageInterface[]
+                    $msg = "An unknown error occurred."; // Default/fallback
+
+                    if (count($messages) > 0) {
+                        // Get the first message object from the array
+                        $obj = $messages[0]; // or current($phalconMessages)
+
+                        // Extract the string message from the object
+                        // The MessageInterface guarantees the getMessage() method.
+                        $msg = $obj->getMessage();
+                    }
+
+                    // Pass the extracted string message to your responder
+                    return $this->respondWithError($msg, 422);
                 }
 
                 return $this->respondWithSuccess([

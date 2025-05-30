@@ -98,7 +98,20 @@ class UserController extends BaseController {
 
                 // Save the user
                 if (!$user->save()) {
-                    return $this->respondWithError($user->getMessages(), 422);
+                    $messages = $user->getMessages(); // This is Phalcon\Messages\MessageInterface[]
+                    $msg = "An unknown error occurred."; // Default/fallback
+
+                    if (count($messages) > 0) {
+                        // Get the first message object from the array
+                        $obj = $messages[0]; // or current($phalconMessages)
+
+                        // Extract the string message from the object
+                        // The MessageInterface guarantees the getMessage() method.
+                        $msg = $obj->getMessage();
+                    }
+
+                    // Pass the extracted string message to your responder
+                    return $this->respondWithError($msg, 422);
                 }
 
                 // Prepare response data
@@ -315,7 +328,20 @@ class UserController extends BaseController {
                     if (file_exists($path)) {
                         unlink($path);
                     }
-                    return $this->respondWithError($user->getMessages(), 422);
+                    $messages = $user->getMessages(); // This is Phalcon\Messages\MessageInterface[]
+                    $msg = "An unknown error occurred."; // Default/fallback
+
+                    if (count($messages) > 0) {
+                        // Get the first message object from the array
+                        $obj = $messages[0]; // or current($phalconMessages)
+
+                        // Extract the string message from the object
+                        // The MessageInterface guarantees the getMessage() method.
+                        $msg = $obj->getMessage();
+                    }
+
+                    // Pass the extracted string message to your responder
+                    return $this->respondWithError($msg, 422);
                 }
 
                 return $this->respondWithSuccess([
@@ -418,7 +444,20 @@ class UserController extends BaseController {
                     if (file_exists($path)) {
                         unlink($path);
                     }
-                    return $this->respondWithError($user->getMessages(), 422);
+                    $messages = $user->getMessages(); // This is Phalcon\Messages\MessageInterface[]
+                    $msg = "An unknown error occurred."; // Default/fallback
+
+                    if (count($messages) > 0) {
+                        // Get the first message object from the array
+                        $obj = $messages[0]; // or current($phalconMessages)
+
+                        // Extract the string message from the object
+                        // The MessageInterface guarantees the getMessage() method.
+                        $msg = $obj->getMessage();
+                    }
+
+                    // Pass the extracted string message to your responder
+                    return $this->respondWithError($msg, 422);
                 }
 
                 return $this->respondWithSuccess([
