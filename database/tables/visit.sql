@@ -9,6 +9,7 @@ CREATE TABLE `visit` (
     -- Related foreign ids
     `user_id` BIGINT UNSIGNED NOT NULL COMMENT 'Identifier for the user (caregiver)',
     `patient_id` BIGINT UNSIGNED NOT NULL COMMENT 'Identifier for the patient',
+    `address_id` BIGINT UNSIGNED NOT NULL COMMENT 'Identifier for the patient address where the visit will take place',
 
     -- Visit information
     `start_time` DATETIME NOT NULL COMMENT 'Visit start date and time',
@@ -35,11 +36,13 @@ CREATE TABLE `visit` (
     -- Indexes
     INDEX `idx_user_id` (`user_id`),
     INDEX `idx_patient_id` (`patient_id`),
+    INDEX `idx_address_id` (`address_id`),
     INDEX `idx_progress` (`progress`),
     INDEX `idx_status` (`status`),
     INDEX `idx_dates` (`start_time`, `end_time`),
     INDEX `idx_scheduled_by` (`scheduled_by`),
     INDEX `idx_checkout_by` (`checkout_by`),
+    INDEX `idx_patient_address` (`patient_id`, `address_id`),
 
     -- Constraints
     CONSTRAINT `chk_progress` CHECK(`progress` IN (-1,0,1,2,3)),
@@ -47,15 +50,27 @@ CREATE TABLE `visit` (
     CONSTRAINT `chk_dates` CHECK(`end_time` >= `start_time`),
 
     -- Foreign key constraints
-    CONSTRAINT `fk_visit_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`),
-    CONSTRAINT `fk_visit_patient` FOREIGN KEY (`patient_id`) REFERENCES `patient` (`id`),
-    CONSTRAINT `fk_visit_scheduled_by` FOREIGN KEY (`scheduled_by`) REFERENCES `user` (`id`),
-    CONSTRAINT `fk_visit_checkin_by` FOREIGN KEY (`checkin_by`) REFERENCES `user` (`id`),
-    CONSTRAINT `fk_visit_checkout_by` FOREIGN KEY (`checkout_by`) REFERENCES `user` (`id`),
-    CONSTRAINT `fk_visit_canceled_by` FOREIGN KEY (`canceled_by`) REFERENCES `user` (`id`),
+    CONSTRAINT `fk_visit_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`)
+     ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT `fk_visit_patient` FOREIGN KEY (`patient_id`) REFERENCES `patient` (`id`)
+     ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT `fk_visit_address` FOREIGN KEY (`address_id`) REFERENCES `address` (`id`)
+     ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT `fk_visit_scheduled_by` FOREIGN KEY (`scheduled_by`) REFERENCES `user` (`id`)
+     ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_visit_checkin_by` FOREIGN KEY (`checkin_by`) REFERENCES `user` (`id`)
+     ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_visit_checkout_by` FOREIGN KEY (`checkout_by`) REFERENCES `user` (`id`)
+     ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_visit_canceled_by` FOREIGN KEY (`canceled_by`) REFERENCES `user` (`id`)
+     ON DELETE SET NULL ON UPDATE CASCADE,
     CONSTRAINT `fk_visit_approved_by` FOREIGN KEY (`approved_by`) REFERENCES `user` (`id`)
+     ON DELETE SET NULL ON UPDATE CASCADE
+
+    -- Note: Address-patient relationship validation is enforced at application level
+    -- to ensure address_id belongs to the specified patient_id with person_type=1
 
 ) ENGINE=InnoDB
 DEFAULT CHARSET=utf8mb4
 COLLATE=utf8mb4_unicode_ci
-COMMENT='Visit tracking table for patient care management';
+COMMENT='Visit tracking table for patient care management with specific address locations';
