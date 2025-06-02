@@ -18,6 +18,7 @@ class Visit extends Model {
     public const string ID = 'id';
     public const string USER_ID = 'user_id';
     public const string PATIENT_ID = 'patient_id';
+    public const string ADDRESS_ID = 'address_id';
     public const string START_TIME = 'start_time';
     public const string END_TIME = 'end_time';
     public const string NOTE = 'note';
@@ -65,92 +66,6 @@ class Visit extends Model {
      */
     public function initialize(): void {
         $this->setSource('visit');
-//
-//        // Define relationships
-//        $this->belongsTo(
-//            'user_id',
-//            User::class,
-//            'id',
-//            [
-//                'alias' => 'user',
-//                'reusable' => true
-//            ]
-//        );
-//
-//        $this->belongsTo(
-//            'patient_id',
-//            Patient::class,
-//            'id',
-//            [
-//                'alias' => 'patient',
-//                'reusable' => true
-//            ]
-//        );
-//
-//        // Define relationships for tracking fields
-//        $this->belongsTo(
-//            'scheduled_by',
-//            User::class,
-//            'id',
-//            [
-//                'alias' => 'scheduledByUser',
-//                'reusable' => true
-//            ]
-//        );
-//
-//        $this->belongsTo(
-//            'checkin_by',
-//            User::class,
-//            'id',
-//            [
-//                'alias' => 'checkinByUser',
-//                'reusable' => true
-//            ]
-//        );
-//
-//        $this->belongsTo(
-//            'checkout_by',
-//            User::class,
-//            'id',
-//            [
-//                'alias' => 'checkoutByUser',
-//                'reusable' => true
-//            ]
-//        );
-//
-//        $this->belongsTo(
-//            'canceled_by',
-//            User::class,
-//            'id',
-//            [
-//                'alias' => 'canceledByUser',
-//                'reusable' => true
-//            ]
-//        );
-//
-//        $this->belongsTo(
-//            'approved_by',
-//            User::class,
-//            'id',
-//            [
-//                'alias' => 'approvedByUser',
-//                'reusable' => true
-//            ]
-//        );
-//
-//        // Add automatic timestamp behavior
-//        $this->addBehavior(
-//            new Timestampable([
-//                'beforeCreate' => [
-//                    'field' => 'created_at',
-//                    'format' => 'Y-m-d H:i:s'
-//                ],
-//                'beforeUpdate' => [
-//                    'field' => 'updated_at',
-//                    'format' => 'Y-m-d H:i:s'
-//                ]
-//            ])
-//        );
     }
 
     /**
@@ -309,6 +224,27 @@ class Visit extends Model {
     private function formatDateTime(string $datetime, string $format = 'Y-m-d H:i:s'): string {
         $date = new DateTime($datetime);
         return $date->format($format);
+    }
+
+    /**
+     * Get user
+     */
+    public function getUser(): Array {
+        return User::findFirst($this->user_id);
+    }
+
+    /**
+     * Get patient
+     */
+    public function getPatient(): Array {
+        return Patient::findFirst($this->patient_id);
+    }
+
+    /**
+     * Get address
+     */
+    public function getAddress(): Array {
+        return Address::findFirst($this->address_id);
     }
 
     /**

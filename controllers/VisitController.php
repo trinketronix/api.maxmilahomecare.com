@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Api\Controllers;
 
+use Api\Constants\PersonType;
 use Api\Constants\Progress;
 use Api\Constants\Status;
+use Api\Models\Address;
 use Exception;
 use DateTime;
 use Api\Models\Visit;
@@ -57,6 +59,31 @@ class VisitController extends BaseController {
                 return $this->respondWithError('Cannot create visit for inactive patient', 400);
             }
 
+            // Validate address_id if provided
+            $addressId = null;
+            if (isset($data[Visit::ADDRESS_ID]) && !empty($data[Visit::ADDRESS_ID])) {
+                $addressId = (int)$data[Visit::ADDRESS_ID];
+
+                // Verify address exists and belongs to the patient
+                $address = Address::findFirst([
+                    'conditions' => 'id = :address_id: AND person_id = :patient_id: AND person_type = :person_type:',
+                    'bind' => [
+                        'address_id' => $addressId,
+                        'patient_id' => $patientId,
+                        'person_type' => PersonType::PATIENT
+                    ],
+                    'bindTypes' => [
+                        'address_id' => \PDO::PARAM_INT,
+                        'patient_id' => \PDO::PARAM_INT,
+                        'person_type' => \PDO::PARAM_INT
+                    ]
+                ]);
+
+                if (!$address) {
+                    return $this->respondWithError('Invalid address for this patient', 400);
+                }
+            }
+
             // Authorization check: can only create visits for self or as manager/admin
             if ($userId !== $currentUserId && !$this->isManagerOrHigher()) {
                 return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
@@ -72,7 +99,7 @@ class VisitController extends BaseController {
             }
 
             // Create visit within transaction
-            return $this->withTransaction(function() use ($data, $startTime, $endTime, $currentTime, $currentUserId) {
+            return $this->withTransaction(function() use ($data, $startTime, $endTime, $currentTime, $currentUserId, $addressId) {
                 $visit = new Visit();
 
                 // Set required fields
@@ -80,6 +107,11 @@ class VisitController extends BaseController {
                 $visit->patient_id = (int)$data[Visit::PATIENT_ID];
                 $visit->start_time = $startTime->format('Y-m-d H:i:s');
                 $visit->end_time = $endTime->format('Y-m-d H:i:s');
+
+                // Set address_id if provided
+                if ($addressId) {
+                    $visit->address_id = $addressId;
+                }
 
                 // Set optional fields if provided
                 if (isset($data[Visit::NOTE])) {
@@ -154,6 +186,7 @@ class VisitController extends BaseController {
                     'message' => 'Visit created successfully',
                     'visit_id' => $visit->id,
                     'progress' => $visit->progress,
+                    'address_id' => $visit->address_id,
                     'duration_minutes' => $visit->getDurationMinutes()
                 ], 201, 'Visit created successfully');
             });
@@ -186,10 +219,11 @@ class VisitController extends BaseController {
 
             // Get related data
             $visitData = $visit->toArray();
-            $visitData['user'] = $visit->user ? $visit->user->toArray() : null;
-            $visitData['patient'] = $visit->patient ? $visit->patient->toArray() : null;
             $visitData['duration_minutes'] = $visit->getDurationMinutes();
             $visitData['progress_description'] = $visit->getProgressDescription();
+            $visitData['address'] = $visit->getAddress()->toArray();
+            $visitData['patient'] = $visit->getPatient()->toArray();
+            $visitData['user'] = $visit->getUser()->toArray();
 
             return $this->respondWithSuccess($visitData);
 
@@ -208,6 +242,7 @@ class VisitController extends BaseController {
             // Get query parameters for filtering
             $userId = $this->request->getQuery('user_id', 'int', null);
             $patientId = $this->request->getQuery('patient_id', 'int', null);
+            $addressId = $this->request->getQuery('address_id', 'int', null);
             $progress = $this->request->getQuery('progress', 'int', null);
             $status = $this->request->getQuery('status', 'int', Status::ACTIVE);
             $startDate = $this->request->getQuery('start_date', 'string', null);
@@ -230,6 +265,10 @@ class VisitController extends BaseController {
                 $params['end_date'] = $endDate;
             }
 
+            if ($addressId !== null) {
+                $params['address_id'] = $addressId;
+            }
+
             // Get visits based on parameters
             if ($userId) {
                 // Check authorization for accessing user-specific visits
@@ -249,9 +288,36 @@ class VisitController extends BaseController {
                 if (!$this->isManagerOrHigher()) {
                     return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
                 }
+
+                // Build conditions for general query
+                $conditions = ['status = :status:'];
+                $bind = ['status' => $status];
+                $bindTypes = ['status' => \PDO::PARAM_INT];
+
+                if ($addressId !== null) {
+                    $conditions[] = 'address_id = :address_id:';
+                    $bind['address_id'] = $addressId;
+                    $bindTypes['address_id'] = \PDO::PARAM_INT;
+                }
+
+                if ($progress !== null) {
+                    $conditions[] = 'progress = :progress:';
+                    $bind['progress'] = $progress;
+                    $bindTypes['progress'] = \PDO::PARAM_INT;
+                }
+
+                if ($startDate && $endDate) {
+                    $conditions[] = 'start_time >= :start_date: AND start_time <= :end_date:';
+                    $bind['start_date'] = $startDate . ' 00:00:00';
+                    $bind['end_date'] = $endDate . ' 23:59:59';
+                    $bindTypes['start_date'] = \PDO::PARAM_STR;
+                    $bindTypes['end_date'] = \PDO::PARAM_STR;
+                }
+
                 $visits = Visit::find([
-                    'conditions' => 'status = :status:',
-                    'bind' => ['status' => $status],
+                    'conditions' => implode(' AND ', $conditions),
+                    'bind' => $bind,
+                    'bindTypes' => $bindTypes,
                     'order' => 'start_time DESC'
                 ]);
             }
@@ -262,6 +328,10 @@ class VisitController extends BaseController {
                 $visitData = $visit->toArray();
                 $visitData['duration_minutes'] = $visit->getDurationMinutes();
                 $visitData['progress_description'] = $visit->getProgressDescription();
+                $visitData['address'] = $visit->getAddress()->toArray();
+                $visitData['patient'] = $visit->getPatient()->toArray();
+                $visitData['user'] = $visit->getUser()->toArray();
+
                 $visitArray[] = $visitData;
             }
 
@@ -293,6 +363,7 @@ class VisitController extends BaseController {
             $status = $this->request->getQuery('status', 'int', Status::ACTIVE);
             $startDate = $this->request->getQuery('start_date', 'string', null);
             $endDate = $this->request->getQuery('end_date', 'string', null);
+            $addressId = $this->request->getQuery('address_id', 'int', null);
 
             // Build parameters
             $params = [
@@ -309,6 +380,10 @@ class VisitController extends BaseController {
                 $params['end_date'] = $endDate;
             }
 
+            if ($addressId !== null) {
+                $params['address_id'] = $addressId;
+            }
+
             // Get visits
             $visits = Visit::findByUser($userId, $params);
 
@@ -318,8 +393,10 @@ class VisitController extends BaseController {
                 $visitData = $visit->toArray();
                 $visitData['duration_minutes'] = $visit->getDurationMinutes();
                 $visitData['progress_description'] = $visit->getProgressDescription();
-                $p = Patient::findById($visit->patient_id);
-                $visitData['patient'] = $p->toArray();
+                $visitData['address'] = $visit->getAddress()->toArray();
+                $visitData['patient'] = $visit->getPatient()->toArray();
+                $visitData['user'] = $visit->getUser()->toArray();
+
                 $visitArray[] = $visitData;
             }
 
@@ -347,6 +424,7 @@ class VisitController extends BaseController {
             $status = $this->request->getQuery('status', 'int', Status::ACTIVE);
             $startDate = $this->request->getQuery('start_date', 'string', null);
             $endDate = $this->request->getQuery('end_date', 'string', null);
+            $addressId = $this->request->getQuery('address_id', 'int', null);
 
             // Build parameters
             $params = [
@@ -363,6 +441,10 @@ class VisitController extends BaseController {
                 $params['end_date'] = $endDate;
             }
 
+            if ($addressId !== null) {
+                $params['address_id'] = $addressId;
+            }
+
             // Get visits
             $visits = Visit::findByPatient($patientId, $params);
 
@@ -372,7 +454,10 @@ class VisitController extends BaseController {
                 $visitData = $visit->toArray();
                 $visitData['duration_minutes'] = $visit->getDurationMinutes();
                 $visitData['progress_description'] = $visit->getProgressDescription();
-                $visitData['user'] = $visit->user ? $visit->user->toArray() : null;
+                $visitData['address'] = $visit->getAddress()->toArray();
+                $visitData['patient'] = $visit->getPatient()->toArray();
+                $visitData['user'] = $visit->getUser()->toArray();
+
                 $visitArray[] = $visitData;
             }
 
@@ -408,8 +493,10 @@ class VisitController extends BaseController {
                 $visitData = $visit->toArray();
                 $visitData['duration_minutes'] = $visit->getDurationMinutes();
                 $visitData['progress_description'] = $visit->getProgressDescription();
-                $visitData['user'] = $visit->user ? $visit->user->toArray() : null;
-                $visitData['patient'] = $visit->patient ? $visit->patient->toArray() : null;
+                $visitData['address'] = $visit->getAddress()->toArray();
+                $visitData['patient'] = $visit->getPatient()->toArray();
+                $visitData['user'] = $visit->getUser()->toArray();
+
                 $visitArray[] = $visitData;
             }
 
@@ -454,6 +541,7 @@ class VisitController extends BaseController {
                 $updateableFields = [
                     Visit::USER_ID,
                     Visit::PATIENT_ID,
+                    Visit::ADDRESS_ID,
                     Visit::START_TIME,
                     Visit::END_TIME,
                     Visit::NOTE,
@@ -493,7 +581,50 @@ class VisitController extends BaseController {
                                 if (!$patient->isActive()) {
                                     return $this->respondWithError('Cannot assign visit to inactive patient', 400);
                                 }
+
+                                // If changing patient, validate that current address_id still belongs to new patient
+                                if ($visit->address_id && $patientId !== $visit->patient_id) {
+                                    $address = Address::findFirst([
+                                        'conditions' => 'id = :address_id: AND person_id = :patient_id: AND person_type = :person_type:',
+                                        'bind' => [
+                                            'address_id' => $visit->address_id,
+                                            'patient_id' => $patientId,
+                                            'person_type' => PersonType::PATIENT
+                                        ]
+                                    ]);
+
+                                    if (!$address) {
+                                        // Clear address_id if it doesn't belong to new patient
+                                        $visit->address_id = null;
+                                    }
+                                }
+
                                 $visit->patient_id = $patientId;
+                                break;
+
+                            case Visit::ADDRESS_ID:
+                                if (empty($data[$field])) {
+                                    // Allow clearing the address
+                                    $visit->address_id = null;
+                                } else {
+                                    $addressId = (int)$data[$field];
+
+                                    // Verify address exists and belongs to the patient
+                                    $address = Address::findFirst([
+                                        'conditions' => 'id = :address_id: AND person_id = :patient_id: AND person_type = :person_type:',
+                                        'bind' => [
+                                            'address_id' => $addressId,
+                                            'patient_id' => $visit->patient_id,
+                                            'person_type' => PersonType::PATIENT
+                                        ]
+                                    ]);
+
+                                    if (!$address) {
+                                        return $this->respondWithError('Invalid address for this patient', 400);
+                                    }
+
+                                    $visit->address_id = $addressId;
+                                }
                                 break;
 
                             case Visit::START_TIME:
@@ -655,6 +786,7 @@ class VisitController extends BaseController {
                     'message' => 'Visit updated successfully',
                     'visit_id' => $visit->id,
                     'progress' => $visit->progress,
+                    'address_id' => $visit->address_id,
                     'duration_minutes' => $visit->getDurationMinutes()
                 ], 201, 'Visit updated successfully');
             });
@@ -771,9 +903,48 @@ class VisitController extends BaseController {
             }
 
             // Update progress within transaction
-            return $this->withTransaction(function() use ($visit, $progress) {
+            return $this->withTransaction(function() use ($visit, $progress, $currentUserId) {
                 $oldProgress = $visit->progress;
                 $visit->progress = $progress;
+
+                // Update tracking fields based on new progress
+                switch ($progress) {
+                    case Progress::CANCELED:
+                        $visit->canceled_by = $currentUserId;
+                        break;
+                    case Progress::SCHEDULED:
+                        if (!$visit->scheduled_by) {
+                            $visit->scheduled_by = $currentUserId;
+                        }
+                        break;
+                    case Progress::IN_PROGRESS:
+                        if (!$visit->scheduled_by) {
+                            $visit->scheduled_by = $currentUserId;
+                        }
+                        $visit->checkin_by = $currentUserId;
+                        break;
+                    case Progress::COMPLETED:
+                        if (!$visit->scheduled_by) {
+                            $visit->scheduled_by = $currentUserId;
+                        }
+                        if (!$visit->checkin_by) {
+                            $visit->checkin_by = $currentUserId;
+                        }
+                        $visit->checkout_by = $currentUserId;
+                        break;
+                    case Progress::PAID:
+                        if (!$visit->scheduled_by) {
+                            $visit->scheduled_by = $currentUserId;
+                        }
+                        if (!$visit->checkin_by) {
+                            $visit->checkin_by = $currentUserId;
+                        }
+                        if (!$visit->checkout_by) {
+                            $visit->checkout_by = $currentUserId;
+                        }
+                        $visit->approved_by = $currentUserId;
+                        break;
+                }
 
                 if (!$visit->save()) {
                     $messages = $visit->getMessages(); // This is Phalcon\Messages\MessageInterface[]
@@ -838,8 +1009,9 @@ class VisitController extends BaseController {
             }
 
             // Update to in-progress within transaction
-            return $this->withTransaction(function() use ($visit) {
+            return $this->withTransaction(function() use ($visit, $currentUserId) {
                 $visit->progress = Progress::IN_PROGRESS;
+                $visit->checkin_by = $currentUserId;
 
                 if (!$visit->save()) {
                     $messages = $visit->getMessages(); // This is Phalcon\Messages\MessageInterface[]
@@ -861,7 +1033,8 @@ class VisitController extends BaseController {
                 return $this->respondWithSuccess([
                     'message' => 'Successfully checked in to visit',
                     'visit_id' => $visit->id,
-                    'progress' => $visit->getProgressDescription()
+                    'progress' => $visit->getProgressDescription(),
+                    'address_id' => $visit->address_id
                 ], 200, 'Successfully checked in to visit');
             });
 
@@ -904,8 +1077,9 @@ class VisitController extends BaseController {
             $data = $this->getRequestBody();
 
             // Update to completed within transaction
-            return $this->withTransaction(function() use ($visit, $data) {
+            return $this->withTransaction(function() use ($visit, $data, $currentUserId) {
                 $visit->progress = Progress::COMPLETED;
+                $visit->checkout_by = $currentUserId;
 
                 // Update note if provided
                 if (isset($data['note'])) {
@@ -933,7 +1107,8 @@ class VisitController extends BaseController {
                     'message' => 'Successfully checked out from visit',
                     'visit_id' => $visit->id,
                     'progress' => $visit->getProgressDescription(),
-                    'duration_minutes' => $visit->getDurationMinutes()
+                    'duration_minutes' => $visit->getDurationMinutes(),
+                    'address_id' => $visit->address_id
                 ], 201, 'Successfully checked out from visit');
             });
 
@@ -980,8 +1155,9 @@ class VisitController extends BaseController {
             $data = $this->getRequestBody();
 
             // Cancel visit within transaction
-            return $this->withTransaction(function() use ($visit, $data) {
+            return $this->withTransaction(function() use ($visit, $data, $currentUserId) {
                 $visit->progress = Progress::CANCELED;
+                $visit->canceled_by = $currentUserId;
 
                 // Update note if provided
                 if (isset($data['note'])) {
@@ -1007,7 +1183,8 @@ class VisitController extends BaseController {
 
                 return $this->respondWithSuccess([
                     'message' => 'Visit canceled successfully',
-                    'visit_id' => $visit->id
+                    'visit_id' => $visit->id,
+                    'address_id' => $visit->address_id
                 ], 201, 'Visit canceled successfully');
             });
 

@@ -12,6 +12,7 @@ Content-Type: application/json
 {
   "user_id": 1,
   "patient_id": 1,
+  "address_id": 1,
   "start_time": "$timestamp",
   "end_time": "$timestamp",
   "note": "Regular check-up visit"
