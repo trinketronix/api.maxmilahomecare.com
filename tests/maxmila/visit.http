@@ -135,8 +135,8 @@ Authorization: {{maxmila.token}}
 ### ========================================
 
 ### Get all visits for a specific user
-GET {{maxmila.baseUrl}}/visits/user/1
-Authorization: {{maxmila.token}}
+GET {{maxmila.baseUrl}}/user/visits/2
+Authorization: {{maxmila.manager.token}}
 
 ### Filter user visits by progress
 GET {{maxmila.baseUrl}}/visits/user/1?progress=0
