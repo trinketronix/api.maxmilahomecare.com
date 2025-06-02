@@ -11,9 +11,9 @@ if (isset($app)) {
     // GET Routes - Read
     $app->get('/visit/{id}', [$visit, 'getById']);
     $app->get('/visits', [$visit, 'getVisits']);
-    $app->get('/visits/user/{userId}', [$visit, 'getUserVisits']);
-    $app->get('/visits/patient/{patientId}', [$visit, 'getPatientVisits']);
     $app->get('/visits/today', [$visit, 'getTodaysVisits']);
+    $app->get('/user/visits/{userId}', [$visit, 'getUserVisits']);
+    $app->get('/patient/visits/{patientId}', [$visit, 'getPatientVisits']);
 
     // PUT Routes - Update
     $app->put('/visit/{id}', [$visit, 'update']);

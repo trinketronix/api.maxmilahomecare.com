@@ -6,7 +6,7 @@
 
 ### Create a new visit with all fields
 POST {{maxmila.baseUrl}}/visit
-Authorization: {{maxmila.administrator.token}}
+Authorization: {{maxmila.manager.token}}
 Content-Type: application/json
 
 {
@@ -19,14 +19,14 @@ Content-Type: application/json
 
 ### Create a visit in the past
 POST {{maxmila.baseUrl}}/visit
-Authorization: {{maxmila.token}}
+Authorization: {{maxmila.manager.token}}
 Content-Type: application/json
 
 {
   "user_id": 2,
-  "patient_id": 2,
-  "start_time": "{{$datetime 'YYYY-MM-DD' -1}}T14:00:00",
-  "end_time": "{{$datetime 'YYYY-MM-DD' -1}}T15:30:00",
+  "patient_id": 5,
+  "start_time": "{{$isoTimestamp 'YYYY-MM-DD' -1}}",
+  "end_time": "{{$isoTimestamp 'YYYY-MM-DD' -1}}",
   "note": "Past visit for testing"
 }
 
@@ -75,8 +75,8 @@ Content-Type: application/json
 ### ========================================
 
 ### Get a specific visit
-GET {{maxmila.baseUrl}}/visit/1
-Authorization: {{maxmila.token}}
+GET {{maxmila.baseUrl}}/visit/2
+Authorization: {{maxmila.manager.token}}
 
 ### Get a non-existent visit (should return 404)
 GET {{maxmila.baseUrl}}/visit/9999
