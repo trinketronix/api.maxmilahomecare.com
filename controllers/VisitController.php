@@ -318,7 +318,7 @@ class VisitController extends BaseController {
                 $visitData = $visit->toArray();
                 $visitData['duration_minutes'] = $visit->getDurationMinutes();
                 $visitData['progress_description'] = $visit->getProgressDescription();
-                $p = Patient::findById($visit->getPatientId());
+                $p = Patient::findById($visit->patient_id);
                 $visitData['patient'] = $p->toArray();
                 $visitArray[] = $visitData;
             }
