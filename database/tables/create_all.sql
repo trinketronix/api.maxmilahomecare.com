@@ -1,0 +1,7 @@
+-- create auth
+-- create user
+-- create patient
+-- create address
+-- create user_patient
+-- create visit
+-- create auth_user
