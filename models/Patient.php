@@ -48,60 +48,6 @@ class Patient extends Model {
      */
     public function initialize(): void {
         $this->setSource('patient');
-
-//        // Define relationships with addresses
-//        $this->hasMany(
-//            'id',
-//            Address::class,
-//            'person_id',
-//            [
-//                'alias' => 'addresses',
-//                'params' => [
-//                    'conditions' => 'person_type = ' . PersonType::PATIENT
-//                ],
-//                'reusable' => true
-//            ]
-//        );
-//
-//        // Define relationships with visits/appointments
-//        $this->hasMany(
-//            'id',
-//            Visit::class,
-//            'patient_id',
-//            [
-//                'alias' => 'visits',
-//                'reusable' => true
-//            ]
-//        );
-//
-//        $this->hasManyToMany(
-//            'id',
-//            UserPatient::class,
-//            'patient_id', 'user_id',
-//            User::class,
-//            'id',
-//            [
-//                'alias' => 'users',
-//                'params' => [
-//                    'conditions' => UserPatient::class . '.status = ' . Status::ACTIVE
-//                ],
-//                'reusable' => true
-//            ]
-//        );
-//
-//        // Add automatic timestamp behavior
-//        $this->addBehavior(
-//            new Timestampable([
-//                'beforeCreate' => [
-//                    'field' => 'created_at',
-//                    'format' => 'Y-m-d H:i:s'
-//                ],
-//                'beforeUpdate' => [
-//                    'field' => 'updated_at',
-//                    'format' => 'Y-m-d H:i:s'
-//                ]
-//            ])
-//        );
     }
 
     /**

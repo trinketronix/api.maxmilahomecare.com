@@ -35,51 +35,6 @@ class UserPatient extends Model {
      */
     public function initialize(): void {
         $this->setSource('user_patient');
-
-//        // Define relationships
-//        $this->belongsTo(
-//            'user_id',
-//            User::class,
-//            'id',
-//            [
-//                'alias' => 'user',
-//                'reusable' => true
-//            ]
-//        );
-//
-//        $this->belongsTo(
-//            'patient_id',
-//            Patient::class,
-//            'id',
-//            [
-//                'alias' => 'patient',
-//                'reusable' => true
-//            ]
-//        );
-//
-//        $this->belongsTo(
-//            'assigned_by',
-//            User::class,
-//            'id',
-//            [
-//                'alias' => 'assignedBy',
-//                'reusable' => true
-//            ]
-//        );
-
-//        // Add automatic timestamp behavior
-//        $this->addBehavior(
-//            new Timestampable([
-//                'beforeCreate' => [
-//                    'field' => 'created_at',
-//                    'format' => 'Y-m-d H:i:s'
-//                ],
-//                'beforeUpdate' => [
-//                    'field' => 'updated_at',
-//                    'format' => 'Y-m-d H:i:s'
-//                ]
-//            ])
-//        );
     }
 
     /**

@@ -19,15 +19,14 @@ Content-Type: application/json
 
 ### User assigng many patientsto user
 POST {{maxmila.baseUrl}}/unassign/patients
-Authorization: {{maxmila.manager.token}}
+Authorization: {{maxmila.administrator.token}}
 Content-Type: application/json
 
 {
-  "user_id": 4,
+  "user_id": 77,
   "patient_ids": [
-    5,
-    6,
-    7
+    49,
+    52
   ]
 }
 
