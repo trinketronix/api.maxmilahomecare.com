@@ -89,7 +89,7 @@ Authorization: {{maxmila.token}}
 
 ### Get all visits
 GET {{maxmila.baseUrl}}/visits
-Authorization: {{maxmila.token}}
+Authorization: {{maxmila.administrator.token}}
 
 ### Filter visits by user
 GET {{maxmila.baseUrl}}/visits?user_id=1

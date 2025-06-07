@@ -17,7 +17,7 @@ CREATE TABLE `patient` (
     `phone` VARCHAR(20) NOT NULL COMMENT 'Primary contact phone number',
 
     -- Record status, allows to delete records in soft-deletion, archived, or just normal active
-    `status` TINYINT NOT NULL DEFAULT 0 COMMENT 'Record status: 0=Active/Visible/Normal, 1=Archived, 2=Soft-Deleted',
+    `status` TINYINT NOT NULL DEFAULT 0 COMMENT 'Record status: 1=Active/Visible/Normal, 2=Archived, 3=Soft-Deleted',
 
     -- Audit timestamps
     `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT 'Record creation timestamp (UTC)',
