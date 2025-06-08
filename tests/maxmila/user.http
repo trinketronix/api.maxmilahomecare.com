@@ -42,14 +42,14 @@ Content-Type: application/json
 }
 
 ### Update another user's information (Admin/Manager only)
-PUT {{baseUrl}}/user/{{userId}}
-Authorization: {{token}}
+PUT {{maxmila.baseUrl}}/user/1
+Authorization: {{maxmila.administrator.token}}
 Content-Type: application/json
 
 {
-  "firstname": "Jane",
   "lastname": "Smith",
-  "email": "jane.smith@example.com"
+  "email2": "jane.smith@example.com",
+  "description": "Rajitas con queso"
 }
 
 ### ========================================
