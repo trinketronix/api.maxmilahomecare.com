@@ -25,4 +25,4 @@ Authorization: {{maxmila.caregiver.Token}}
 
 ### Get all user accounts with detailed information
 GET {{maxmila.baseUrl}}/account/83
-Authorization: {{maxmila.caregiver.token}}
+Authorization: {{maxmila.administrator.token}}
