@@ -505,11 +505,11 @@ class UserController extends BaseController {
                 return $this->respondWithError(Message::USER_NOT_FOUND, 404);
             }
 
-            // Convert to array and mask sensitive data
             $userPhoto = $user->photo;
+            $user[User::PHOTO] = $userPhoto;
+            $userData = $user->toArray();
 
-
-            return $this->respondWithSuccess($userPhoto);
+            return $this->respondWithSuccess($userData);
 
         } catch (Exception $e) {
             $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();

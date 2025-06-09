@@ -68,6 +68,10 @@ Content-Type: image/jpeg
 < ./img/avatar_600.png
 --boundary--
 
+### Gewt a single photo per userId
+GET {{maxmila.baseUrl}}/user/photo/83
+Authorization: {{maxmila.administrator.token}}
+
 ### ========================================
 ### Update Profile Photo - PUT /user/update/photo
 ### ========================================
