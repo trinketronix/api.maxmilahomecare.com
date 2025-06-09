@@ -506,8 +506,7 @@ class UserController extends BaseController {
             }
 
             $userPhoto = $user->photo;
-            $user[User::PHOTO] = $userPhoto;
-            $userData = $user->toArray();
+            $userData[User::PHOTO] = $userPhoto;
 
             return $this->respondWithSuccess($userData);
 
