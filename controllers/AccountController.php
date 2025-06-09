@@ -94,7 +94,7 @@ class AccountController extends BaseController {
 
             // Mask SSN
             if (isset($userData[User::SSN]) && !empty($userData[User::SSN])) {
-                $userData[User::SSN] =  Base64::decodingSaltedPeppered($user[User::SSN]);
+                $userData[User::SSN] =  Base64::decodingSaltedPeppered($userData[User::SSN]);
             }
 
             return $this->respondWithSuccess($userData);
