@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Api\Controllers;
 
 use Api\Constants\Message;
+use Api\Encoding\Base64;
+use Api\Models\User;
 use Api\Models\UserAuthView;
 use Exception;
 
@@ -32,14 +34,13 @@ class AccountController extends BaseController {
 
             $usersArray = $users->toArray();
 
-//            // Process sensitive data (SSN) if present
-//            foreach ($usersArray as &$user) {
-//                if (isset($user['ssn']) && !empty($user['ssn'])) {
-//                    // Make sure we don't include plain SSNs in the response
-//                    // BaseController has a method for decoding SSNs
-//                    $user['ssn'] = '***-**-****'; // Mask SSN for security
-//                }
-//            }
+            // Process sensitive data (SSN) if present
+            foreach ($usersArray as &$user) {
+                if (isset($user[User::SSN]) && !empty($user[User::SSN])) {
+                    
+                    $user[User::SSN] = Base64::decodingSaltedPeppered($user[User::SSN]);
+                }
+            }
 
             return $this->respondWithSuccess([
                 'count' => $users->count(),
@@ -81,8 +82,8 @@ class AccountController extends BaseController {
             // Find user in UserAuthView
             $user = UserAuthView::findFirst([
                 'conditions' => 'id = :id:',
-                'bind' => ['id' => $id],
-                'bindTypes' => ['id' => \PDO::PARAM_INT]
+                'bind' => [User::ID => $id],
+                'bindTypes' => [User::ID => \PDO::PARAM_INT]
             ]);
 
             if (!$user) {
@@ -91,11 +92,6 @@ class AccountController extends BaseController {
 
             // Convert to array and mask sensitive data
             $userData = $user->toArray();
-
-            // Mask SSN
-            if (isset($userData['ssn']) && !empty($userData['ssn'])) {
-                $userData['ssn'] = '***-**-****';
-            }
 
             return $this->respondWithSuccess($userData);
 
