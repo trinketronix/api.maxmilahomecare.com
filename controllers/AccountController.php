@@ -61,7 +61,7 @@ class AccountController extends BaseController {
      * @param int|null $id User ID (optional)
      * @return array Response data
      */
-    public function getById($id = null): array {
+    public function getById(?int $id = null): array {
         try {
             // Get current user ID
             $currentUserId = $this->getCurrentUserId();

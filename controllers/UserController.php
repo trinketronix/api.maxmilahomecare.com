@@ -476,4 +476,45 @@ class UserController extends BaseController {
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }
+
+    public function getPhoto(?int $userId = null): array {
+        try {
+            // Get current user ID
+            $currentUserId = $this->getCurrentUserId();
+
+            // If no ID provided in URL or empty string, use current user ID
+            if ($userId === null || $userId === '') {
+                $userId = $currentUserId;
+            } else {
+                $userId = (int)$userId;
+            }
+
+            // If requesting another user's account, check authorization
+            if ($userId !== $currentUserId && !$this->isManagerOrHigher()) {
+                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
+            }
+
+            // Find user in UserAuthView
+            $user = User::findFirst([
+                'conditions' => 'id = :id:',
+                'bind' => [User::ID => $userId],
+                'bindTypes' => [User::ID => \PDO::PARAM_INT]
+            ]);
+
+            if (!$user) {
+                return $this->respondWithError(Message::USER_NOT_FOUND, 404);
+            }
+
+            // Convert to array and mask sensitive data
+            $userPhoto = $user->photo;
+
+
+            return $this->respondWithSuccess($userPhoto);
+
+        } catch (Exception $e) {
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
+            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        }
+    }
 }
