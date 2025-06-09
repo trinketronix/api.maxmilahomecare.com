@@ -48,7 +48,7 @@ Content-Type: application/json
 
 {
   "lastname": "Smith",
-  "email2": "jane.smith@example.com",
+  "email2": "mundo.smith@example.com",
   "description": "Rajitas con queso"
 }
 
@@ -57,15 +57,15 @@ Content-Type: application/json
 ### ========================================
 
 ### Upload a new profile photo (current user)
-POST {{baseUrl}}/user/upload/photo
-Authorization: {{token}}
+POST {{maxmila.baseUrl}}/user/upload/photo
+Authorization: {{maxmila.administrator.token}}
 Content-Type: multipart/form-data; boundary=boundary
 
 --boundary
 Content-Disposition: form-data; name="file"; filename="profile.jpg"
 Content-Type: image/jpeg
 
-< ./profile.jpg
+< ./img/avatar_600.png
 --boundary--
 
 ### ========================================
