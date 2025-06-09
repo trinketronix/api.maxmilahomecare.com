@@ -322,7 +322,7 @@ class UserController extends BaseController {
                     unlink($oldPhoto);
                 }
 
-                $upath = "$path";
+                $upath = "/$path";
                 $user->photo = $upath;
 
                 if (!$user->save()) {
