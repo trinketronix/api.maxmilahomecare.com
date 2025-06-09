@@ -32,14 +32,14 @@ class AccountController extends BaseController {
 
             $usersArray = $users->toArray();
 
-            // Process sensitive data (SSN) if present
-            foreach ($usersArray as &$user) {
-                if (isset($user['ssn']) && !empty($user['ssn'])) {
-                    // Make sure we don't include plain SSNs in the response
-                    // BaseController has a method for decoding SSNs
-                    $user['ssn'] = '***-**-****'; // Mask SSN for security
-                }
-            }
+//            // Process sensitive data (SSN) if present
+//            foreach ($usersArray as &$user) {
+//                if (isset($user['ssn']) && !empty($user['ssn'])) {
+//                    // Make sure we don't include plain SSNs in the response
+//                    // BaseController has a method for decoding SSNs
+//                    $user['ssn'] = '***-**-****'; // Mask SSN for security
+//                }
+//            }
 
             return $this->respondWithSuccess([
                 'count' => $users->count(),
