@@ -37,7 +37,6 @@ class AccountController extends BaseController {
             // Process sensitive data (SSN) if present
             foreach ($usersArray as &$user) {
                 if (isset($user[User::SSN]) && !empty($user[User::SSN])) {
-                    
                     $user[User::SSN] = Base64::decodingSaltedPeppered($user[User::SSN]);
                 }
             }
@@ -92,6 +91,11 @@ class AccountController extends BaseController {
 
             // Convert to array and mask sensitive data
             $userData = $user->toArray();
+
+            // Mask SSN
+            if (isset($userData[User::SSN]) && !empty($userData[User::SSN])) {
+                $userData[User::SSN] =  Base64::decodingSaltedPeppered($user[User::SSN]);
+            }
 
             return $this->respondWithSuccess($userData);
 
