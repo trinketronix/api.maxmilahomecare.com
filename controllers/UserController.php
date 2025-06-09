@@ -224,15 +224,17 @@ class UserController extends BaseController {
             $scaleHeight = $height / $originalHeight;
             $scale = max($scaleWidth, $scaleHeight);
 
-            // Calculate new dimensions
-            $newWidth = round($originalWidth * $scale);
-            $newHeight = round($originalHeight * $scale);
+            // Calculate new dimensions and convert to integers
+            $newWidth = (int)round($originalWidth * $scale);
+            $newHeight = (int)round($originalHeight * $scale);
 
-            // Resize the image
+            // Resize the image with integer values
             $image->resizeImage($newWidth, $newHeight, \Imagick::FILTER_LANCZOS, 1);
 
-            // Crop to exact dimensions from center
-            $image->cropImage($width, $height, ($newWidth - $width) / 2, ($newHeight - $height) / 2);
+            // Crop to exact dimensions from center with integer values
+            $cropX = (int)(($newWidth - $width) / 2);
+            $cropY = (int)(($newHeight - $height) / 2);
+            $image->cropImage($width, $height, $cropX, $cropY);
 
             // Set image quality (90% for good quality with reasonable file size)
             $image->setImageCompressionQuality(90);
