@@ -335,7 +335,11 @@ class AuthController extends BaseController {
             $expiration = $tokenService->generateTokenExpirationTime();
             $token = $tokenService->createToken($auth, $expiration);
 
-            return $this->withTransaction(function() use ($auth, $token, $expiration) {
+            $user = User::findFirstById($auth->id);
+            if(!$user)
+                return $this->respondWithError(Message::USER_NOT_FOUND, 404);
+
+            return $this->withTransaction(function() use ($auth, $user, $token, $expiration) {
                 $auth->token = $token;
                 $auth->expiration = $expiration;
 
@@ -343,7 +347,8 @@ class AuthController extends BaseController {
                     return $this->respondWithError(Message::DB_SESSION_UPDATE_FAILED, 500);
 
                 return $this->respondWithSuccess([
-                    Auth::TOKEN => $token
+                    Auth::TOKEN => $token,
+                    'user' => $user->toArray()
                 ]);
             });
 
