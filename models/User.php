@@ -18,6 +18,7 @@ class User extends Model {
     public const string LASTNAME = 'lastname';
     public const string FIRSTNAME = 'firstname';
     public const string MIDDLENAME = 'middlename';
+    public const string FULLNAME = 'fullname';
     public const string BIRTHDATE = 'birthdate';
     public const string SSN = 'ssn';
     public const string CODE = 'code';
