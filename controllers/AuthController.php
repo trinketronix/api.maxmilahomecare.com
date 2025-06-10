@@ -192,14 +192,24 @@ class AuthController extends BaseController {
             $newExpiration = $tokenService->generateTokenExpirationTime();
             $newToken = $tokenService->createToken($auth, $newExpiration);
 
-            return $this->withTransaction(function() use ($auth, $newToken, $newExpiration) {
+
+            $u = User::findFirstById($auth->id);
+            if($u){
+                $user = [
+                    User::FULLNAME => $u->firstname . ' ' . $u->lastname,
+                    User::PHOTO => $u->photo,
+                ];
+            }
+
+            return $this->withTransaction(function() use ($auth, $user, $newToken, $newExpiration) {
                 $auth->token = $newToken;
                 $auth->expiration = $newExpiration;
 
                 if (!$auth->save()) return $this->respondWithError(Message::TOKEN_INVALID, 409);
 
                 return $this->respondWithSuccess([
-                    Auth::TOKEN => $newToken
+                    Auth::TOKEN => $newToken,
+                    'user' => $user
                 ]);
             });
 
@@ -342,7 +352,6 @@ class AuthController extends BaseController {
                     User::PHOTO => $u->photo,
                 ];
             }
-
 
             return $this->withTransaction(function() use ($auth, $user, $token, $expiration) {
                 $auth->token = $token;
