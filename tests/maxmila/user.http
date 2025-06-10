@@ -58,14 +58,14 @@ Content-Type: application/json
 
 ### Upload a new profile photo (current user)
 POST {{maxmila.baseUrl}}/user/upload/photo
-Authorization: {{maxmila.administrator.token}}
+Authorization: {{maxmila.caregiver.token}}
 Content-Type: multipart/form-data; boundary=boundary
 
 --boundary
 Content-Disposition: form-data; name="file"; filename="profile.jpg"
 Content-Type: image/jpeg
 
-< ./img/avatar_600.png
+< ./img/avril.png
 --boundary--
 
 ### Gewt a single photo per userId

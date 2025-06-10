@@ -10,6 +10,16 @@ Content-Type: application/json
 }
 
 ###
+# @name Login Custom
+POST {{maxmila.baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "avrilsalpen@gmail.com",
+  "password": "Mju72wsx"
+}
+
+###
 # @name Login Administrator
 POST {{maxmila.baseUrl}}/auth/login
 Content-Type: application/json

@@ -20,3 +20,4 @@ secrets.txt
 
 # REST API confidential values
 http-client.env.json
+/tests/maxmila/img/avril.png
