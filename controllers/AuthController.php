@@ -335,9 +335,14 @@ class AuthController extends BaseController {
             $expiration = $tokenService->generateTokenExpirationTime();
             $token = $tokenService->createToken($auth, $expiration);
 
-            $user = User::findFirstById($auth->id);
-            if(!$user)
-                return $this->respondWithError(Message::USER_NOT_FOUND, 404);
+            $u = User::findFirstById($auth->id);
+            if($u){
+                $user = [
+                    User::FULLNAME => $u->firstname . ' ' . $u->lastname,
+                    User::PHOTO => $u->photo,
+                ];
+            }
+
 
             return $this->withTransaction(function() use ($auth, $user, $token, $expiration) {
                 $auth->token = $token;
@@ -348,7 +353,7 @@ class AuthController extends BaseController {
 
                 return $this->respondWithSuccess([
                     Auth::TOKEN => $token,
-                    'user' => $user->toArray()
+                    'user' => $user
                 ]);
             });
 
