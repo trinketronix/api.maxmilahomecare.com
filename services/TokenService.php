@@ -25,7 +25,6 @@ class TokenService {
     public function createToken(Auth $auth, int $expiration): string {
         $payload = [
             'id' => $auth->id,
-            'name' => $auth->first_name . ' ' . $auth->last_name,
             'username' => $auth->username,
             'role' => $auth->role,
             'expiration' => $expiration

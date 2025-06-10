@@ -5,21 +5,21 @@
 
 ### Create address for a user
 POST {{maxmila.baseUrl}}/address
-Authorization: {{maxmila.token}}
+Authorization: {{maxmila.administrator.token}}
 Content-Type: application/json
 
 {
-  "person_id": 105,
-  "person_type": 1,
+  "person_id": 83,
+  "person_type": 0,
   "type": "House",
-  "address": "123 Main Street",
-  "city": "Detroit",
-  "county": "Wayne",
+  "address": "22700 Vacri Ln",
+  "city": "Farmington Hills",
+  "county": "Oakland",
   "state": "MI",
-  "zipcode": "48204",
+  "zipcode": "48335",
   "country": "United States",
-  "latitude": 34.0522,
-  "longitude": -118.2437
+  "latitude": 42.4581007,
+  "longitude": -83.4091765
 }
 
 ### Create appartment address for a user
@@ -109,8 +109,8 @@ Authorization: {{maxmila.token}}
 ### ========================================
 
 ### Get all addresses for a user
-GET {{maxmila.baseUrl}}/address/person/5/0
-Authorization: {{maxmila.token}}
+GET {{maxmila.baseUrl}}/address/person/83/0
+Authorization: {{maxmila.administrator.token}}
 
 ### Get all addresses for a patient
 GET {{maxmila.baseUrl}}/address/person/1/1
@@ -139,13 +139,12 @@ GET {{maxmila.baseUrl}}/address/nearby?latitude=34.0522&longitude=-118.2437&radi
 ### ========================================
 
 ### Update complete address
-PUT {{maxmila.baseUrl}}/address/5
-Authorization: {{maxmila.token}}
+PUT {{maxmila.baseUrl}}/address/83
+Authorization: {{maxmila.administrator.token}}
 Content-Type: application/json
 
 {
-  "latitude": 42.5085371,
-  "longitude": -83.0866839
+  "type":"House"
 }
 
 ### Update only specific fields
