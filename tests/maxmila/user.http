@@ -62,8 +62,8 @@ Authorization: {{maxmila.caregiver.token}}
 Content-Type: multipart/form-data; boundary=boundary
 
 --boundary
-Content-Disposition: form-data; name="file"; filename="profile.jpg"
-Content-Type: image/jpeg
+Content-Disposition: form-data; name="file"; filename="profile.png"
+Content-Type: image/png
 
 < ./img/avril.png
 --boundary--
