@@ -19,6 +19,9 @@ CREATE TABLE `patient` (
     -- Record status, allows to delete records in soft-deletion, archived, or just normal active
     `status` TINYINT NOT NULL DEFAULT 0 COMMENT 'Record status: 1=Active/Visible/Normal, 2=Archived, 3=Soft-Deleted',
 
+    -- Profile media
+    `photo` VARCHAR(2048) DEFAULT '/patient/photo/default.jpg' COMMENT 'URL to patient''s profile picture/avatar',
+
     -- Audit timestamps
     `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT 'Record creation timestamp (UTC)',
     `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last modification timestamp (UTC)',
