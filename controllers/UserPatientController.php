@@ -618,6 +618,127 @@ class UserPatientController extends BaseController {
                 if (!$patient) {
                     continue; // Skip if patient not found
                 }
+                $patientInfo = $patient->toArray();
+                $patientsData[] = $patientInfo;
+            }
+
+            return $this->respondWithSuccess([
+                'count' => count($patientsData),
+                'patients' => $patientsData
+            ]);
+
+        } catch (Exception $e) {
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
+            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        }
+    }
+
+    /**
+     * Get all active patients NOT assigned to a user
+     * Access restricted to:
+     * - The user themselves
+     * - Managers and Administrators
+     *
+     * @param int $userId User ID
+     * @return array Response data
+     */
+    public function getUserUnassignedPatients(int $userId): array {
+        try {
+            // Check if user exists
+            $user = User::findFirst($userId);
+            if (!$user)
+                return $this->respondWithError(Message::USER_NOT_FOUND, 404);
+
+            // Check authorization:
+            // - Allow if the current user is requesting their own unassigned patients
+            // - Allow if the current user is a manager or administrator
+            $currentUserId = $this->getCurrentUserId();
+            if ($currentUserId !== $userId && !$this->isManagerOrHigher())
+                return $this->respondWithError(Message::UNAUTHORIZED_ACCESS, 403);
+
+            // Get all patient IDs that are assigned to this user
+            $assignedPatientIds = [];
+            $assignments = UserPatient::findActiveByUserId($userId);
+            foreach ($assignments as $assignment) {
+                $assignedPatientIds[] = $assignment->patient_id;
+            }
+
+            // Get all active patients
+            $allActivePatients = Patient::findActive();
+
+            if ($allActivePatients->count() === 0) {
+                return $this->respondWithSuccess([
+                    'count' => 0,
+                    'patients' => []
+                ]);
+            }
+
+            // Filter out patients that are assigned to this user
+            $unassignedPatientsData = [];
+            foreach ($allActivePatients as $patient) {
+                // Skip if this patient is assigned to the user
+                if (in_array($patient->id, $assignedPatientIds)) {
+                    continue;
+                }
+
+                $patientInfo = $patient->toArray();
+                $unassignedPatientsData[] = $patientInfo;
+            }
+
+            return $this->respondWithSuccess([
+                'count' => count($unassignedPatientsData),
+                'patients' => $unassignedPatientsData
+            ]);
+
+        } catch (Exception $e) {
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
+            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        }
+    }
+
+    /**
+     * Get all patients assigned to a user with patient addresses
+     * Access restricted to:
+     * - The user themselves
+     * - Managers and Administrators
+     *
+     * @param int $userId User ID
+     * @return array Response data
+     */
+    public function getUserAssignedPatientsWithAddresses(int $userId): array {
+        try {
+            // Check if user exists
+            $user = User::findFirst($userId);
+            if (!$user)
+                return $this->respondWithError(Message::USER_NOT_FOUND, 404);
+
+            // Check authorization:
+            // - Allow if the current user is requesting their own patients
+            // - Allow if the current user is a manager or administrator
+            $currentUserId = $this->getCurrentUserId();
+            if ($currentUserId !== $userId && !$this->isManagerOrHigher())
+                return $this->respondWithError(Message::UNAUTHORIZED_ACCESS, 403);
+
+            // Get all active patient assignments for this user
+            $assignments = UserPatient::findActiveByUserId($userId);
+
+            if ($assignments->count() === 0) {
+                return $this->respondWithSuccess([
+                    'count' => 0,
+                    'patients' => []
+                ]);
+            }
+
+            // Get patient data with assignment details
+            $patientsData = [];
+            foreach ($assignments as $assignment) {
+                // Get the patient
+                $patient = Patient::findFirst($assignment->patient_id);
+                if (!$patient) {
+                    continue; // Skip if patient not found
+                }
 
                 $patientInfo = $patient->toArray();
 
@@ -653,7 +774,7 @@ class UserPatientController extends BaseController {
     }
 
     /**
-     * Get all active patients NOT assigned to a user
+     * Get all active patients NOT assigned to a user with addresses
      * Access restricted to:
      * - The user themselves
      * - Managers and Administrators
@@ -661,7 +782,7 @@ class UserPatientController extends BaseController {
      * @param int $userId User ID
      * @return array Response data
      */
-    public function getUserUnassignedPatients(int $userId): array {
+    public function getUserUnassignedPatientsWithAddresses(int $userId): array {
         try {
             // Check if user exists
             $user = User::findFirst($userId);

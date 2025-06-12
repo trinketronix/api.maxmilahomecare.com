@@ -18,11 +18,18 @@ if (isset($app)) {
     // sample body payload { "user_id": 12, "patient_ids": [1,2,3,4,5,6,7], "" }
     $app->post('/unassign/patients', [$userPatient, 'unassignPatients']);
 
+
     // Get assigned patients by user ID
     // before `/user/{userId}/patients`
     $app->get('/assigned/patients/{userId}', [$userPatient, 'getUserAssignedPatients']);
     // Get patients NOT assigned to user ID
     $app->get('/unassigned/patients/{userId}', [$userPatient, 'getUserUnassignedPatients']);
+
+    // Get assigned patients by user ID
+    // before `/user/{userId}/patients`
+    $app->get('/assigned/patients/addresses/{userId}', [$userPatient, 'getUserAssignedPatientsWithAddresses']);
+    // Get patients NOT assigned to user ID
+    $app->get('/unassigned/patients/addresses/{userId}', [$userPatient, 'getUserUnassignedPatientsWithAddresses']);
 
 
     // Get assigned users by patient ID

@@ -4,15 +4,16 @@ Authorization: {{maxmila.manager.token}}
 Content-Type: application/json
 
 {
-  "user_id": 4,
+  "user_id": 83,
   "patient_ids": [
     1,
     2,
     3,
-    4,
     5,
-    6,
-    7
+    8,
+    13,
+    21,
+    34
   ]
 }
 
@@ -31,13 +32,13 @@ Content-Type: application/json
 }
 
 ### Get asigned patients by userid
-GET {{maxmila.baseUrl}}/assigned/patients/4
+GET {{maxmila.baseUrl}}/assigned/patients/83
 Authorization: {{maxmila.manager.token}}
 
 
 
 ### Get unasigned patients by userid
-GET {{maxmila.baseUrl}}/unassigned/patients/77
+GET {{maxmila.baseUrl}}/unassigned/patients/83
 Authorization: {{maxmila.manager.token}}
 
 

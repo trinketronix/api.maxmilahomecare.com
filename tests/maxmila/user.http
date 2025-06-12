@@ -70,7 +70,7 @@ Content-Type: image/png
 
 
 ### Upload a new profile photo (admin, manager)
-POST {{maxmila.baseUrl}}/user/2/upload/photo
+POST {{maxmila.baseUrl}}/user/83/upload/photo
 Authorization: {{maxmila.administrator.token}}
 Content-Type: multipart/form-data; boundary=boundary
 
@@ -78,7 +78,7 @@ Content-Type: multipart/form-data; boundary=boundary
 Content-Disposition: form-data; name="file"; filename="profile.png"
 Content-Type: image/png
 
-< ./img/chapu.png
+< ./img/hectorsalpen.png
 --boundary--
 
 ### Gewt a single photo per userId
