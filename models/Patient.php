@@ -20,8 +20,12 @@ class Patient extends Model {
     public const string LASTNAME = 'lastname';
     public const string PHONE = 'phone';
     public const string STATUS = 'status';
+    public const string PHOTO = 'photo';
     public const string CREATED_AT = 'created_at';
     public const string UPDATED_AT = 'updated_at';
+    // File paths
+    public const string PATH_PHOTO_FILE = 'patient/photo';
+    public const string DEFAULT_PHOTO_FILE = '/'.self::PATH_PHOTO_FILE.'/default.jpg';
 
     // Primary identification
     public ?int $id = null;
@@ -38,6 +42,9 @@ class Patient extends Model {
 
     // Status
     public int $status = Status::ACTIVE;
+
+    // Profile media
+    public ?string $photo = null;
 
     // Timestamps
     public ?string $created_at = null;
