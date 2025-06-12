@@ -91,7 +91,7 @@ class UserController extends BaseController {
                         ];
                     } catch (Exception $e) {
                         $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
+                        error_log('Exception: ' . $message);
                         return $this->respondWithError(Message::SSN_PROCESSING_ERROR, 500);
                     }
                 }
@@ -172,7 +172,7 @@ class UserController extends BaseController {
                     $userData[User::SSN] = Base64::decodingSaltedPeppered($userData[User::SSN]);
                 } catch (Exception $e) {
                     $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
+                    error_log('Exception: ' . $message);
                     // If there's an error decoding, just remove it from response
                     unset($userData[User::SSN]);
                 }
@@ -258,11 +258,23 @@ class UserController extends BaseController {
 
     /**
      * Upload a new profile photo for a user
+     * Modified to allow administrators and managers to upload photos for other users
      */
-    public function uploadPhoto(): array {
+    public function uploadPhoto(?int $userId = null): array {
         try {
-            // Get the current user's ID
-            $userId = $this->getCurrentUserId();
+            // Get the current user's ID and role
+            $currentUserId = $this->getCurrentUserId();
+            $currentUserRole = $this->getCurrentUserRole();
+
+            // If no userId provided, use current user's ID
+            if ($userId === null) {
+                $userId = $currentUserId;
+            }
+
+            // Authorization check: allow upload for own photo or if admin/manager
+            if ($userId !== $currentUserId && $currentUserRole > Role::MANAGER) {
+                return $this->respondWithError(Message::UNAUTHORIZED_ACCESS, 403);
+            }
 
             // Check for files (middleware should already validate multipart form-data)
             if (!$this->request->hasFiles()) {
@@ -304,7 +316,7 @@ class UserController extends BaseController {
 
             $path = $uploadDir . '/' . $filename;
 
-            return $this->withTransaction(function() use ($user, $photo, $path, $filename, $uploadDir) {
+            return $this->withTransaction(function() use ($user, $photo, $path, $filename, $uploadDir, $currentUserId, $userId) {
                 // Get temporary file path
                 $tempPath = $photo->getTempName();
 
@@ -330,26 +342,26 @@ class UserController extends BaseController {
                     if (file_exists($path)) {
                         unlink($path);
                     }
-                    $messages = $user->getMessages(); // This is Phalcon\Messages\MessageInterface[]
-                    $msg = "An unknown error occurred."; // Default/fallback
+                    $messages = $user->getMessages();
+                    $msg = "An unknown error occurred.";
 
                     if (count($messages) > 0) {
-                        // Get the first message object from the array
-                        $obj = $messages[0]; // or current($phalconMessages)
-
-                        // Extract the string message from the object
-                        // The MessageInterface guarantees the getMessage() method.
+                        $obj = $messages[0];
                         $msg = $obj->getMessage();
                     }
 
-                    // Pass the extracted string message to your responder
                     return $this->respondWithError($msg, 422);
                 }
 
+                // Add information about who uploaded the photo if it wasn't the user themselves
+                $uploadedBy = ($currentUserId !== $userId) ? " by user ID: $currentUserId" : "";
+
                 return $this->respondWithSuccess([
-                    'message' => Message::UPLOAD_PHOTO_SUCCESS,
+                    'message' => Message::UPLOAD_PHOTO_SUCCESS . $uploadedBy,
                     'path' => $upath,
                     'filename' => $filename,
+                    'user_id' => $userId,
+                    'uploaded_by' => $currentUserId,
                     'processed' => true // Indicates image was processed with ImageMagick
                 ], 201, Message::UPLOAD_PHOTO_SUCCESS);
             });
@@ -363,6 +375,7 @@ class UserController extends BaseController {
 
     /**
      * Update a user's profile photo
+     * Already supports admin/manager updating other users' photos
      */
     public function updatePhoto(?int $userId = null): array {
         try {
@@ -420,7 +433,7 @@ class UserController extends BaseController {
 
             $path = $uploadDir . '/' . $filename;
 
-            return $this->withTransaction(function() use ($user, $photo, $path, $filename, $uploadDir) {
+            return $this->withTransaction(function() use ($user, $photo, $path, $filename, $uploadDir, $currentUserId, $userId) {
                 // Get temporary file path
                 $tempPath = $photo->getTempName();
 
@@ -438,7 +451,7 @@ class UserController extends BaseController {
                     unlink($oldPhoto);
                 }
 
-                $upath = "$path";
+                $upath = "/$path";
                 $user->photo = $upath;
 
                 if (!$user->save()) {
@@ -446,26 +459,26 @@ class UserController extends BaseController {
                     if (file_exists($path)) {
                         unlink($path);
                     }
-                    $messages = $user->getMessages(); // This is Phalcon\Messages\MessageInterface[]
-                    $msg = "An unknown error occurred."; // Default/fallback
+                    $messages = $user->getMessages();
+                    $msg = "An unknown error occurred.";
 
                     if (count($messages) > 0) {
-                        // Get the first message object from the array
-                        $obj = $messages[0]; // or current($phalconMessages)
-
-                        // Extract the string message from the object
-                        // The MessageInterface guarantees the getMessage() method.
+                        $obj = $messages[0];
                         $msg = $obj->getMessage();
                     }
 
-                    // Pass the extracted string message to your responder
                     return $this->respondWithError($msg, 422);
                 }
 
+                // Add information about who updated the photo if it wasn't the user themselves
+                $updatedBy = ($currentUserId !== $userId) ? " by user ID: $currentUserId" : "";
+
                 return $this->respondWithSuccess([
-                    'message' => Message::UPLOAD_PHOTO_SUCCESS,
+                    'message' => Message::UPLOAD_PHOTO_SUCCESS . $updatedBy,
                     'path' => $upath,
                     'filename' => $filename,
+                    'user_id' => $userId,
+                    'updated_by' => $currentUserId,
                     'processed' => true
                 ], 201, Message::UPLOAD_PHOTO_SUCCESS);
             });
