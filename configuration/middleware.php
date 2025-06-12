@@ -62,8 +62,8 @@ if (isset($app)) {
         $uploadPatterns = [
             '/user/upload/photo',
             '/user/update/photo',
-            '/user/{userId}/upload/photo',
-            '/user/{userId}/update/photo'
+            '/user/{userId:[0-9]+}/upload/photo',
+            '/user/{userId:[0-9]+}/update/photo'
         ];
 
         foreach ($uploadPatterns as $pattern) {
