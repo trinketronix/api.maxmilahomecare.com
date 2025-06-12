@@ -10,8 +10,9 @@ if (isset($app)) {
 
     // GET Routes - Read
     // TODO: Add getById and getAll methods to controller
+    $app->get('/patients', [$patient, 'getAllPatients']);
+    $app->get('/patients/addresses', [$patient, 'getAllPatientsWithAddresses']);
     $app->get('/patient/{id}', [$patient, 'getById']);
-    $app->get('/patients', [$patient, 'getAll']);
 
     // PUT Routes - Update
     $app->put('/patient/{id}', [$patient, 'update']);

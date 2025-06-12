@@ -417,7 +417,47 @@ class PatientController extends BaseController {
      * Get all patients
      * Restricted to Managers and Administrators only
      */
-    public function getAll(): array {
+    public function getAllPatients(): array {
+        try {
+            // Check if the current user has appropriate role (admin or manager)
+            if (!$this->isManagerOrHigher())
+                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
+
+            // Fetch all patients
+            $patients = Patient::find([
+                'order' => 'lastname, firstname'
+            ]);
+
+            if (!$patients)
+                return $this->respondWithError(Message::DB_QUERY_FAILED, 500);
+
+            if ($patients->count() === 0)
+                return $this->respondWithSuccess(Message::DB_NO_RECORDS, 204, Message::DB_NO_RECORDS);
+
+            // Get patient data
+            $patientsArray = [];
+            foreach ($patients as $patient) {
+                $patientData = $patient->toArray();
+                $patientsArray[] = $patientData;
+            }
+
+            return $this->respondWithSuccess([
+                'count' => $patients->count(),
+                'patients' => $patientsArray
+            ]);
+
+        } catch (Exception $e) {
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
+            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        }
+    }
+
+    /**
+     * Get all patients with addresses
+     * Restricted to Managers and Administrators only
+     */
+    public function getAllPatientsWithAddresses(): array {
         try {
             // Check if the current user has appropriate role (admin or manager)
             if (!$this->isManagerOrHigher())
