@@ -593,6 +593,8 @@ class UserPatientController extends BaseController {
             if (!$user)
                 return $this->respondWithError(Message::USER_NOT_FOUND, 404);
 
+
+
             // Check authorization:
             // - Allow if the current user is requesting their own patients
             // - Allow if the current user is a manager or administrator
@@ -605,6 +607,7 @@ class UserPatientController extends BaseController {
 
             if ($assignments->count() === 0) {
                 return $this->respondWithSuccess([
+                    'user' => $user,
                     'count' => 0,
                     'patients' => []
                 ]);
@@ -623,6 +626,7 @@ class UserPatientController extends BaseController {
             }
 
             return $this->respondWithSuccess([
+                'user' => $user,
                 'count' => count($patientsData),
                 'patients' => $patientsData
             ]);
@@ -669,6 +673,7 @@ class UserPatientController extends BaseController {
 
             if ($allActivePatients->count() === 0) {
                 return $this->respondWithSuccess([
+                    'user' => $user,
                     'count' => 0,
                     'patients' => []
                 ]);
@@ -687,6 +692,7 @@ class UserPatientController extends BaseController {
             }
 
             return $this->respondWithSuccess([
+                'user' => $user,
                 'count' => count($unassignedPatientsData),
                 'patients' => $unassignedPatientsData
             ]);
@@ -726,6 +732,7 @@ class UserPatientController extends BaseController {
 
             if ($assignments->count() === 0) {
                 return $this->respondWithSuccess([
+                    'user' => $user,
                     'count' => 0,
                     'patients' => []
                 ]);
@@ -762,6 +769,7 @@ class UserPatientController extends BaseController {
             }
 
             return $this->respondWithSuccess([
+                'user' => $user,
                 'count' => count($patientsData),
                 'patients' => $patientsData
             ]);
@@ -808,6 +816,7 @@ class UserPatientController extends BaseController {
 
             if ($allActivePatients->count() === 0) {
                 return $this->respondWithSuccess([
+                    'user' => $user,
                     'count' => 0,
                     'patients' => []
                 ]);
@@ -838,6 +847,7 @@ class UserPatientController extends BaseController {
             }
 
             return $this->respondWithSuccess([
+                'user' => $user,
                 'count' => count($unassignedPatientsData),
                 'patients' => $unassignedPatientsData
             ]);
@@ -873,6 +883,7 @@ class UserPatientController extends BaseController {
 
             if ($assignments->count() === 0) {
                 return $this->respondWithSuccess([
+                    'patient' => $patient,
                     'count' => 0,
                     'users' => []
                 ]);
@@ -918,6 +929,7 @@ class UserPatientController extends BaseController {
             }
 
             return $this->respondWithSuccess([
+                'patient' => $patient,
                 'count' => count($usersData),
                 'users' => $usersData
             ]);
