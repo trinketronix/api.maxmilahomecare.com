@@ -593,8 +593,8 @@ class UserPatientController extends BaseController {
             if (!$user)
                 return $this->respondWithError(Message::USER_NOT_FOUND, 404);
 
-            $userData['fullname'] = $user->fisrtName . ' ' . $user->lastName;
-            $userData['photo'] = $user->photo;
+            $userData['fullname'] = $user->getFullName();
+            $userData['photo'] = $user->getPhotoUrl();
 
             // Check authorization:
             // - Allow if the current user is requesting their own patients
@@ -655,8 +655,8 @@ class UserPatientController extends BaseController {
             if (!$user)
                 return $this->respondWithError(Message::USER_NOT_FOUND, 404);
 
-            $userData['fullname'] = $user->fisrtName . ' ' . $user->lastName;
-            $userData['photo'] = $user->photo;
+            $userData['fullname'] = $user->getFullName();
+            $userData['photo'] = $user->getPhotoUrl();
 
             // Check authorization:
             // - Allow if the current user is requesting their own unassigned patients
