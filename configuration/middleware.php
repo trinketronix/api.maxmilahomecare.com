@@ -60,14 +60,14 @@ if (isset($app)) {
 
         // Define upload route patterns
         $uploadPatterns = [
-            '/user/upload/photo',
-            '/user/update/photo',
-            '/user/{userId:[0-9]+}/upload/photo',
-            '/user/{userId:[0-9]+}/update/photo'
+            '#^/user/upload/photo$#',
+            '#^/user/update/photo$#',
+            '#^/user/\d+/upload/photo$#',
+            '#^/user/\d+/update/photo$#'
         ];
 
         foreach ($uploadPatterns as $pattern) {
-            if (strpos($requestUri, $pattern) !== false) {
+            if (preg_match($pattern, $requestUri)) {
                 $isUploadRequest = true;
                 break;
             }
