@@ -1,0 +1,277 @@
+
+### 1. Admin uploads photo for another user
+POST {{baseUrl}}/user/{{testUserId}}/upload/photo
+Authorization: Bearer {{adminToken}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="photo"; filename="test-photo.jpg"
+Content-Type: image/jpeg
+
+< {{testImagePath}}
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+> {%
+    client.test("Caregiver cannot get another user's photo", function() {
+        client.assert(response.status === 403);
+        client.assert(response.body.status === "error");
+    });
+%}
+
+###
+
+### 11. Test upload for non-existent user
+POST {{baseUrl}}/user/99999/upload/photo
+Authorization: Bearer {{adminToken}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="photo"; filename="test-photo.jpg"
+Content-Type: image/jpeg
+
+< {{testImagePath}}
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+> {%
+    client.test("Upload for non-existent user fails", function() {
+        client.assert(response.status === 404);
+        client.assert(response.body.status === "error");
+    });
+%}
+
+###
+
+### 12. Test with invalid token
+POST {{baseUrl}}/user/{{testUserId}}/upload/photo
+Authorization: Bearer INVALID_TOKEN_HERE
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="photo"; filename="test-photo.jpg"
+Content-Type: image/jpeg
+
+< {{testImagePath}}
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+> {%
+    client.test("Invalid token is rejected", function() {
+        client.assert(response.status === 401);
+        client.assert(response.body.status === "error");
+    });
+%}
+
+###
+
+### Environment Setup Instructions:
+### 1. Create a test-photo.jpg file in the same directory as this .http file
+### 2. Update the variables at the top with your actual values:
+###    - baseUrl: Your API base URL
+###    - adminToken: A valid admin user token
+###    - managerToken: A valid manager user token
+###    - caregiverToken: A valid caregiver user token
+###    - testUserId: An existing user ID to test with
+###    - testImagePath: Path to your test image file
+###
+### Token Generation:
+### You can get tokens by logging in with different role users:
+###
+### Login as Admin
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin@example.com",
+  "password": "admin_password"
+}
+
+###
+
+### Login as Manager
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "manager@example.com",
+  "password": "manager_password"
+}
+
+###
+
+### Login as Caregiver
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "caregiver@example.com",
+  "password": "caregiver_password"
+}client.test("Admin can upload photo for another user", function() {
+client.assert(response.status === 201);
+client.assert(response.body.status === "success");
+client.assert(response.body.data.user_id === parseInt(client.global.get("testUserId")));
+});
+%}
+
+###
+
+### 2. Manager uploads photo for another user
+POST {{baseUrl}}/user/{{testUserId}}/upload/photo
+Authorization: Bearer {{managerToken}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="photo"; filename="test-photo.jpg"
+Content-Type: image/jpeg
+
+< {{testImagePath}}
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+> {%
+    client.test("Manager can upload photo for another user", function() {
+        client.assert(response.status === 201);
+        client.assert(response.body.status === "success");
+    });
+%}
+
+###
+
+### 3. Caregiver tries to upload photo for another user (should fail)
+POST {{baseUrl}}/user/{{testUserId}}/upload/photo
+Authorization: Bearer {{caregiverToken}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="photo"; filename="test-photo.jpg"
+Content-Type: image/jpeg
+
+< {{testImagePath}}
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+> {%
+    client.test("Caregiver cannot upload photo for another user", function() {
+        client.assert(response.status === 403);
+        client.assert(response.body.status === "error");
+    });
+%}
+
+###
+
+### 4. Caregiver uploads their own photo (using backward compatible route)
+POST {{baseUrl}}/user/upload/photo
+Authorization: Bearer {{caregiverToken}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="photo"; filename="test-photo.jpg"
+Content-Type: image/jpeg
+
+< {{testImagePath}}
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+> {%
+    client.test("Caregiver can upload their own photo", function() {
+        client.assert(response.status === 201);
+        client.assert(response.body.status === "success");
+    });
+%}
+
+###
+
+### 5. Admin updates photo for another user
+PUT {{baseUrl}}/user/{{testUserId}}/update/photo
+Authorization: Bearer {{adminToken}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="photo"; filename="updated-photo.jpg"
+Content-Type: image/jpeg
+
+< {{testImagePath}}
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+> {%
+    client.test("Admin can update photo for another user", function() {
+        client.assert(response.status === 201);
+        client.assert(response.body.status === "success");
+        client.assert(response.body.data.user_id === parseInt(client.global.get("testUserId")));
+    });
+%}
+
+###
+
+### 6. Manager updates photo for another user
+PUT {{baseUrl}}/user/{{testUserId}}/update/photo
+Authorization: Bearer {{managerToken}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="photo"; filename="updated-photo.jpg"
+Content-Type: image/jpeg
+
+< {{testImagePath}}
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+> {%
+    client.test("Manager can update photo for another user", function() {
+        client.assert(response.status === 201);
+        client.assert(response.body.status === "success");
+    });
+%}
+
+###
+
+### 7. Test invalid file type upload
+POST {{baseUrl}}/user/{{testUserId}}/upload/photo
+Authorization: Bearer {{adminToken}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="photo"; filename="test-document.pdf"
+Content-Type: application/pdf
+
+< ./test-document.pdf
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+> {%
+    client.test("Invalid file type is rejected", function() {
+        client.assert(response.status === 400);
+        client.assert(response.body.status === "error");
+    });
+%}
+
+###
+
+### 8. Test upload without file
+POST {{baseUrl}}/user/{{testUserId}}/upload/photo
+Authorization: Bearer {{adminToken}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+> {%
+    client.test("Upload without file is rejected", function() {
+        client.assert(response.status === 400);
+        client.assert(response.body.status === "error");
+    });
+%}
+
+###
+
+### 9. Get user photo (admin accessing another user's photo)
+GET {{baseUrl}}/user/photo/{{testUserId}}
+Authorization: Bearer {{adminToken}}
+
+> {%
+    client.test("Admin can get another user's photo", function() {
+        client.assert(response.status === 200);
+        client.assert(response.body.status === "success");
+        client.assert(response.body.data.photo !== null);
+    });
+%}
+
+###
+
+### 10. Get user photo (caregiver accessing another user's photo - should fail)
+GET {{baseUrl}}/user/photo/{{testUserId}}
+Authorization: Bearer {{caregiverToken}}
+
+> {%

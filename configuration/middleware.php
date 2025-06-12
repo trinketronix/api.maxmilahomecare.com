@@ -61,7 +61,9 @@ if (isset($app)) {
         // Define upload route patterns
         $uploadPatterns = [
             '/user/upload/photo',
-            '/user/update/photo'
+            '/user/update/photo',
+            '/user/{userId}/upload/photo',
+            '/user/{userId}/update/photo'
         ];
 
         foreach ($uploadPatterns as $pattern) {
