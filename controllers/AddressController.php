@@ -158,7 +158,7 @@ class AddressController extends BaseController {
                 // Check authorization for user addresses
                 $currentUserId = $this->getCurrentUserId();
                 if ($currentUserId !== $personId && !$this->isManagerOrHigher()) {
-                    return $this->respondWithError(Message::UNAUTHORIZED_ACCESS, 401);
+                    return $this->respondWithError(Message::UNAUTHORIZED_ACCESS, 403);
                 }
             } else {
                 $person = Patient::findFirst($personId);
@@ -198,7 +198,7 @@ class AddressController extends BaseController {
             if ($address->person_type === PersonType::USER) {
                 $currentUserId = $this->getCurrentUserId();
                 if ($currentUserId !== $address->person_id && !$this->isManagerOrHigher()) {
-                    return $this->respondWithError(Message::UNAUTHORIZED_ACCESS, 401);
+                    return $this->respondWithError(Message::UNAUTHORIZED_ACCESS, 403);
                 }
             }
 
@@ -226,7 +226,7 @@ class AddressController extends BaseController {
             if ($address->person_type === PersonType::USER) {
                 $currentUserId = $this->getCurrentUserId();
                 if ($currentUserId !== $address->person_id && !$this->isManagerOrHigher()) {
-                    return $this->respondWithError(Message::UNAUTHORIZED_ACCESS, 401);
+                    return $this->respondWithError(Message::UNAUTHORIZED_ACCESS, 403);
                 }
             }
 
@@ -326,7 +326,7 @@ class AddressController extends BaseController {
             if ($address->person_type === PersonType::USER) {
                 $currentUserId = $this->getCurrentUserId();
                 if ($currentUserId !== $address->person_id && !$this->isManagerOrHigher()) {
-                    return $this->respondWithError(Message::UNAUTHORIZED_ACCESS, 401);
+                    return $this->respondWithError(Message::UNAUTHORIZED_ACCESS, 403);
                 }
             }
 

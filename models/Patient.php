@@ -118,6 +118,13 @@ class Patient extends Model {
     }
 
     /**
+     * Check if patient is active
+     */
+    public function isInactive(): bool {
+        return $this->status === Status::INACTIVE;
+    }
+
+    /**
      * Check if patient is archived
      */
     public function isArchived(): bool {

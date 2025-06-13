@@ -143,6 +143,13 @@ class Auth extends Model {
     }
 
     /**
+     * Check if user is deleted
+     */
+    public function isDeleted(): bool {
+        return $this->status === Status::SOFT_DELETED;
+    }
+
+    /**
      * Check if user account is active
      */
     public function isActive(): bool {

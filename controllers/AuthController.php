@@ -97,7 +97,7 @@ class AuthController extends BaseController {
             // Role validation should now be done by middleware
             // If we need additional role checking for this specific operation:
             if (!$this->isManagerOrHigher())
-                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 401);
+                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
 
             $data = $this->getRequestBody();
 
@@ -136,7 +136,7 @@ class AuthController extends BaseController {
             // Role validation should now be done by middleware
             // If we need additional role checking for this specific operation:
             if (!$this->isManagerOrHigher())
-                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 401);
+                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
 
             $data = $this->getRequestBody();
 
@@ -176,7 +176,7 @@ class AuthController extends BaseController {
             // Role validation should now be done by middleware
             // If we need additional role checking for this specific operation:
             if (!$this->isManagerOrHigher())
-                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 401);
+                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
 
             $data = $this->getRequestBody();
 
@@ -216,7 +216,7 @@ class AuthController extends BaseController {
             // Role validation should now be done by middleware
             // If we need additional role checking for this specific operation:
             if (!$this->isManagerOrHigher())
-                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 401);
+                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
 
             $data = $this->getRequestBody();
 
@@ -225,9 +225,13 @@ class AuthController extends BaseController {
 
             $id = $data[Auth::ID];
             $auth = Auth::findFirstById($id);
-
             if (!$auth)
                 return $this->respondWithError(Message::ID_NOT_FOUND, 404);
+
+            // Check if patient is already deleted
+            if ($auth->isDeleted()) {
+                return $this->respondWithError('This account is already deleted', 400);
+            }
 
             return $this->withTransaction(function() use ($auth) {
                 $auth->status = Status::SOFT_DELETED;
@@ -345,7 +349,7 @@ class AuthController extends BaseController {
     public function changeRole(): array {
         try {
             if (!$this->isManagerOrHigher())
-                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 401);
+                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
 
             $data = $this->getRequestBody();
 

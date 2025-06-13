@@ -16,8 +16,11 @@ if (isset($app)) {
 
     // PUT Routes - Update
     $app->put('/patient/{id}', [$patient, 'update']);
-    $app->put('/patient/{id}/archive', [$patient, 'archive']);
-    $app->put('/patient/{id}/restore', [$patient, 'restore']);
+
+    $app->put('/patient/{id}/activate', [$patient, 'activatePatient']);
+    $app->put('/patient/{id}/inactivate', [$patient, 'inactivatePatient']);
+    $app->put('/patient/{id}/archivate', [$patient, 'archivatePatient']);
+    $app->put('/patient/{id}/delete', [$patient, 'deletePatient']);
 
     // DELETE Routes - Delete (Soft Delete)
     $app->delete('/patient/{id}', [$patient, 'delete']);
