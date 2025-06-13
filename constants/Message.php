@@ -25,7 +25,12 @@ class Message {
     public const USER_UPDATED = 'User updated successfully';
     public const USER_DELETED = 'User deleted successfully.';
     public const USER_ACTIVATED = 'User activated successfully';
+    public const USER_ARCHIVED = 'User archived successfully';
+    public const USER_INACTIVATED = 'User inactivated successfully';
     public const USER_ACTIVATION_FAILED = 'User activation failed';
+    public const USER_INACTIVATION_FAILED = 'User inactivation failed';
+    public const USER_ARCHIVATION_FAILED = 'User archivation failed';
+    public const USER_DELETION_FAILED = 'User deletion failed';
     public const USER_NOT_FOUND = 'User not found';
     public const USER_ID_REQUIRED = 'User ID is required';
     public const USER_ID_ROLE_REQUIRED = 'User ID and role are required';

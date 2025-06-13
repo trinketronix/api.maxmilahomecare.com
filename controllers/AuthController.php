@@ -129,9 +129,128 @@ class AuthController extends BaseController {
     }
 
     /**
+     * Inactivate a user account from the system
+     */
+    public function inactivateAccount(): array {
+        try {
+            // Role validation should now be done by middleware
+            // If we need additional role checking for this specific operation:
+            if (!$this->isManagerOrHigher())
+                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 401);
+
+            $data = $this->getRequestBody();
+
+            if (empty($data[Auth::ID]))
+                return $this->respondWithError(Message::ID_REQUIRED, 400);
+
+            $id = $data[Auth::ID];
+            $auth = Auth::findFirstById($id);
+
+            if (!$auth)
+                return $this->respondWithError(Message::ID_NOT_FOUND, 404);
+
+            return $this->withTransaction(function() use ($auth) {
+                $auth->status = Status::INACTIVE;
+
+                if (!$auth->save())
+                    return $this->respondWithError(Message::USER_INACTIVATION_FAILED, 409);
+
+                return $this->respondWithSuccess([
+                    'message' => Message::USER_INACTIVATED
+                ], 202, Message::USER_INACTIVATED);
+            });
+
+        } catch (Exception $e) {
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
+            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        }
+    }
+
+
+    /**
+     * Inactivate a user account from the system
+     */
+    public function archivateAccount(): array {
+        try {
+            // Role validation should now be done by middleware
+            // If we need additional role checking for this specific operation:
+            if (!$this->isManagerOrHigher())
+                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 401);
+
+            $data = $this->getRequestBody();
+
+            if (empty($data[Auth::ID]))
+                return $this->respondWithError(Message::ID_REQUIRED, 400);
+
+            $id = $data[Auth::ID];
+            $auth = Auth::findFirstById($id);
+
+            if (!$auth)
+                return $this->respondWithError(Message::ID_NOT_FOUND, 404);
+
+            return $this->withTransaction(function() use ($auth) {
+                $auth->status = Status::ARCHIVED;
+
+                if (!$auth->save())
+                    return $this->respondWithError(Message::USER_ARCHIVATION_FAILED, 409);
+
+                return $this->respondWithSuccess([
+                    'message' => Message::USER_ARCHIVED
+                ], 202, Message::USER_ARCHIVED);
+            });
+
+        } catch (Exception $e) {
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
+            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        }
+    }
+
+
+    /**
+     * Inactivate a user account from the system
+     */
+    public function deleteAccount(): array {
+        try {
+            // Role validation should now be done by middleware
+            // If we need additional role checking for this specific operation:
+            if (!$this->isManagerOrHigher())
+                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 401);
+
+            $data = $this->getRequestBody();
+
+            if (empty($data[Auth::ID]))
+                return $this->respondWithError(Message::ID_REQUIRED, 400);
+
+            $id = $data[Auth::ID];
+            $auth = Auth::findFirstById($id);
+
+            if (!$auth)
+                return $this->respondWithError(Message::ID_NOT_FOUND, 404);
+
+            return $this->withTransaction(function() use ($auth) {
+                $auth->status = Status::SOFT_DELETED;
+
+                if (!$auth->save())
+                    return $this->respondWithError(Message::USER_DELETION_FAILED, 409);
+
+                return $this->respondWithSuccess([
+                    'message' => Message::USER_DELETED
+                ], 202, Message::USER_DELETED);
+            });
+
+        } catch (Exception $e) {
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
+            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        }
+    }
+
+    /**
      * Activate a user account from email
      */
-    public function activation(string $edoc): Response{
+    public function emailActivation(string $edoc): Response{
         try {
             // Create response object
             $response = new \Phalcon\Http\Response();
