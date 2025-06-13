@@ -35,6 +35,16 @@ class Message {
     public const USER_ID_REQUIRED = 'User ID is required';
     public const USER_ID_ROLE_REQUIRED = 'User ID and role are required';
 
+    public const PATIENT_CREATED = 'Patient created successfully.';
+    public const PATIENT_UPDATED = 'Patient updated successfully';
+    public const PATIENT_DELETED = 'Patient deleted successfully.';
+    public const PATIENT_ACTIVATED = 'Patient activated successfully';
+    public const PATIENT_ARCHIVED = 'Patient archived successfully';
+    public const PATIENT_INACTIVATED = 'Patient inactivated successfully';
+    public const PATIENT_ACTIVATION_FAILED = 'Patient activation failed';
+    public const PATIENT_INACTIVATION_FAILED = 'Patient inactivation failed';
+    public const PATIENT_ARCHIVATION_FAILED = 'Patient archivation failed';
+    public const PATIENT_DELETION_FAILED = 'Patient deletion failed';
     // Password operations
     public const PASSWORD_CHANGED = 'Password changed successfully';
     public const PASSWORD_CHANGE_FAILED = 'Failed to change password';

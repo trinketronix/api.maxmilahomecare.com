@@ -18,9 +18,8 @@ class PatientController extends BaseController {
     public function create(): array {
         try {
             // Verify user has permission to create patients (manager or higher)
-            if (!$this->isManagerOrHigher()) {
+            if (!$this->isManagerOrHigher())
                 return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
-            }
 
             $data = $this->getRequestBody();
 
@@ -32,9 +31,8 @@ class PatientController extends BaseController {
             ];
 
             foreach ($requiredFields as $field => $message) {
-                if (empty($data[$field])) {
+                if (empty($data[$field]))
                     return $this->respondWithError($message, 400);
-                }
             }
 
             // Create patient within transaction
@@ -47,17 +45,14 @@ class PatientController extends BaseController {
                 $patient->phone = $data[Patient::PHONE];
 
                 // Set optional fields if provided
-                if (isset($data[Patient::MIDDLENAME])) {
+                if (isset($data[Patient::MIDDLENAME]))
                     $patient->middlename = $data[Patient::MIDDLENAME];
-                }
 
-                if (isset($data[Patient::PATIENT_ID])) {
+                if (isset($data[Patient::PATIENT_ID]))
                     $patient->patient = $data[Patient::PATIENT_ID];
-                }
 
-                if (isset($data[Patient::ADMISSION])) {
+                if (isset($data[Patient::ADMISSION]))
                     $patient->admission = $data[Patient::ADMISSION];
-                }
 
                 // Default to active status
                 $patient->status = Status::ACTIVE;
@@ -65,11 +60,9 @@ class PatientController extends BaseController {
                 if (!$patient->save()) {
                     $messages = $patient->getMessages(); // This is Phalcon\Messages\MessageInterface[]
                     $msg = "An unknown error occurred."; // Default/fallback
-
                     if (count($messages) > 0) {
                         // Get the first message object from the array
                         $obj = $messages[0]; // or current($phalconMessages)
-
                         // Extract the string message from the object
                         // The MessageInterface guarantees the getMessage() method.
                         $msg = $obj->getMessage();
@@ -241,169 +234,168 @@ class PatientController extends BaseController {
     }
 
     /**
-     * Soft delete a patient (mark as deleted)
+     * Activate a patient (status = 1)
      */
-    public function delete(int $id): array {
+    public function activatePatient(int $id): array {
         try {
-            // Verify user has permission to delete patients
-            if (!$this->isManagerOrHigher()) {
+
+            // Role validation should now be done by middleware
+            // If we need additional role checking for this specific operation:
+            if (!$this->isManagerOrHigher())
                 return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
+
+            $data = $this->getRequestBody();
+
+            if (empty($data[Patient::ID]))
+                return $this->respondWithError(Message::ID_REQUIRED, 400);
+
+            $patient = Patient::findFirstById($id);
+            if (!$patient)
+                return $this->respondWithError(Message::PATIENT_NOT_FOUND, 404);
+
+            // Check if patient is already deleted
+            if ($patient->isActive()) {
+                return $this->respondWithError('Patient is already activated', 400);
             }
 
-            // Find patient
-            $patient = Patient::findFirst($id);
-            if (!$patient) {
+            return $this->withTransaction(function() use ($patient) {
+                $patient->status = Status::ACTIVE;
+
+                if (!$patient->save())
+                    return $this->respondWithError(Message::PATIENT_ACTIVATION_FAILED, 409);
+
+                return $this->respondWithSuccess([
+                    'message' => Message::PATIENT_ACTIVATED
+                ], 202, Message::PATIENT_ACTIVATED);
+            });
+
+        } catch (Exception $e) {
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
+            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        }
+    }
+
+    /**
+     * Inactivate a patient (status = 0)
+     */
+    public function inactivatePatient(int $id): array {
+        try {
+
+            // Role validation should now be done by middleware
+            // If we need additional role checking for this specific operation:
+            if (!$this->isManagerOrHigher())
+                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
+
+            $data = $this->getRequestBody();
+
+            if (empty($data[Patient::ID]))
+                return $this->respondWithError(Message::ID_REQUIRED, 400);
+
+            $patient = Patient::findFirstById($id);
+            if (!$patient)
                 return $this->respondWithError(Message::PATIENT_NOT_FOUND, 404);
+
+            // Check if patient is already deleted
+            if ($patient->isInactive()) {
+                return $this->respondWithError('Patient is already inactive', 400);
             }
+
+            return $this->withTransaction(function() use ($patient) {
+                $patient->status = Status::INACTIVE;
+
+                if (!$patient->save())
+                    return $this->respondWithError(Message::PATIENT_INACTIVATION_FAILED, 409);
+
+                return $this->respondWithSuccess([
+                    'message' => Message::PATIENT_INACTIVATED
+                ], 202, Message::PATIENT_INACTIVATED);
+            });
+
+        } catch (Exception $e) {
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
+            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        }
+    }
+
+    /**
+     * Archive a patient (status = 2)
+     */
+    public function archivatePatient(int $id): array {
+        try {
+
+            // Role validation should now be done by middleware
+            // If we need additional role checking for this specific operation:
+            if (!$this->isManagerOrHigher())
+                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
+
+            $data = $this->getRequestBody();
+
+            if (empty($data[Patient::ID]))
+                return $this->respondWithError(Message::ID_REQUIRED, 400);
+
+            $patient = Patient::findFirstById($id);
+            if (!$patient)
+                return $this->respondWithError(Message::PATIENT_NOT_FOUND, 404);
+
+            // Check if patient is already deleted
+            if ($patient->isArchived()) {
+                return $this->respondWithError('Patient is already archived', 400);
+            }
+
+            return $this->withTransaction(function() use ($patient) {
+                $patient->status = Status::ARCHIVED;
+
+                if (!$patient->save())
+                    return $this->respondWithError(Message::PATIENT_ARCHIVATION_FAILED, 409);
+
+                return $this->respondWithSuccess([
+                    'message' => Message::PATIENT_ARCHIVED
+                ], 202, Message::PATIENT_ARCHIVED);
+            });
+
+        } catch (Exception $e) {
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
+            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        }
+    }
+
+    /**
+     * Soft delete a patient (status = 3)
+     */
+    public function deletePatient(int $id): array {
+        try {
+
+            // Role validation should now be done by middleware
+            // If we need additional role checking for this specific operation:
+            if (!$this->isManagerOrHigher())
+                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
+
+            $data = $this->getRequestBody();
+
+            if (empty($data[Patient::ID]))
+                return $this->respondWithError(Message::ID_REQUIRED, 400);
+
+            $patient = Patient::findFirstById($id);
+            if (!$patient)
+                return $this->respondWithError(Message::PATIENT_NOT_FOUND, 404);
 
             // Check if patient is already deleted
             if ($patient->isDeleted()) {
                 return $this->respondWithError('Patient is already deleted', 400);
             }
 
-            // Soft delete patient within transaction
             return $this->withTransaction(function() use ($patient) {
-                // Set status to deleted
                 $patient->status = Status::SOFT_DELETED;
 
-                if (!$patient->save()) {
-                    $messages = $patient->getMessages(); // This is Phalcon\Messages\MessageInterface[]
-                    $msg = "An unknown error occurred."; // Default/fallback
-
-                    if (count($messages) > 0) {
-                        // Get the first message object from the array
-                        $obj = $messages[0]; // or current($phalconMessages)
-
-                        // Extract the string message from the object
-                        // The MessageInterface guarantees the getMessage() method.
-                        $msg = $obj->getMessage();
-                    }
-
-                    // Pass the extracted string message to your responder
-                    return $this->respondWithError($msg, 422);
-                }
+                if (!$patient->save())
+                    return $this->respondWithError(Message::PATIENT_DELETION_FAILED, 409);
 
                 return $this->respondWithSuccess([
-                    'message' => 'Patient deleted successfully',
-                    'patient_id' => $patient->id
-                ],201, 'Patient deleted successfully');
-            });
-
-        } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
-        }
-    }
-
-    /**
-     * Archive a patient
-     */
-    public function archive(int $id): array {
-        try {
-            // Verify user has permission to archive patients
-            if (!$this->isManagerOrHigher()) {
-                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
-            }
-
-            // Find patient
-            $patient = Patient::findFirst($id);
-            if (!$patient) {
-                return $this->respondWithError(Message::PATIENT_NOT_FOUND, 404);
-            }
-
-            // Check if patient is deleted
-            if ($patient->isDeleted()) {
-                return $this->respondWithError('Cannot archive a deleted patient', 400);
-            }
-
-            // Check if patient is already archived
-            if ($patient->isArchived()) {
-                return $this->respondWithError('Patient is already archived', 400);
-            }
-
-            // Archive patient within transaction
-            return $this->withTransaction(function() use ($patient) {
-                // Set status to archived
-                $patient->status = Status::ARCHIVED;
-
-                if (!$patient->save()) {
-                    $messages = $patient->getMessages(); // This is Phalcon\Messages\MessageInterface[]
-                    $msg = "An unknown error occurred."; // Default/fallback
-
-                    if (count($messages) > 0) {
-                        // Get the first message object from the array
-                        $obj = $messages[0]; // or current($phalconMessages)
-
-                        // Extract the string message from the object
-                        // The MessageInterface guarantees the getMessage() method.
-                        $msg = $obj->getMessage();
-                    }
-
-                    // Pass the extracted string message to your responder
-                    return $this->respondWithError($msg, 422);
-                }
-
-                return $this->respondWithSuccess([
-                    'message' => 'Patient archived successfully',
-                    'patient_id' => $patient->id
-                ], 201, 'Patient archived successfully');
-            });
-
-        } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
-        }
-    }
-
-    /**
-     * Restore an archived or deleted patient to active status
-     */
-    public function restore(int $id): array {
-        try {
-            // Verify user has permission to restore patients
-            if (!$this->isManagerOrHigher()) {
-                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
-            }
-
-            // Find patient
-            $patient = Patient::findFirst($id);
-            if (!$patient) {
-                return $this->respondWithError(Message::PATIENT_NOT_FOUND, 404);
-            }
-
-            // Check if patient is already active
-            if ($patient->isActive()) {
-                return $this->respondWithError('Patient is already active', 400);
-            }
-
-            // Restore patient within transaction
-            return $this->withTransaction(function() use ($patient) {
-                // Set status to active
-                $patient->status = Status::ACTIVE;
-
-                if (!$patient->save()) {
-                    $messages = $patient->getMessages(); // This is Phalcon\Messages\MessageInterface[]
-                    $msg = "An unknown error occurred."; // Default/fallback
-
-                    if (count($messages) > 0) {
-                        // Get the first message object from the array
-                        $obj = $messages[0]; // or current($phalconMessages)
-
-                        // Extract the string message from the object
-                        // The MessageInterface guarantees the getMessage() method.
-                        $msg = $obj->getMessage();
-                    }
-
-                    // Pass the extracted string message to your responder
-                    return $this->respondWithError($msg, 422);
-                }
-
-                return $this->respondWithSuccess([
-                    'message' => 'Patient restored successfully',
-                    'patient_id' => $patient->id
-                ], 201, 'Patient restored successfully');
+                    'message' => Message::PATIENT_DELETED
+                ], 202, Message::PATIENT_DELETED);
             });
 
         } catch (Exception $e) {
