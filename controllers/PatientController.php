@@ -151,7 +151,7 @@ class PatientController extends BaseController {
     /**
      * Update an existing patient
      */
-    public function update(int $id): array {
+    public function updatePatient(int $id): array {
         try {
             // Verify user has permission to update patients
             if (!$this->isManagerOrHigher()) {
@@ -497,7 +497,7 @@ class PatientController extends BaseController {
     /**
      * Get a patient by ID
      */
-    public function getById(int $id): array {
+    public function getPatientById(int $id): array {
         try {
             // Verify user has permission to view patients
             if (!$this->isManagerOrHigher()) {
