@@ -244,10 +244,10 @@ class PatientController extends BaseController {
             if (!$this->isManagerOrHigher())
                 return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
 
-            $data = $this->getRequestBody();
-
-            if (empty($data[Patient::ID]))
-                return $this->respondWithError(Message::ID_REQUIRED, 400);
+//            $data = $this->getRequestBody();
+//
+//            if (empty($data[Patient::ID]))
+//                return $this->respondWithError(Message::ID_REQUIRED, 400);
 
             $patient = Patient::findFirstById($id);
             if (!$patient)
@@ -287,10 +287,10 @@ class PatientController extends BaseController {
             if (!$this->isManagerOrHigher())
                 return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
 
-            $data = $this->getRequestBody();
-
-            if (empty($data[Patient::ID]))
-                return $this->respondWithError(Message::ID_REQUIRED, 400);
+//            $data = $this->getRequestBody();
+//
+//            if (empty($data[Patient::ID]))
+//                return $this->respondWithError(Message::ID_REQUIRED, 400);
 
             $patient = Patient::findFirstById($id);
             if (!$patient)
@@ -330,10 +330,10 @@ class PatientController extends BaseController {
             if (!$this->isManagerOrHigher())
                 return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
 
-            $data = $this->getRequestBody();
-
-            if (empty($data[Patient::ID]))
-                return $this->respondWithError(Message::ID_REQUIRED, 400);
+//            $data = $this->getRequestBody();
+//
+//            if (empty($data[Patient::ID]))
+//                return $this->respondWithError(Message::ID_REQUIRED, 400);
 
             $patient = Patient::findFirstById($id);
             if (!$patient)
@@ -372,11 +372,11 @@ class PatientController extends BaseController {
             // If we need additional role checking for this specific operation:
             if (!$this->isManagerOrHigher())
                 return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
-
-            $data = $this->getRequestBody();
-
-            if (empty($data[Patient::ID]))
-                return $this->respondWithError(Message::ID_REQUIRED, 400);
+//
+//            $data = $this->getRequestBody();
+//
+//            if (empty($data[Patient::ID]))
+//                return $this->respondWithError(Message::ID_REQUIRED, 400);
 
             $patient = Patient::findFirstById($id);
             if (!$patient)
