@@ -296,7 +296,7 @@ class PatientController extends BaseController {
             if (!$patient)
                 return $this->respondWithError(Message::PATIENT_NOT_FOUND, 404);
 
-            // Check if patient is already deleted
+            // Check if patient is already inactivated
             if ($patient->isInactive()) {
                 return $this->respondWithError('Patient is already inactive', 400);
             }

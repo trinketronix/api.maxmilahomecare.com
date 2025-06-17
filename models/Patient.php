@@ -85,6 +85,7 @@ class Patient extends Model {
             new \Phalcon\Filter\Validation\Validator\InclusionIn([
                 'domain' => [
                     Status::ACTIVE,
+                    Status::INACTIVE,
                     Status::ARCHIVED,
                     Status::SOFT_DELETED
                 ],
