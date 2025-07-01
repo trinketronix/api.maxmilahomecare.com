@@ -45,6 +45,8 @@ class Message {
     public const PATIENT_INACTIVATION_FAILED = 'Patient inactivation failed';
     public const PATIENT_ARCHIVATION_FAILED = 'Patient archivation failed';
     public const PATIENT_DELETION_FAILED = 'Patient deletion failed';
+
+    public const PATIENT_NOT_FOUND = 'Patient not found';
     // Password operations
     public const PASSWORD_CHANGED = 'Password changed successfully';
     public const PASSWORD_CHANGE_FAILED = 'Failed to change password';
@@ -94,9 +96,6 @@ class Message {
     public const REQUEST_CONTENT_TYPE_MULTIPART = 'Content-Type must be multipart/form-data';
     public const REQUEST_BODY_JSON_ARRAY = 'Request body must be a JSON array';
     public const REQUEST_JSON_INVALID = 'Invalid JSON in request body: ';
-
-    // Patient related
-    public const PATIENT_NOT_FOUND = 'Patient not found';
 
     // Visit related
     public const VISIT_TIME_INVALID = 'End time cannot be before start time';
