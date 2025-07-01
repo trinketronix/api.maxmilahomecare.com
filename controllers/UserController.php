@@ -196,67 +196,6 @@ class UserController extends BaseController {
     }
 
     /**
-     * Process and resize image using ImageMagick
-     *
-     * @param string $sourcePath Path to original image
-     * @param string $destinationPath Path where processed image will be saved
-     * @param int $width Desired width (default: 360)
-     * @param int $height Desired height (default: 360)
-     * @return bool True if processing successful
-     */
-    private function processAndResizeImage(string $sourcePath, string $destinationPath, int $width = 360, int $height = 360): bool {
-        try {
-            // Check if ImageMagick extension is installed
-            if (!extension_loaded('imagick')) {
-                error_log('ImageMagick extension not installed');
-                return false;
-            }
-
-            // Create a new Imagick object
-            $image = new \Imagick($sourcePath);
-
-            // Set the image to the specified dimensions with proper aspect ratio
-            $originalWidth = $image->getImageWidth();
-            $originalHeight = $image->getImageHeight();
-
-            // Calculate the scale factor
-            $scaleWidth = $width / $originalWidth;
-            $scaleHeight = $height / $originalHeight;
-            $scale = max($scaleWidth, $scaleHeight);
-
-            // Calculate new dimensions and convert to integers
-            $newWidth = (int)round($originalWidth * $scale);
-            $newHeight = (int)round($originalHeight * $scale);
-
-            // Resize the image with integer values
-            $image->resizeImage($newWidth, $newHeight, \Imagick::FILTER_LANCZOS, 1);
-
-            // Crop to exact dimensions from center with integer values
-            $cropX = (int)(($newWidth - $width) / 2);
-            $cropY = (int)(($newHeight - $height) / 2);
-            $image->cropImage($width, $height, $cropX, $cropY);
-
-            // Set image quality (90% for good quality with reasonable file size)
-            $image->setImageCompressionQuality(90);
-
-            // Strip EXIF data for privacy
-            $image->stripImage();
-
-            // Save the processed image
-            $image->writeImage($destinationPath);
-
-            // Clear the image from memory
-            $image->clear();
-            $image->destroy();
-
-            return true;
-        } catch (\ImagickException $e) {
-            error_log('ImageMagick processing error: ' . $e->getMessage());
-            return false;
-        }
-    }
-
-    /**
      * Upload a new profile photo for a user
      * Modified to allow administrators and managers to upload photos for other users
      */

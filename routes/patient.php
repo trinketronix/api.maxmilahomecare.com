@@ -24,4 +24,19 @@ if (isset($app)) {
 
     // DELETE Routes - Delete (Full Delete)
     $app->delete('/patient/{id}', [$patient, 'delete']);
+
+    // Upload photo routes
+    // For uploading own photo (backward compatibility)
+    $app->post('/patient/upload/photo', [$patient, 'uploadPhoto']);
+
+    // For uploading photo for a specific user (admin/manager)
+    $app->post('/patient/{userId:[0-9]+}/upload/photo', [$patient, 'uploadPhoto']);
+
+    // Update photo routes
+    // For updating own photo (backward compatibility)
+    $app->put('/patient/update/photo', [$patient, 'updatePhoto']);
+
+    // For updating photo for a specific user (admin/manager)
+    $app->put('/patient/{userId:[0-9]+}/update/photo', [$patient, 'updatePhoto']);
+
 }

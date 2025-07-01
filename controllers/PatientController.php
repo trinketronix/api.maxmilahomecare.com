@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Api\Controllers;
 
 use Api\Constants\PersonType;
+use Api\Constants\Role;
 use Api\Constants\Status;
 use Exception;
 use Api\Models\Patient;
@@ -159,7 +160,7 @@ class PatientController extends BaseController {
             }
 
             // Find patient
-            $patient = Patient::findFirst($id);
+            $patient = Patient::findFirstById($id);
             if (!$patient) {
                 return $this->respondWithError(Message::PATIENT_NOT_FOUND, 404);
             }
@@ -505,7 +506,7 @@ class PatientController extends BaseController {
             }
 
             // Find patient
-            $patient = Patient::findFirst($id);
+            $patient = Patient::findFirstById($id);
             if (!$patient) {
                 return $this->respondWithError(Message::PATIENT_NOT_FOUND, 404);
             }
@@ -518,4 +519,244 @@ class PatientController extends BaseController {
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
     }
+
+    /**
+     * ----------------------
+     */
+
+
+
+    /**
+     * Upload a new profile photo for a user
+     * Modified to allow administrators and managers to upload photos for other users
+     */
+    public function uploadPhoto(?int $patientId = null): array {
+        try {
+            // Get the current user's ID and role
+            $currentUserId = $this->getCurrentUserId();
+
+            // Authorization check: allow upload for own photo or if admin/manager
+            if (!$this->isManagerOrHigher())
+                return $this->respondWithError(Message::UNAUTHORIZED_ACCESS, 403);
+
+            // Check for files (middleware should already validate multipart form-data)
+            if (!$this->request->hasFiles())
+                return $this->respondWithError(Message::UPLOAD_NO_FILES, 400);
+
+            $files = $this->request->getUploadedFiles();
+            $photo = $files[0];
+
+            // Validate file type
+            $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            if (!in_array($photo->getType(), $allowedTypes))
+                return $this->respondWithError(Message::UPLOAD_INVALID_TYPE, 400);
+
+            // Find and validate user
+            $patient = Patient::findFirstById($patientId);
+            if (!$patient) return $this->respondWithError(Message::PATIENT_NOT_FOUND, 404);
+
+            // Create photos directory if it doesn't exist
+            $uploadDir = Patient::PATH_PHOTO_FILE;
+            if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
+
+            // Generate filename using user info
+            $extension = pathinfo($photo->getName(), PATHINFO_EXTENSION);
+            $sanitizedFirstname = preg_replace('/[^a-z0-9]/i', '', $patient->firstname);
+            $sanitizedLastname = preg_replace('/[^a-z0-9]/i', '', $patient->lastname);
+            $filename = sprintf(
+                '%d-%s-%s.%s',
+                $patientId,
+                strtolower($sanitizedFirstname),
+                strtolower($sanitizedLastname),
+                $extension
+            );
+
+            $path = $uploadDir . '/' . $filename;
+
+            return $this->withTransaction(function() use ($patient, $photo, $path, $filename, $uploadDir, $currentUserId, $patientId) {
+                // Get temporary file path
+                $tempPath = $photo->getTempName();
+
+                // Process and resize image to 360x360
+                if (!$this->processAndResizeImage($tempPath, $path)) {
+                    // If ImageMagick fails, fall back to regular file upload
+                    if (!$photo->moveTo($path)) {
+                        return $this->respondWithError(Message::UPLOAD_PHOTO_FAILED, 500);
+                    }
+                }
+
+                // Delete old photo if exists and is not the default photo
+                $oldPhoto = $uploadDir . '/' . $patient->photo;
+                if ($patient->photo && $patient->photo !== Patient::DEFAULT_PHOTO_FILE && file_exists($oldPhoto)) {
+                    unlink($oldPhoto);
+                }
+
+                $upath = "/$path";
+                $patient->photo = $upath;
+
+                if (!$patient->save()) {
+                    // If save fails, clean up the uploaded file
+                    if (file_exists($path)) unlink($path);
+
+                    $messages = $patient->getMessages();
+                    $msg = "An unknown error occurred.";
+
+                    if (count($messages) > 0) {
+                        $obj = $messages[0];
+                        $msg = $obj->getMessage();
+                    }
+
+                    return $this->respondWithError($msg, 422);
+                }
+
+                // Add information about who uploaded the photo if it wasn't the user themselves
+                $uploadedBy = " by user ID: $currentUserId";
+
+                return $this->respondWithSuccess([
+                    'message' => Message::UPLOAD_PHOTO_SUCCESS . $uploadedBy,
+                    'path' => $upath,
+                    'filename' => $filename,
+                    'patient_id' => $patientId,
+                    'uploaded_by' => $currentUserId,
+                    'processed' => true // Indicates image was processed with ImageMagick
+                ], 201, Message::UPLOAD_PHOTO_SUCCESS);
+            });
+
+        } catch (Exception $e) {
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
+            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        }
+    }
+
+    /**
+     * Update a user's profile photo
+     * Already supports admin/manager updating other users' photos
+     */
+    public function updatePhoto(?int $patientId = null): array {
+        try {
+            // Get the current user's ID
+            $currentUserId = $this->getCurrentUserId();
+            $currentUserRole = $this->getCurrentUserRole();
+
+            // Authorization check
+            if (!$this->isManagerOrHigher())
+                return $this->respondWithError(Message::UNAUTHORIZED_ACCESS, 403);
+
+            // Check for files
+            if (!$this->request->hasFiles())
+                return $this->respondWithError(Message::UPLOAD_NO_FILES, 400);
+
+            $files = $this->request->getUploadedFiles();
+            $photo = $files[0];
+
+            // Validate file type
+            $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            if (!in_array($photo->getType(), $allowedTypes))
+                return $this->respondWithError(Message::UPLOAD_INVALID_TYPE, 400);
+
+            // Find user
+            $patient = Patient::findFirstById($patientId);
+            if (!$patient)
+                return $this->respondWithError(Message::PATIENT_NOT_FOUND, 404);
+
+            // Create photos directory if it doesn't exist
+            $uploadDir = Patient::PATH_PHOTO_FILE;
+            if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
+
+            // Generate filename using user info
+            $extension = pathinfo($photo->getName(), PATHINFO_EXTENSION);
+            $sanitizedFirstname = preg_replace('/[^a-z0-9]/i', '', $patient->firstname);
+            $sanitizedLastname = preg_replace('/[^a-z0-9]/i', '', $patient->lastname);
+            $filename = sprintf(
+                '%d-%s-%s.%s',
+                $patientId,
+                strtolower($sanitizedFirstname),
+                strtolower($sanitizedLastname),
+                $extension
+            );
+
+            $path = $uploadDir . '/' . $filename;
+
+            return $this->withTransaction(function() use ($patient, $photo, $path, $filename, $uploadDir, $currentUserId, $patientId) {
+                // Get temporary file path
+                $tempPath = $photo->getTempName();
+
+                // Process and resize image to 360x360
+                if (!$this->processAndResizeImage($tempPath, $path)) {
+                    // If ImageMagick fails, fall back to regular file upload
+                    if (!$photo->moveTo($path)) {
+                        return $this->respondWithError(Message::UPLOAD_FAILED, 500);
+                    }
+                }
+
+                // Delete old photo if exists and is not the default photo
+                $oldPhoto = $uploadDir . '/' . $patient->photo;
+                if ($patient->photo && $patient->photo !== Patient::DEFAULT_PHOTO_FILE && file_exists($oldPhoto)) {
+                    unlink($oldPhoto);
+                }
+
+                $upath = "/$path";
+                $patient->photo = $upath;
+
+                if (!$patient->save()) {
+                    // If save fails, clean up the uploaded file
+                    if (file_exists($path)) unlink($path);
+
+                    $messages = $patient->getMessages();
+                    $msg = "An unknown error occurred.";
+
+                    if (count($messages) > 0) {
+                        $obj = $messages[0];
+                        $msg = $obj->getMessage();
+                    }
+
+                    return $this->respondWithError($msg, 422);
+                }
+
+                // Add information about who updated the photo if it wasn't the user themselves
+                $updatedBy = " by user ID: $currentUserId";
+
+                return $this->respondWithSuccess([
+                    'message' => Message::UPLOAD_PHOTO_SUCCESS . $updatedBy,
+                    'path' => $upath,
+                    'filename' => $filename,
+                    'patient_id' => $patientId,
+                    'updated_by' => $currentUserId,
+                    'processed' => true
+                ], 201, Message::UPLOAD_PHOTO_SUCCESS);
+            });
+
+        } catch (Exception $e) {
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
+            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        }
+    }
+
+    public function getPhoto(?int $patientId = null): array {
+        try {
+
+            // If requesting another user's account, check authorization
+            if (!$this->isManagerOrHigher())
+                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
+
+            // Find patient
+            $patient = Patient::findFirstById($patientId);
+
+            if (!$patient)
+                return $this->respondWithError(Message::PATIENT_NOT_FOUND, 404);
+
+            $userPhoto = $patient->photo;
+            $userData[Patient::PHOTO] = $userPhoto;
+
+            return $this->respondWithSuccess($userData);
+
+        } catch (Exception $e) {
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
+            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        }
+    }
+
 }
