@@ -63,7 +63,11 @@ if (isset($app)) {
             '#^/user/upload/photo$#',
             '#^/user/update/photo$#',
             '#^/user/\d+/upload/photo$#',
-            '#^/user/\d+/update/photo$#'
+            '#^/user/\d+/update/photo$#',
+            '#^/patient/upload/photo$#',
+            '#^/patient/update/photo$#',
+            '#^/patient/\d+/upload/photo$#',
+            '#^/patient/\d+/update/photo$#'
         ];
 
         foreach ($uploadPatterns as $pattern) {
