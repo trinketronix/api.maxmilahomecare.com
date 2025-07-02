@@ -6,7 +6,7 @@ if (isset($app)) {
     $patient = new PatientController();
 
     // POST Routes - Create
-    $app->post('/patient', [$patient, 'create']);
+    $app->post('/patient/new', [$patient, 'create']);
 
     // GET Routes - Read
     // TODO: Add getById and getAll methods to controller
