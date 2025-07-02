@@ -14,6 +14,28 @@ const BASE_PATH = __DIR__;
 
 require_once BASE_PATH . '/configuration/loader.php';
 
+// At the very top of index.php, before any other code
+if (isset($_GET['_url']) && strpos($_SERVER['REQUEST_URI'], '?_url=') !== false) {
+    // Fix the double rewrite issue
+    $_SERVER['REQUEST_URI'] = $_GET['_url'];
+
+    // Also try to recover the Authorization header
+    $headers = getallheaders();
+    if (isset($headers['Authorization']) && empty($headers['Authorization'])) {
+        // The header exists but is empty, try to get it from the original request
+        foreach ($_SERVER as $key => $value) {
+            if (substr($key, 0, 5) == 'HTTP_' && strpos($key, 'AUTHORIZATION') !== false) {
+                $_SERVER['HTTP_AUTHORIZATION'] = $value;
+                break;
+            }
+        }
+    }
+}
+
+// Log for debugging
+error_log("Fixed URI: " . $_SERVER['REQUEST_URI']);
+error_log("Query String: " . $_SERVER['QUERY_STRING']);
+
 try {
     $container = new FactoryDefault();
     require_once BASE_PATH . '/configuration/services.php';
