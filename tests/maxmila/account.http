@@ -5,7 +5,7 @@
 
 ### Get all user accounts with detailed information
 GET {{maxmila.baseUrl}}/accounts
-Authorization: {{maxmila.administrator.token}}
+Authorization: {{maxmila.manager.token}}
 
 ### ========================================
 ### Error Cases Testing
