@@ -135,6 +135,10 @@ if (isset($app)) {
         }
 
         $token = $app->request->getHeader('Authorization');
+        if (empty($token) && isset($_SERVER['HTTP_AUTHORIZATION'])) {
+            $token = $_SERVER['HTTP_AUTHORIZATION'];
+        }
+
         if (empty($token)) {
             $app->response->setStatusCode(401, 'Unauthorized');
             $app->response->setJsonContent([
