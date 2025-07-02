@@ -5,24 +5,36 @@
 
 ### Create a patient with all fields
 POST {{maxmila.baseUrl}}/patient
-Authorization: {{maxmila.token}}
+Authorization: {{maxmila.manager.token}}
 Content-Type: application/json
 
 {
-  "firstname": "Don",
-  "middlename": "Doroteo",
-  "lastname": "Arango",
+  "firstname": "Mariko",
+  "middlename": "Putin",
+  "lastname": "Gaylord",
+  "phone": "734-555-1234"
+}
+
+### Create a patient with all fields
+POST {{maxmila.baseUrl}}/patient
+Authorization: {{maxmila.manager.token}}
+Content-Type: application/json
+
+{
+  "firstname": "Mariko",
+  "middlename": "Putin",
+  "lastname": "Gaylord",
   "phone": "734-555-1234",
-  "patient": "PAT-GO-8743",
+  "patient": "PAT-GF-8743",
   "admission": "ADM-001",
   "address": {
     "type": "Ranch",
-    "address": "Surancho Villa",
-    "city": "Chihuahua",
-    "county": "Delicias",
+    "address": "Villa Sanco ",
+    "city": "Pluton",
+    "county": "ricon",
     "state": "CH",
     "zipcode": "56348",
-    "country": "Mexico",
+    "country": "United States",
     "latitude": 42.34229,
     "longitude": -83.39545
   }
@@ -30,7 +42,7 @@ Content-Type: application/json
 
 ### Create a patient with minimal fields
 POST {{maxmila.baseUrl}}/patient
-Authorization: {{maxmila.token}}
+Authorization: {{maxmila.administrator.token}}
 Content-Type: application/json
 
 {
