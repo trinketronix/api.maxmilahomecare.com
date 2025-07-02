@@ -103,6 +103,12 @@ if (isset($app)) {
 
     // Authentication middleware - unchanged
     $eventsManager->attach('micro:beforeExecuteRoute', function (Event $event, Micro $app) {
+
+        // In middleware.php, before the empty token check:
+        error_log('All headers: ' . json_encode($app->request->getHeaders()));
+        error_log('Authorization header: ' . $app->request->getHeader('Authorization'));
+        error_log('HTTP_AUTHORIZATION: ' . ($_SERVER['HTTP_AUTHORIZATION'] ?? 'not set'));
+
         $router = $app->router;
         $matchedRoute = $router->getMatchedRoute();
         if (!$matchedRoute) {
