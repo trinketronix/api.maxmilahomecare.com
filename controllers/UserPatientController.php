@@ -43,12 +43,12 @@ class UserPatientController extends BaseController {
             $patientId = (int)$data[UserPatient::PATIENT_ID];
 
             // Check if user exists
-            $user = User::findFirst($userId);
+            $user = User::findFirstById($userId);
             if (!$user)
                 return $this->respondWithError(Message::USER_NOT_FOUND, 404);
 
             // Check if patient exists
-            $patient = Patient::findFirst($patientId);
+            $patient = Patient::findFirstById($patientId);
             if (!$patient)
                 return $this->respondWithError(Message::PATIENT_NOT_FOUND, 404);
 
@@ -161,7 +161,7 @@ class UserPatientController extends BaseController {
             $notes = $data[UserPatient::NOTES] ?? null; // Optional notes for all assignments
 
             // Check if user exists
-            $user = User::findFirst($userId);
+            $user = User::findFirstById($userId);
             if (!$user)
                 return $this->respondWithError(Message::USER_NOT_FOUND, 404);
 
@@ -170,7 +170,7 @@ class UserPatientController extends BaseController {
             $invalidPatients = [];
 
             foreach ($patientIds as $patientId) {
-                $patient = Patient::findFirst($patientId);
+                $patient = Patient::findFirstById($patientId);
                 if ($patient) {
                     $validPatients[] = $patient;
                 } else {
@@ -372,7 +372,7 @@ class UserPatientController extends BaseController {
             $patientIds = array_map('intval', $data[UserPatient::PATIENT_IDS]); // Convert all to integers
 
             // Check if user exists
-            $user = User::findFirst($userId);
+            $user = User::findFirstById($userId);
             if (!$user)
                 return $this->respondWithError(Message::USER_NOT_FOUND, 404);
 
@@ -381,7 +381,7 @@ class UserPatientController extends BaseController {
             $invalidPatients = [];
 
             foreach ($patientIds as $patientId) {
-                $patient = Patient::findFirst($patientId);
+                $patient = Patient::findFirstById($patientId);
                 if ($patient) {
                     $validPatients[] = $patient;
                 } else {
@@ -589,7 +589,7 @@ class UserPatientController extends BaseController {
     public function getUserAssignedPatients(int $userId): array {
         try {
             // Check if user exists
-            $user = User::findFirst($userId);
+            $user = User::findFirstById($userId);
             if (!$user)
                 return $this->respondWithError(Message::USER_NOT_FOUND, 404);
 
@@ -618,7 +618,7 @@ class UserPatientController extends BaseController {
             $patientsData = [];
             foreach ($assignments as $assignment) {
                 // Get the patient
-                $patient = Patient::findFirst($assignment->patient_id);
+                $patient = Patient::findFirstById($assignment->patient_id);
                 if (!$patient) {
                     continue; // Skip if patient not found
                 }
@@ -651,7 +651,7 @@ class UserPatientController extends BaseController {
     public function getUserUnassignedPatients(int $userId): array {
         try {
             // Check if user exists
-            $user = User::findFirst($userId);
+            $user = User::findFirstById($userId);
             if (!$user)
                 return $this->respondWithError(Message::USER_NOT_FOUND, 404);
 
@@ -720,7 +720,7 @@ class UserPatientController extends BaseController {
     public function getUserAssignedPatientsWithAddresses(int $userId): array {
         try {
             // Check if user exists
-            $user = User::findFirst($userId);
+            $user = User::findFirstById($userId);
             if (!$user)
                 return $this->respondWithError(Message::USER_NOT_FOUND, 404);
 
@@ -746,7 +746,7 @@ class UserPatientController extends BaseController {
             $patientsData = [];
             foreach ($assignments as $assignment) {
                 // Get the patient
-                $patient = Patient::findFirst($assignment->patient_id);
+                $patient = Patient::findFirstById($assignment->patient_id);
                 if (!$patient) {
                     continue; // Skip if patient not found
                 }
@@ -797,7 +797,7 @@ class UserPatientController extends BaseController {
     public function getUserUnassignedPatientsWithAddresses(int $userId): array {
         try {
             // Check if user exists
-            $user = User::findFirst($userId);
+            $user = User::findFirstById($userId);
             if (!$user)
                 return $this->respondWithError(Message::USER_NOT_FOUND, 404);
 
@@ -878,7 +878,7 @@ class UserPatientController extends BaseController {
                 return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
 
             // Check if patient exists
-            $patient = Patient::findFirst($patientId);
+            $patient = Patient::findFirstById($patientId);
             if (!$patient)
                 return $this->respondWithError(Message::PATIENT_NOT_FOUND, 404);
 
@@ -897,7 +897,7 @@ class UserPatientController extends BaseController {
             $usersData = [];
             foreach ($assignments as $assignment) {
                 // Get the user
-                $user = User::findFirst($assignment->user_id);
+                $user = User::findFirstById($assignment->user_id);
                 if (!$user) {
                     continue; // Skip if user not found
                 }
@@ -913,7 +913,7 @@ class UserPatientController extends BaseController {
                 }
 
                 // Get user's auth information (role, status)
-                $auth = Auth::findFirst($user->id);
+                $auth = Auth::findFirstById($user->id);
                 if ($auth) {
                     $userInfo['role'] = $auth->role;
                     $userInfo['role_name'] = $auth->getRoleName();
