@@ -221,9 +221,9 @@ class VisitController extends BaseController {
             $visitData = $visit->toArray();
             $visitData['duration_minutes'] = $visit->getDurationMinutes();
             $visitData['progress_description'] = $visit->getProgressDescription();
-            $visitData['address'] = $visit->getAddress()->toArray();
-            $visitData['patient'] = $visit->getPatient()->toArray();
-            $visitData['user'] = $visit->getUser()->toArray();
+            $visitData['address'] = $visit->getAddress();
+            $visitData['patient'] = $visit->getPatient();
+            $visitData['user'] = $visit->getUser();
 
             return $this->respondWithSuccess($visitData);
 
@@ -328,9 +328,9 @@ class VisitController extends BaseController {
                 $visitData = $visit->toArray();
                 $visitData['duration_minutes'] = $visit->getDurationMinutes();
                 $visitData['progress_description'] = $visit->getProgressDescription();
-                $visitData['address'] = $visit->getAddress()->toArray();
-                $visitData['patient'] = $visit->getPatient()->toArray();
-                $visitData['user'] = $visit->getUser()->toArray();
+                $visitData['address'] = $visit->getAddress();
+                $visitData['patient'] = $visit->getPatient();
+                $visitData['user'] = $visit->getUser();
 
                 $visitArray[] = $visitData;
             }
@@ -393,9 +393,9 @@ class VisitController extends BaseController {
                 $visitData = $visit->toArray();
                 $visitData['duration_minutes'] = $visit->getDurationMinutes();
                 $visitData['progress_description'] = $visit->getProgressDescription();
-                $visitData['address'] = $visit->getAddress()->toArray();
-                $visitData['patient'] = $visit->getPatient()->toArray();
-                $visitData['user'] = $visit->getUser()->toArray();
+                $visitData['address'] = $visit->getAddress();
+                $visitData['patient'] = $visit->getPatient();
+                $visitData['user'] = $visit->getUser();
 
                 $visitArray[] = $visitData;
             }
@@ -454,9 +454,9 @@ class VisitController extends BaseController {
                 $visitData = $visit->toArray();
                 $visitData['duration_minutes'] = $visit->getDurationMinutes();
                 $visitData['progress_description'] = $visit->getProgressDescription();
-                $visitData['address'] = $visit->getAddress()->toArray();
-                $visitData['patient'] = $visit->getPatient()->toArray();
-                $visitData['user'] = $visit->getUser()->toArray();
+                $visitData['address'] = $visit->getAddress();
+                $visitData['patient'] = $visit->getPatient();
+                $visitData['user'] = $visit->getUser();
 
                 $visitArray[] = $visitData;
             }
@@ -493,9 +493,9 @@ class VisitController extends BaseController {
                 $visitData = $visit->toArray();
                 $visitData['duration_minutes'] = $visit->getDurationMinutes();
                 $visitData['progress_description'] = $visit->getProgressDescription();
-                $visitData['address'] = $visit->getAddress()->toArray();
-                $visitData['patient'] = $visit->getPatient()->toArray();
-                $visitData['user'] = $visit->getUser()->toArray();
+                $visitData['address'] = $visit->getAddress();
+                $visitData['patient'] = $visit->getPatient();
+                $visitData['user'] = $visit->getUser();
 
                 $visitArray[] = $visitData;
             }
