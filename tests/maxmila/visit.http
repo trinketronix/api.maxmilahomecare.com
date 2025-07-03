@@ -76,7 +76,7 @@ Content-Type: application/json
 ### ========================================
 
 ### Get a specific visit
-GET {{maxmila.baseUrl}}/visit/2
+GET {{maxmila.baseUrl}}/visit/3
 Authorization: {{maxmila.manager.token}}
 
 ### Get a non-existent visit (should return 404)
@@ -89,7 +89,7 @@ Authorization: {{maxmila.token}}
 
 ### Get all visits
 GET {{maxmila.baseUrl}}/visits
-Authorization: {{maxmila.administrator.token}}
+Authorization: {{maxmila.manager.token}}
 
 ### Filter visits by user
 GET {{maxmila.baseUrl}}/visits?user_id=1

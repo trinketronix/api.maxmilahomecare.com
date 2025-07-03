@@ -230,21 +230,21 @@ class Visit extends Model {
      * Get user
      */
     public function getUser(): Array {
-        return User::findFirst($this->user_id);
+        return User::findFirstById($this->user_id);
     }
 
     /**
      * Get patient
      */
     public function getPatient(): Array {
-        return Patient::findFirst($this->patient_id);
+        return Patient::findFirstById($this->patient_id);
     }
 
     /**
      * Get address
      */
     public function getAddress(): Array {
-        return Address::findFirst($this->address_id);
+        return Address::findFirstById($this->address_id);
     }
 
     /**
