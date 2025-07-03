@@ -336,7 +336,7 @@ class VisitController extends BaseController {
             }
 
             return $this->respondWithSuccess([
-                'visit' => $visitArray,
+                'visits' => $visitArray,
                 'count' => count($visitArray)
             ]);
 
