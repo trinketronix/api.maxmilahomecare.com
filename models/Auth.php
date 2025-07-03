@@ -190,4 +190,30 @@ class Auth extends Model {
             $this->updated_at = date('Y-m-d H:i:s');
         }
     }
+
+    /**
+     * Map role values to readable strings
+     */
+    public function getRoleName(): string {
+        return match($this->role) {
+            0 => 'Administrator',
+            1 => 'Manager',
+            2 => 'Caregiver',
+            default => 'Unknown'
+        };
+    }
+
+    /**
+     * Map status values to readable strings
+     */
+    public function getStatusName(): string {
+        return match($this->status) {
+            -1 => 'Not Verified',
+            0 => 'Inactive',
+            1 => 'Active',
+            2 => 'Archived',
+            3 => 'Soft-Deleted',
+            default => 'Unknown'
+        };
+    }
 }
