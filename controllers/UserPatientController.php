@@ -945,4 +945,96 @@ class UserPatientController extends BaseController {
         }
     }
 
+    /**
+     * Get all users NOT assigned to a patient
+     * Access restricted to:
+     * - Managers and Administrators only
+     *
+     * @param int $patientId Patient ID
+     * @return array Response data
+     */
+    public function getPatientUnassignedUsers(int $patientId): array {
+        try {
+            // Verify manager role or higher (only managers/admins can see patient assignments)
+            if (!$this->isManagerOrHigher())
+                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
+
+            // Check if patient exists
+            $patient = Patient::findFirstById($patientId);
+            if (!$patient)
+                return $this->respondWithError(Message::PATIENT_NOT_FOUND, 404);
+
+            // Get all user IDs that are assigned to this patient
+            $assignedUserIds = [];
+            $assignments = UserPatient::findActiveByPatientId($patientId);
+            foreach ($assignments as $assignment) {
+                $assignedUserIds[] = $assignment->user_id;
+            }
+
+            // Get all active users (you'll need to create this method in User model or use existing method)
+            // Assuming you have a method to get active users from Auth table
+            $allActiveUsers = Auth::find([
+                'conditions' => 'status = :status:',
+                'bind' => ['status' => Status::ACTIVE],
+                'bindTypes' => ['status' => \PDO::PARAM_INT],
+                'order' => 'id ASC'
+            ]);
+
+            if ($allActiveUsers->count() === 0) {
+                return $this->respondWithSuccess([
+                    'patient' => $patient->toArray(),
+                    'count' => 0,
+                    'users' => []
+                ]);
+            }
+
+            // Filter out users that are assigned to this patient
+            $unassignedUsersData = [];
+            foreach ($allActiveUsers as $auth) {
+                // Skip if this user is assigned to the patient
+                if (in_array($auth->id, $assignedUserIds)) {
+                    continue;
+                }
+
+                // Get the user details
+                $user = User::findFirstById($auth->id);
+                if (!$user) {
+                    continue; // Skip if user not found
+                }
+
+                $userInfo = $user->toArray();
+
+                // Get user's addresses
+                $addresses = Address::findByPerson($user->id, PersonType::USER);
+                if ($addresses && $addresses->count() > 0) {
+                    $userInfo['addresses'] = $addresses->toArray();
+                } else {
+                    $userInfo['addresses'] = [];
+                }
+
+                // Add auth information (role, status)
+                $userInfo['role'] = $auth->role;
+                $userInfo['role_name'] = $auth->getRoleName();
+                $userInfo['status'] = $auth->status;
+                $userInfo['status_name'] = $auth->getStatusName();
+
+                // Add assignment details (null since not assigned to this patient)
+                $userInfo['assignment'] = null;
+
+                $unassignedUsersData[] = $userInfo;
+            }
+
+            return $this->respondWithSuccess([
+                'patient' => $patient->toArray(),
+                'count' => count($unassignedUsersData),
+                'users' => $unassignedUsersData
+            ]);
+
+        } catch (Exception $e) {
+            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+            error_log('Exception: ' . $message);
+            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        }
+    }
+
 }
