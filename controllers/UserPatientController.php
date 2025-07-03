@@ -905,12 +905,12 @@ class UserPatientController extends BaseController {
                 $userInfo = $user->toArray();
 
                 // Get user's addresses
-                $addresses = Address::findByPerson($user->id, PersonType::USER);
-                if ($addresses && $addresses->count() > 0) {
-                    $userInfo['addresses'] = $addresses->toArray();
-                } else {
-                    $userInfo['addresses'] = [];
-                }
+//                $addresses = Address::findByPerson($user->id, PersonType::USER);
+//                if ($addresses && $addresses->count() > 0) {
+//                    $userInfo['addresses'] = $addresses->toArray();
+//                } else {
+//                    $userInfo['addresses'] = [];
+//                }
 
                 // Get user's auth information (role, status)
                 $auth = Auth::findFirstById($user->id);
@@ -1005,12 +1005,12 @@ class UserPatientController extends BaseController {
                 $userInfo = $user->toArray();
 
                 // Get user's addresses
-                $addresses = Address::findByPerson($user->id, PersonType::USER);
-                if ($addresses && $addresses->count() > 0) {
-                    $userInfo['addresses'] = $addresses->toArray();
-                } else {
-                    $userInfo['addresses'] = [];
-                }
+//                $addresses = Address::findByPerson($user->id, PersonType::USER);
+//                if ($addresses && $addresses->count() > 0) {
+//                    $userInfo['addresses'] = $addresses->toArray();
+//                } else {
+//                    $userInfo['addresses'] = [];
+//                }
 
                 // Add auth information (role, status)
                 $userInfo['role'] = $auth->role;
