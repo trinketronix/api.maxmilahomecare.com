@@ -1,7 +1,7 @@
 DROP VIEW IF EXISTS `user_auth`;
 DROP TABLE IF EXISTS `auth`;
-DROP TABLE IF EXISTS `address`;
 DROP TABLE IF EXISTS `visit`;
 DROP TABLE IF EXISTS `user_patient`;
 DROP TABLE IF EXISTS `user`;
 DROP TABLE IF EXISTS `patient`;
+DROP TABLE IF EXISTS `address`;
