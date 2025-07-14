@@ -12,4 +12,5 @@ class Status {
     public const int ARCHIVED = 2;
     // 3: Soft-deleted (record marked for deletion)
     public const int SOFT_DELETED = 3;
+    public const int VISIBLE = self::ACTIVE;
 }
