@@ -207,8 +207,8 @@ Content-Type: application/json
 }
 
 ### Access other user's address without permission (as caregiver)
-GET {{maxmila.baseUrl}}/address/person/99/0
-Authorization: {{maxmila.token}}
+GET {{maxmila.baseUrl}}/address/person/98/1
+Authorization: {{maxmila.manager.token}}
 
 ### Update other user's address without permission (as caregiver)
 PUT {{maxmila.baseUrl}}/address/10

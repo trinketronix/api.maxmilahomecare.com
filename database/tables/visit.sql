@@ -4,68 +4,70 @@ DROP TABLE IF EXISTS `visit`;
 -- Create the visit table for tracking patient visits
 CREATE TABLE `visit` (
     -- Primary identification
-    `id` BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT COMMENT 'Primary key, unique identifier for the visit, auto-incremented',
+                         `id` BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT COMMENT 'Primary key, unique identifier for the visit, auto-incremented',
 
     -- Related foreign ids
-    `user_id` BIGINT UNSIGNED NOT NULL COMMENT 'Identifier for the user (caregiver)',
-    `patient_id` BIGINT UNSIGNED NOT NULL COMMENT 'Identifier for the patient',
-    `address_id` BIGINT UNSIGNED NOT NULL COMMENT 'Identifier for the patient address where the visit will take place',
+                         `user_id` BIGINT UNSIGNED NOT NULL COMMENT 'Identifier for the user (caregiver)',
+                         `patient_id` BIGINT UNSIGNED NOT NULL COMMENT 'Identifier for the patient',
+                         `address_id` BIGINT UNSIGNED NOT NULL COMMENT 'Identifier for the patient address where the visit will take place',
 
     -- Visit information
-    `start_time` DATETIME NOT NULL COMMENT 'Visit start date and time',
-    `end_time` DATETIME NOT NULL COMMENT 'Visit end date and time',
-    `note` TEXT CHARACTER SET utf8mb4 DEFAULT NULL COMMENT 'Visit note, comment, observation etc',
+                         `visit_date` DATE NOT NULL COMMENT 'Date of the visit',
+                         `start_time` DATETIME DEFAULT NULL COMMENT 'Visit start time in 24:00 hrs format',
+                         `end_time` DATETIME DEFAULT NULL COMMENT 'Visit end time in 24:00 hrs format',
+                         `total_hours` TINYINT UNSIGNED NOT NULL DEFAULT 1 COMMENT 'Visit total of hours',
+                         `note` TEXT CHARACTER SET utf8mb4 DEFAULT NULL COMMENT 'Visit note, comment, observation etc',
 
     -- Visit status information
-    `progress` TINYINT NOT NULL DEFAULT 0 COMMENT 'Visit progress: canceled=-1, scheduled/to-do=0, checkin/in-progress=1, checkout/completed=2, approved/paid=3',
+                         `progress` TINYINT NOT NULL DEFAULT 0 COMMENT 'Visit progress: canceled=-1, scheduled/to-do=0, checkin/in-progress=1, checkout/completed=2, approved/paid=3',
 
     -- User tracking for each state change
-    `scheduled_by` BIGINT UNSIGNED DEFAULT NULL COMMENT 'User ID who scheduled the visit',
-    `checkin_by` BIGINT UNSIGNED DEFAULT NULL COMMENT 'User ID who checked in the visit',
-    `checkout_by` BIGINT UNSIGNED DEFAULT NULL COMMENT 'User ID who checked out/completed the visit',
-    `canceled_by` BIGINT UNSIGNED DEFAULT NULL COMMENT 'User ID who canceled the visit',
-    `approved_by` BIGINT UNSIGNED DEFAULT NULL COMMENT 'User ID who approved/paid the visit',
+                         `scheduled_by` BIGINT UNSIGNED DEFAULT NULL COMMENT 'User ID who scheduled the visit',
+                         `checkin_by` BIGINT UNSIGNED DEFAULT NULL COMMENT 'User ID who checked in the visit',
+                         `checkout_by` BIGINT UNSIGNED DEFAULT NULL COMMENT 'User ID who checked out/completed the visit',
+                         `canceled_by` BIGINT UNSIGNED DEFAULT NULL COMMENT 'User ID who canceled the visit',
+                         `approved_by` BIGINT UNSIGNED DEFAULT NULL COMMENT 'User ID who approved/paid the visit',
 
     -- Record status, allows to delete records in soft-deletion, archived, or just normal active
-    `status` TINYINT NOT NULL DEFAULT 1 COMMENT 'Record status: 1=Active/Visible/Normal, 2=Archived, 3=Soft-Deleted',
+                         `status` TINYINT NOT NULL DEFAULT 1 COMMENT 'Record status: 1=Active/Visible/Normal, 2=Archived, 3=Soft-Deleted',
 
     -- Audit timestamps
-    `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT 'Timestamp when the account was created (UTC)',
-    `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Timestamp of last record update (UTC)',
+                         `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT 'Timestamp when the account was created (UTC)',
+                         `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Timestamp of last record update (UTC)',
 
     -- Indexes
-    INDEX `idx_user_id` (`user_id`),
-    INDEX `idx_patient_id` (`patient_id`),
-    INDEX `idx_address_id` (`address_id`),
-    INDEX `idx_progress` (`progress`),
-    INDEX `idx_status` (`status`),
-    INDEX `idx_dates` (`start_time`, `end_time`),
-    INDEX `idx_scheduled_by` (`scheduled_by`),
-    INDEX `idx_checkout_by` (`checkout_by`),
-    INDEX `idx_patient_address` (`patient_id`, `address_id`),
+                         INDEX `idx_user_id` (`user_id`),
+                         INDEX `idx_patient_id` (`patient_id`),
+                         INDEX `idx_address_id` (`address_id`),
+                         INDEX `idx_progress` (`progress`),
+                         INDEX `idx_status` (`status`),
+                         INDEX `idx_dates` (`start_time`, `end_time`),
+                         INDEX `idx_scheduled_by` (`scheduled_by`),
+                         INDEX `idx_checkout_by` (`checkout_by`),
+                         INDEX `idx_patient_address` (`patient_id`, `address_id`),
 
     -- Constraints
-    CONSTRAINT `chk_progress` CHECK(`progress` IN (-1,0,1,2,3)),
-    CONSTRAINT `chk_status` CHECK(`status` IN (1,2,3)),
-    CONSTRAINT `chk_dates` CHECK(`end_time` >= `start_time`),
+                         CONSTRAINT `chk_progress` CHECK(`progress` IN (-1,0,1,2,3)),
+                         CONSTRAINT `chk_status` CHECK(`status` IN (1,2,3)),
+                         CONSTRAINT `chk_dates` CHECK(`end_time` >= `start_time`),
 
     -- Foreign key constraints
-    CONSTRAINT `fk_visit_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`)
-     ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT `fk_visit_patient` FOREIGN KEY (`patient_id`) REFERENCES `patient` (`id`)
-     ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT `fk_visit_address` FOREIGN KEY (`address_id`) REFERENCES `address` (`id`)
-     ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT `fk_visit_scheduled_by` FOREIGN KEY (`scheduled_by`) REFERENCES `user` (`id`)
-     ON DELETE SET NULL ON UPDATE CASCADE,
-    CONSTRAINT `fk_visit_checkin_by` FOREIGN KEY (`checkin_by`) REFERENCES `user` (`id`)
-     ON DELETE SET NULL ON UPDATE CASCADE,
-    CONSTRAINT `fk_visit_checkout_by` FOREIGN KEY (`checkout_by`) REFERENCES `user` (`id`)
-     ON DELETE SET NULL ON UPDATE CASCADE,
-    CONSTRAINT `fk_visit_canceled_by` FOREIGN KEY (`canceled_by`) REFERENCES `user` (`id`)
-     ON DELETE SET NULL ON UPDATE CASCADE,
-    CONSTRAINT `fk_visit_approved_by` FOREIGN KEY (`approved_by`) REFERENCES `user` (`id`)
-     ON DELETE SET NULL ON UPDATE CASCADE
+                         CONSTRAINT `fk_visit_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`)
+                             ON DELETE RESTRICT ON UPDATE CASCADE,
+                         CONSTRAINT `fk_visit_patient` FOREIGN KEY (`patient_id`) REFERENCES `patient` (`id`)
+                             ON DELETE RESTRICT ON UPDATE CASCADE,
+                         CONSTRAINT `fk_visit_address` FOREIGN KEY (`address_id`) REFERENCES `address` (`id`)
+                             ON DELETE RESTRICT ON UPDATE CASCADE,
+                         CONSTRAINT `fk_visit_scheduled_by` FOREIGN KEY (`scheduled_by`) REFERENCES `user` (`id`)
+                             ON DELETE SET NULL ON UPDATE CASCADE,
+                         CONSTRAINT `fk_visit_checkin_by` FOREIGN KEY (`checkin_by`) REFERENCES `user` (`id`)
+                             ON DELETE SET NULL ON UPDATE CASCADE,
+                         CONSTRAINT `fk_visit_checkout_by` FOREIGN KEY (`checkout_by`) REFERENCES `user` (`id`)
+                             ON DELETE SET NULL ON UPDATE CASCADE,
+                         CONSTRAINT `fk_visit_canceled_by` FOREIGN KEY (`canceled_by`) REFERENCES `user` (`id`)
+                             ON DELETE SET NULL ON UPDATE CASCADE,
+                         CONSTRAINT `fk_visit_approved_by` FOREIGN KEY (`approved_by`) REFERENCES `user` (`id`)
+                             ON DELETE SET NULL ON UPDATE CASCADE
 
     -- Note: Address-patient relationship validation is enforced at application level
     -- to ensure address_id belongs to the specified patient_id with person_type=1
