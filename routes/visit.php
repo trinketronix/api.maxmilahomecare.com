@@ -6,7 +6,7 @@ if (isset($app)) {
     $visit = new VisitController();
 
     // POST Routes - Create
-    $app->post('/visit', [$visit, 'create']);
+    $app->post('/visit', [$visit, 'schedule']);
 
     // GET Routes - Read
     $app->get('/visit/{id}', [$visit, 'getById']);

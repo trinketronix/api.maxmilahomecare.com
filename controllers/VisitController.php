@@ -17,9 +17,9 @@ use Api\Constants\Message;
 
 class VisitController extends BaseController {
     /**
-     * Create a new visit
+     * Schedule a new visit
      */
-    public function create(): array {
+    public function schedule(): array {
         try {
             // Get current user ID
             $currentUserId = $this->getCurrentUserId();
@@ -30,8 +30,9 @@ class VisitController extends BaseController {
             $requiredFields = [
                 Visit::USER_ID => 'User ID is required',
                 Visit::PATIENT_ID => 'Patient ID is required',
-                Visit::START_TIME => 'Start time is required',
-                Visit::END_TIME => 'End time is required'
+                Visit::ADDRESS_ID => 'Patient Address is required',
+                Visit::VISIT_DATE => 'Visit date is required',
+                Visit::TOTAL_HOURS => 'Total Hours are required'
             ];
 
             foreach ($requiredFields as $field => $message) {

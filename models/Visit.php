@@ -19,8 +19,10 @@ class Visit extends Model {
     public const string USER_ID = 'user_id';
     public const string PATIENT_ID = 'patient_id';
     public const string ADDRESS_ID = 'address_id';
+    public const string VISIT_DATE = 'visit_date';
     public const string START_TIME = 'start_time';
     public const string END_TIME = 'end_time';
+    public const string TOTAL_HOURS = 'total_hours';
     public const string NOTE = 'note';
     public const string PROGRESS = 'progress';
     public const string SCHEDULED_BY = 'scheduled_by';
