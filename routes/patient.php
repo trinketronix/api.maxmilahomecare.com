@@ -22,9 +22,6 @@ if (isset($app)) {
     $app->put('/patient/{id}/archivate', [$patient, 'archivatePatient']);
     $app->put('/patient/{id}/delete', [$patient, 'deletePatient']); // Soft delete
 
-    // DELETE Routes - Delete (Full Delete)
-    $app->delete('/patient/{id}', [$patient, 'delete']);
-
     // Upload photo routes
     // For uploading own photo (backward compatibility)
     $app->post('/patient/upload/photo', [$patient, 'uploadPhoto']);

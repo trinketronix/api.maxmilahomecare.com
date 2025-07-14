@@ -40,19 +40,20 @@ class Visit extends Model {
     // Related foreign ids
     public int $user_id;
     public int $patient_id;
+    public int $address_id;
 
     // Visit information
     public string $visit_date;
     public ?string $start_time = null;
     public ?string $end_time = null;
-    public int $total_hours;
+    public int $total_hours = 1;
     public ?string $note = null;
 
     // Visit status information
     public int $progress = Progress::SCHEDULED;
 
     // Progress tracking fields
-    public ?int $scheduled_by = null;
+    public int $scheduled_by;
     public ?int $checkin_by = null;
     public ?int $checkout_by = null;
     public ?int $canceled_by = null;
@@ -70,6 +71,16 @@ class Visit extends Model {
      */
     public function initialize(): void {
         $this->setSource('visit');
+
+        // Define relationships
+        $this->belongsTo('user_id', User::class, 'id', ['alias' => 'user']);
+        $this->belongsTo('patient_id', Patient::class, 'id', ['alias' => 'patient']);
+        $this->belongsTo('address_id', Address::class, 'id', ['alias' => 'address']);
+        $this->belongsTo('scheduled_by', User::class, 'id', ['alias' => 'scheduler']);
+        $this->belongsTo('checkin_by', User::class, 'id', ['alias' => 'checkinUser']);
+        $this->belongsTo('checkout_by', User::class, 'id', ['alias' => 'checkoutUser']);
+        $this->belongsTo('canceled_by', User::class, 'id', ['alias' => 'cancelerUser']);
+        $this->belongsTo('approved_by', User::class, 'id', ['alias' => 'approverUser']);
     }
 
     /**
@@ -82,16 +93,16 @@ class Visit extends Model {
         $requiredFields = [
             self::USER_ID => 'User ID is required',
             self::PATIENT_ID => 'Patient ID is required',
-            self::START_TIME => 'Start time is required',
-            self::END_TIME => 'End time is required'
+            self::ADDRESS_ID => 'Address ID is required',
+            self::VISIT_DATE => 'Visit date is required',
+            self::TOTAL_HOURS => 'Total hours is required',
+            self::SCHEDULED_BY => 'Scheduled by is required'
         ];
 
         foreach ($requiredFields as $field => $message) {
             $validator->add(
                 $field,
-                new PresenceOf([
-                    'message' => $message
-                ])
+                new PresenceOf(['message' => $message])
             );
         }
 
@@ -123,7 +134,17 @@ class Visit extends Model {
             ])
         );
 
-        // Time validation: end_time should be after start_time
+        // Total hours validation
+        $validator->add(
+            self::TOTAL_HOURS,
+            new \Phalcon\Filter\Validation\Validator\Between([
+                'minimum' => 1,
+                'maximum' => 24,
+                'message' => 'Total hours must be between 1 and 24'
+            ])
+        );
+
+        // Time validation: if start_time is set, end_time should be calculated
         if (!empty($this->start_time) && !empty($this->end_time)) {
             $startTime = new DateTime($this->start_time);
             $endTime = new DateTime($this->end_time);
@@ -139,42 +160,12 @@ class Visit extends Model {
             }
         }
 
-        // Validate progress state consistency with tracking fields
-        if ($this->progress === Progress::CANCELED && !$this->canceled_by) {
+        // Validate that canceled visits must have a note
+        if ($this->progress === Progress::CANCELED && empty($this->note)) {
             $this->appendMessage(
                 new \Phalcon\Messages\Message(
-                    'Canceled visits must have canceled_by field set',
-                    self::CANCELED_BY
-                )
-            );
-            return false;
-        }
-
-        if ($this->progress === Progress::IN_PROGRESS && !$this->checkin_by) {
-            $this->appendMessage(
-                new \Phalcon\Messages\Message(
-                    'In-progress visits must have checkin_by field set',
-                    self::CHECKIN_BY
-                )
-            );
-            return false;
-        }
-
-        if ($this->progress === Progress::COMPLETED && !$this->checkout_by) {
-            $this->appendMessage(
-                new \Phalcon\Messages\Message(
-                    'Completed visits must have checkout_by field set',
-                    self::CHECKOUT_BY
-                )
-            );
-            return false;
-        }
-
-        if ($this->progress === Progress::PAID && !$this->approved_by) {
-            $this->appendMessage(
-                new \Phalcon\Messages\Message(
-                    'Paid visits must have approved_by field set',
-                    self::APPROVED_BY
+                    'Canceled visits must have a note explaining the cancellation',
+                    self::NOTE
                 )
             );
             return false;
@@ -184,121 +175,58 @@ class Visit extends Model {
     }
 
     /**
-     * Actions before create (in addition to Timestampable behavior)
+     * Actions before create
      */
-    public function beforeCreate() {
-        // Ensure progress and tracking fields are consistent
-        $this->ensureProgressConsistency();
-        return true;
-    }
-
-    /**
-     * Actions before update (in addition to Timestampable behavior)
-     */
-    public function beforeUpdate() {
-        // Ensure progress and tracking fields are consistent
-        $this->ensureProgressConsistency();
-        return true;
-    }
-
-    /**
-     * Ensure consistency between progress state and tracking fields
-     */
-    private function ensureProgressConsistency(): void {
-        // All visits should have a scheduler
-        if (is_null($this->scheduled_by) && $this->progress !== Progress::CANCELED) {
-            // If we don't know who scheduled it but it exists, use the assigned user
+    public function beforeCreate(): bool {
+        // Set scheduled_by to user_id if not set
+        if (empty($this->scheduled_by)) {
             $this->scheduled_by = $this->user_id;
         }
 
-        // Make sure checkin_by is set for in-progress, completed, or paid visits
-        if (($this->progress >= Progress::IN_PROGRESS) && is_null($this->checkin_by)) {
-            $this->checkin_by = $this->user_id;
+        // Calculate end_time if start_time is provided
+        if (!empty($this->start_time) && empty($this->end_time)) {
+            $this->calculateEndTime();
         }
 
-        // Make sure checkout_by is set for completed or paid visits
-        if (($this->progress >= Progress::COMPLETED) && is_null($this->checkout_by)) {
-            $this->checkout_by = $this->user_id;
+        return true;
+    }
+
+    /**
+     * Actions before update
+     */
+    public function beforeUpdate(): bool {
+        // Recalculate end_time if start_time or total_hours changed
+        if ($this->hasChanged([self::START_TIME, self::TOTAL_HOURS]) && !empty($this->start_time)) {
+            $this->calculateEndTime();
+        }
+
+        return true;
+    }
+
+    /**
+     * Calculate end time based on start time and total hours
+     */
+    private function calculateEndTime(): void {
+        if (!empty($this->start_time) && $this->total_hours > 0) {
+            $startTime = new DateTime($this->start_time);
+            $startTime->modify("+{$this->total_hours} hours");
+            $this->end_time = $startTime->format('Y-m-d H:i:s');
         }
     }
 
     /**
-     * Format datetime for display
-     */
-    private function formatDateTime(string $datetime, string $format = 'Y-m-d H:i:s'): string {
-        $date = new DateTime($datetime);
-        return $date->format($format);
-    }
-
-    /**
-     * Get user
-     */
-    public function getUser(): Array {
-        return User::findFirstById($this->user_id)->toArray();
-    }
-
-    /**
-     * Get patient
-     */
-    public function getPatient(): Array {
-        return Patient::findFirstById($this->patient_id)->toArray();
-    }
-
-    /**
-     * Get address
-     */
-    public function getAddress(): Array {
-        return Address::findFirstById($this->address_id)->toArray();
-    }
-
-    /**
-     * Get formatted start time
-     */
-    public function getFormattedStartTime(string $format = 'Y-m-d h:i A'): string {
-        return $this->formatDateTime($this->start_time, $format);
-    }
-
-    /**
-     * Get formatted end time
-     */
-    public function getFormattedEndTime(string $format = 'Y-m-d h:i A'): string {
-        return $this->formatDateTime($this->end_time, $format);
-    }
-
-    /**
-     * Get visit duration in minutes
+     * Get duration in minutes
      */
     public function getDurationMinutes(): int {
+        if (empty($this->start_time) || empty($this->end_time)) {
+            return $this->total_hours * 60;
+        }
+
         $startTime = new DateTime($this->start_time);
         $endTime = new DateTime($this->end_time);
 
         $interval = $startTime->diff($endTime);
         return ($interval->days * 24 * 60) + ($interval->h * 60) + $interval->i;
-    }
-
-    /**
-     * Get formatted visit duration (e.g., "2 hours 30 minutes")
-     */
-    public function getFormattedDuration(): string {
-        $minutes = $this->getDurationMinutes();
-
-        $hours = floor($minutes / 60);
-        $remainingMinutes = $minutes % 60;
-
-        $result = '';
-
-        if ($hours > 0) {
-            $result .= $hours . ' hour' . ($hours > 1 ? 's' : '');
-        }
-
-        if ($remainingMinutes > 0) {
-            if ($result) {
-                $result .= ' ';
-            }
-            $result .= $remainingMinutes . ' minute' . ($remainingMinutes > 1 ? 's' : '');
-        }
-
-        return $result ?: '0 minutes';
     }
 
     /**
@@ -308,282 +236,155 @@ class Visit extends Model {
         $descriptions = [
             Progress::CANCELED => 'Canceled',
             Progress::SCHEDULED => 'Scheduled',
-            Progress::IN_PROGRESS => 'In Progress',
-            Progress::COMPLETED => 'Completed',
-            Progress::PAID => 'Paid'
+            Progress::IN_PROGRESS => 'Checked In',
+            Progress::COMPLETED => 'Checked Out',
+            Progress::PAID => 'Approved'
         ];
 
         return $descriptions[$this->progress] ?? 'Unknown';
     }
 
     /**
-     * Check if visit is canceled
+     * Check if visit can be checked in
+     */
+    public function canCheckIn(): bool {
+        return $this->progress === Progress::SCHEDULED && $this->status === Status::ACTIVE;
+    }
+
+    /**
+     * Check if visit can be checked out
+     */
+    public function canCheckOut(): bool {
+        return $this->progress === Progress::IN_PROGRESS && $this->status === Status::ACTIVE;
+    }
+
+    /**
+     * Check if visit can be approved
+     */
+    public function canApprove(): bool {
+        return $this->progress === Progress::COMPLETED && $this->status === Status::ACTIVE;
+    }
+
+    /**
+     * Check if visit can be canceled
+     */
+    public function canCancel(): bool {
+        return in_array($this->progress, [Progress::SCHEDULED, Progress::IN_PROGRESS])
+            && $this->status === Status::ACTIVE;
+    }
+
+    /**
+     * Helper methods for progress checks
      */
     public function isCanceled(): bool {
         return $this->progress === Progress::CANCELED;
     }
 
-    /**
-     * Check if visit is scheduled
-     */
     public function isScheduled(): bool {
         return $this->progress === Progress::SCHEDULED;
     }
 
-    /**
-     * Check if visit is in progress
-     */
     public function isInProgress(): bool {
         return $this->progress === Progress::IN_PROGRESS;
     }
 
-    /**
-     * Check if visit is completed
-     */
     public function isCompleted(): bool {
         return $this->progress === Progress::COMPLETED;
     }
 
-    /**
-     * Check if visit is paid
-     */
-    public function isPaid(): bool {
+    public function isApproved(): bool {
         return $this->progress === Progress::PAID;
     }
 
     /**
-     * Check if visit is active
+     * Helper methods for status checks
      */
-    public function isActive(): bool {
+    public function isVisible(): bool {
         return $this->status === Status::ACTIVE;
     }
 
-    /**
-     * Get scheduler user
-     */
-    public function getScheduler(): ?User {
-        return $this->scheduledByUser ?? null;
+    public function isArchived(): bool {
+        return $this->status === Status::ARCHIVED;
+    }
+
+    public function isSoftDeleted(): bool {
+        return $this->status === Status::SOFT_DELETED;
     }
 
     /**
-     * Get check-in user
+     * Get user data
      */
-    public function getCheckinUser(): ?User {
-        return $this->checkinByUser ?? null;
+    public function getUserData(): array {
+        $user = User::findFirstById($this->user_id);
+        return $user ? $user->toArray() : [];
     }
 
     /**
-     * Get check-out user
+     * Get patient data
      */
-    public function getCheckoutUser(): ?User {
-        return $this->checkoutByUser ?? null;
+    public function getPatientData(): array {
+        $patient = Patient::findFirstById($this->patient_id);
+        return $patient ? $patient->toArray() : [];
     }
 
     /**
-     * Get cancellation user
+     * Get address data
      */
-    public function getCanceledByUser(): ?User {
-        return $this->canceledByUser ?? null;
+    public function getAddressData(): array {
+        $address = Address::findFirstById($this->address_id);
+        return $address ? $address->toArray() : [];
     }
 
     /**
-     * Get approval user
+     * Find visits with custom ordering for display
+     * Orders by: today's in-progress first, then scheduled, future scheduled, canceled, past visits
      */
-    public function getApprovedByUser(): ?User {
-        return $this->approvedByUser ?? null;
+    public static function findWithCustomOrder(array $conditions = [], array $bind = [], array $bindTypes = []): \Phalcon\Mvc\Model\ResultsetInterface {
+        $today = date('Y-m-d');
+
+        // Build the ORDER BY clause for custom sorting
+        $orderBy = "
+            CASE 
+                WHEN visit_date = '{$today}' AND progress = " . Progress::IN_PROGRESS . " THEN 1
+                WHEN visit_date = '{$today}' AND progress = " . Progress::SCHEDULED . " THEN 2
+                WHEN visit_date > '{$today}' AND progress = " . Progress::SCHEDULED . " THEN 3
+                WHEN progress = " . Progress::CANCELED . " THEN 4
+                ELSE 5
+            END,
+            visit_date DESC,
+            start_time DESC
+        ";
+
+        return self::find([
+            'conditions' => implode(' AND ', $conditions),
+            'bind' => $bind,
+            'bindTypes' => $bindTypes,
+            'order' => $orderBy
+        ]);
     }
 
     /**
-     * Find visits for a specific user (caregiver)
+     * Find visits for a specific user
      */
     public static function findByUser(int $userId, array $params = []): \Phalcon\Mvc\Model\ResultsetInterface {
         $conditions = ['user_id = :user_id:'];
         $bind = ['user_id' => $userId];
         $bindTypes = ['user_id' => \PDO::PARAM_INT];
 
-        // Add optional progress filter
-        if (isset($params['progress'])) {
-            $conditions[] = 'progress = :progress:';
-            $bind['progress'] = $params['progress'];
-            $bindTypes['progress'] = \PDO::PARAM_INT;
-        }
-
-        // Add optional date range filter
-        if (isset($params['start_date']) && isset($params['end_date'])) {
-            $conditions[] = 'start_time >= :start_date: AND start_time <= :end_date:';
-            $bind['start_date'] = $params['start_date'] . ' 00:00:00';
-            $bind['end_date'] = $params['end_date'] . ' 23:59:59';
-            $bindTypes['start_date'] = \PDO::PARAM_STR;
-            $bindTypes['end_date'] = \PDO::PARAM_STR;
-        }
-
-        // Add status filter, default to active
-        if (isset($params['status'])) {
-            $conditions[] = 'status = :status:';
-            $bind['status'] = $params['status'];
-        } else {
+        // Add status filter (default to active/visible)
+        if (!isset($params['include_all_statuses'])) {
             $conditions[] = 'status = :status:';
             $bind['status'] = Status::ACTIVE;
+            $bindTypes['status'] = \PDO::PARAM_INT;
         }
-        $bindTypes['status'] = \PDO::PARAM_INT;
 
-        return self::find([
-            'conditions' => implode(' AND ', $conditions),
-            'bind' => $bind,
-            'bindTypes' => $bindTypes,
-            'order' => 'start_time ' . ($params['order'] ?? 'ASC')
-        ]);
+        return self::findWithCustomOrder($conditions, $bind, $bindTypes);
     }
 
     /**
-     * Find visits by scheduler
+     * Find all visits (for managers/admins)
      */
-    public static function findByScheduler(int $schedulerId, array $params = []): \Phalcon\Mvc\Model\ResultsetInterface {
-        $conditions = ['scheduled_by = :scheduler_id:'];
-        $bind = ['scheduler_id' => $schedulerId];
-        $bindTypes = ['scheduler_id' => \PDO::PARAM_INT];
-
-        // Add status filter, default to active
-        if (isset($params['status'])) {
-            $conditions[] = 'status = :status:';
-            $bind['status'] = $params['status'];
-        } else {
-            $conditions[] = 'status = :status:';
-            $bind['status'] = Status::ACTIVE;
-        }
-        $bindTypes['status'] = \PDO::PARAM_INT;
-
-        return self::find([
-            'conditions' => implode(' AND ', $conditions),
-            'bind' => $bind,
-            'bindTypes' => $bindTypes,
-            'order' => 'start_time ' . ($params['order'] ?? 'ASC')
-        ]);
-    }
-
-    /**
-     * Find visits for a specific patient
-     */
-    public static function findByPatient(int $patientId, array $params = []): \Phalcon\Mvc\Model\ResultsetInterface {
-        $conditions = ['patient_id = :patient_id:'];
-        $bind = ['patient_id' => $patientId];
-        $bindTypes = ['patient_id' => \PDO::PARAM_INT];
-
-        // Add optional progress filter
-        if (isset($params['progress'])) {
-            $conditions[] = 'progress = :progress:';
-            $bind['progress'] = $params['progress'];
-            $bindTypes['progress'] = \PDO::PARAM_INT;
-        }
-
-        // Add optional date range filter
-        if (isset($params['start_date']) && isset($params['end_date'])) {
-            $conditions[] = 'start_time >= :start_date: AND start_time <= :end_date:';
-            $bind['start_date'] = $params['start_date'] . ' 00:00:00';
-            $bind['end_date'] = $params['end_date'] . ' 23:59:59';
-            $bindTypes['start_date'] = \PDO::PARAM_STR;
-            $bindTypes['end_date'] = \PDO::PARAM_STR;
-        }
-
-        // Add status filter, default to active
-        if (isset($params['status'])) {
-            $conditions[] = 'status = :status:';
-            $bind['status'] = $params['status'];
-        } else {
-            $conditions[] = 'status = :status:';
-            $bind['status'] = Status::ACTIVE;
-        }
-        $bindTypes['status'] = \PDO::PARAM_INT;
-
-        return self::find([
-            'conditions' => implode(' AND ', $conditions),
-            'bind' => $bind,
-            'bindTypes' => $bindTypes,
-            'order' => 'start_time ' . ($params['order'] ?? 'ASC')
-        ]);
-    }
-
-    /**
-     * Find upcoming visits for today
-     */
-    public static function findTodaysVisits(int $userId = null): \Phalcon\Mvc\Model\ResultsetInterface {
-        $today = date('Y-m-d');
-        $conditions = ['DATE(start_time) = :today: AND progress = :progress: AND status = :status:'];
-        $bind = [
-            'today' => $today,
-            'progress' => Progress::SCHEDULED,
-            'status' => Status::ACTIVE
-        ];
-        $bindTypes = [
-            'today' => \PDO::PARAM_STR,
-            'progress' => \PDO::PARAM_INT,
-            'status' => \PDO::PARAM_INT
-        ];
-
-        if ($userId !== null) {
-            $conditions[] = 'user_id = :user_id:';
-            $bind['user_id'] = $userId;
-            $bindTypes['user_id'] = \PDO::PARAM_INT;
-        }
-
-        return self::find([
-            'conditions' => implode(' AND ', $conditions),
-            'bind' => $bind,
-            'bindTypes' => $bindTypes,
-            'order' => 'start_time ASC'
-        ]);
-    }
-
-    /**
-     * Find visits by date range
-     */
-    public static function findByDateRange(string $startDate, string $endDate, array $params = []): \Phalcon\Mvc\Model\ResultsetInterface {
-        $conditions = ['start_time >= :start_date: AND start_time <= :end_date:'];
-        $bind = [
-            'start_date' => $startDate . ' 00:00:00',
-            'end_date' => $endDate . ' 23:59:59'
-        ];
-        $bindTypes = [
-            'start_date' => \PDO::PARAM_STR,
-            'end_date' => \PDO::PARAM_STR
-        ];
-
-        // Add optional user filter
-        if (isset($params['user_id'])) {
-            $conditions[] = 'user_id = :user_id:';
-            $bind['user_id'] = $params['user_id'];
-            $bindTypes['user_id'] = \PDO::PARAM_INT;
-        }
-
-        // Add optional patient filter
-        if (isset($params['patient_id'])) {
-            $conditions[] = 'patient_id = :patient_id:';
-            $bind['patient_id'] = $params['patient_id'];
-            $bindTypes['patient_id'] = \PDO::PARAM_INT;
-        }
-
-        // Add optional progress filter
-        if (isset($params['progress'])) {
-            $conditions[] = 'progress = :progress:';
-            $bind['progress'] = $params['progress'];
-            $bindTypes['progress'] = \PDO::PARAM_INT;
-        }
-
-        // Add status filter, default to active
-        if (isset($params['status'])) {
-            $conditions[] = 'status = :status:';
-            $bind['status'] = $params['status'];
-        } else {
-            $conditions[] = 'status = :status:';
-            $bind['status'] = Status::ACTIVE;
-        }
-        $bindTypes['status'] = \PDO::PARAM_INT;
-
-        return self::find([
-            'conditions' => implode(' AND ', $conditions),
-            'bind' => $bind,
-            'bindTypes' => $bindTypes,
-            'order' => 'start_time ' . ($params['order'] ?? 'ASC')
-        ]);
+    public static function findAllVisits(): \Phalcon\Mvc\Model\ResultsetInterface {
+        return self::findWithCustomOrder();
     }
 }

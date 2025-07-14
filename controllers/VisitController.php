@@ -8,31 +8,32 @@ use Api\Constants\PersonType;
 use Api\Constants\Progress;
 use Api\Constants\Status;
 use Api\Models\Address;
-use Exception;
-use DateTime;
-use Api\Models\Visit;
-use Api\Models\User;
 use Api\Models\Patient;
+use Api\Models\User;
+use Api\Models\UserPatient;
+use Api\Models\Visit;
 use Api\Constants\Message;
+use DateTime;
+use Exception;
 
 class VisitController extends BaseController {
     /**
      * Schedule a new visit
+     * Required: user_id, patient_id, address_id, visit_date, total_hours
+     * Optional: start_time, note
      */
     public function schedule(): array {
         try {
-            // Get current user ID
             $currentUserId = $this->getCurrentUserId();
-
             $data = $this->getRequestBody();
 
             // Validate required fields
             $requiredFields = [
                 Visit::USER_ID => 'User ID is required',
                 Visit::PATIENT_ID => 'Patient ID is required',
-                Visit::ADDRESS_ID => 'Patient Address is required',
+                Visit::ADDRESS_ID => 'Address ID is required',
                 Visit::VISIT_DATE => 'Visit date is required',
-                Visit::TOTAL_HOURS => 'Total Hours are required'
+                Visit::TOTAL_HOURS => 'Total hours is required'
             ];
 
             foreach ($requiredFields as $field => $message) {
@@ -41,310 +42,113 @@ class VisitController extends BaseController {
                 }
             }
 
-            // Verify user exists
             $userId = (int)$data[Visit::USER_ID];
-            $user = User::findFirst($userId);
+
+            // Authorization: can only schedule for self or as manager/admin
+            if ($userId !== $currentUserId && !$this->isManagerOrHigher()) {
+                return $this->respondWithError('You can only schedule visits for yourself', 403);
+            }
+
+            // Validate user exists
+            $user = User::findFirstById($userId);
             if (!$user) {
                 return $this->respondWithError(Message::USER_NOT_FOUND, 404);
             }
 
-            // Verify patient exists
+            // Validate patient exists and is active
             $patientId = (int)$data[Visit::PATIENT_ID];
-            $patient = Patient::findFirst($patientId);
+            $patient = Patient::findFirstById($patientId);
             if (!$patient) {
                 return $this->respondWithError(Message::PATIENT_NOT_FOUND, 404);
             }
-
-            // Verify patient is active
             if (!$patient->isActive()) {
-                return $this->respondWithError('Cannot create visit for inactive patient', 400);
+                return $this->respondWithError('Cannot schedule visit for inactive patient', 400);
             }
 
-            // Validate address_id if provided
-            $addressId = null;
-            if (isset($data[Visit::ADDRESS_ID]) && !empty($data[Visit::ADDRESS_ID])) {
-                $addressId = (int)$data[Visit::ADDRESS_ID];
-
-                // Verify address exists and belongs to the patient
-                $address = Address::findFirst([
-                    'conditions' => 'id = :address_id: AND person_id = :patient_id: AND person_type = :person_type:',
-                    'bind' => [
-                        'address_id' => $addressId,
-                        'patient_id' => $patientId,
-                        'person_type' => PersonType::PATIENT
-                    ],
-                    'bindTypes' => [
-                        'address_id' => \PDO::PARAM_INT,
-                        'patient_id' => \PDO::PARAM_INT,
-                        'person_type' => \PDO::PARAM_INT
-                    ]
-                ]);
-
-                if (!$address) {
-                    return $this->respondWithError('Invalid address for this patient', 400);
-                }
+            // Validate address belongs to patient
+            $addressId = (int)$data[Visit::ADDRESS_ID];
+            $address = $this->validatePatientAddress($addressId, $patientId);
+            if (!$address) {
+                return $this->respondWithError('Invalid address for this patient', 400);
             }
 
-            // Authorization check: can only create visits for self or as manager/admin
-            if ($userId !== $currentUserId && !$this->isManagerOrHigher()) {
-                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
+            // Validate user is assigned to patient (optional business rule)
+            if (!$this->isUserAssignedToPatient($userId, $patientId) && !$this->isManagerOrHigher()) {
+                return $this->respondWithError('User is not assigned to this patient', 403);
             }
 
-            // Validate time fields
-            $startTime = new DateTime($data[Visit::START_TIME]);
-            $endTime = new DateTime($data[Visit::END_TIME]);
-            $currentTime = new DateTime();
-
-            if ($endTime <= $startTime) {
-                return $this->respondWithError('End time cannot be before start time', 400);
+            // Validate total hours
+            $totalHours = (int)$data[Visit::TOTAL_HOURS];
+            if ($totalHours < 1 || $totalHours > 24) {
+                return $this->respondWithError('Total hours must be between 1 and 24', 400);
             }
 
             // Create visit within transaction
-            return $this->withTransaction(function() use ($data, $startTime, $endTime, $currentTime, $currentUserId, $addressId) {
+            return $this->withTransaction(function() use ($data, $userId, $patientId, $addressId, $totalHours, $currentUserId) {
                 $visit = new Visit();
 
                 // Set required fields
-                $visit->user_id = (int)$data[Visit::USER_ID];
-                $visit->patient_id = (int)$data[Visit::PATIENT_ID];
-                $visit->start_time = $startTime->format('Y-m-d H:i:s');
-                $visit->end_time = $endTime->format('Y-m-d H:i:s');
+                $visit->user_id = $userId;
+                $visit->patient_id = $patientId;
+                $visit->address_id = $addressId;
+                $visit->visit_date = $data[Visit::VISIT_DATE];
+                $visit->total_hours = $totalHours;
 
-                // Set address_id if provided
-                if ($addressId) {
-                    $visit->address_id = $addressId;
+                // Set defaults
+                $visit->scheduled_by = $userId; // Always the user who will perform the visit
+                $visit->progress = Progress::SCHEDULED;
+                $visit->status = Status::ACTIVE;
+
+                // Set optional fields
+                if (!empty($data[Visit::START_TIME])) {
+                    $visit->start_time = $data[Visit::START_TIME];
+                    // end_time will be calculated automatically in beforeCreate
                 }
 
-                // Set optional fields if provided
-                if (isset($data[Visit::NOTE])) {
+                if (!empty($data[Visit::NOTE])) {
                     $visit->note = $data[Visit::NOTE];
                 }
 
-                // Calculate time difference in minutes
-                $minutesBeforeStart = ($startTime->getTimestamp() - $currentTime->getTimestamp()) / 60;
-                $minutesAfterStart = ($currentTime->getTimestamp() - $startTime->getTimestamp()) / 60;
-
-                // Determine progress status based on creation time relative to start time
-                if ($minutesBeforeStart > 15) {
-                    // Created more than 15 minutes before start time -> Scheduled
-                    $visit->progress = Progress::SCHEDULED;
-                    $visit->scheduled_by = $currentUserId;
-                } else if ($minutesBeforeStart <= 15 && $minutesAfterStart <= 15) {
-                    // Created within 15 minutes of start time (before or after) -> Check-in
-                    $visit->progress = Progress::IN_PROGRESS;
-                    $visit->scheduled_by = $currentUserId;
-                    $visit->checkin_by = $currentUserId;
-                } else {
-                    // Created more than 15 minutes after start time -> Completed
-                    $visit->progress = Progress::COMPLETED;
-                    $visit->scheduled_by = $currentUserId;
-                    $visit->checkin_by = $currentUserId;
-                    $visit->checkout_by = $currentUserId;
-                }
-
-                // Override progress if explicitly provided (for admins/managers only)
-                if (isset($data[Visit::PROGRESS]) && $this->isManagerOrHigher()) {
-                    $progress = (int)$data[Visit::PROGRESS];
-                    if (!in_array($progress, [
-                        Progress::CANCELED,
-                        Progress::SCHEDULED,
-                        Progress::IN_PROGRESS,
-                        Progress::COMPLETED,
-                        Progress::PAID
-                    ])) {
-                        return $this->respondWithError(Message::STATUS_INVALID, 400);
-                    }
-                    $visit->progress = $progress;
-
-                    // Set corresponding tracking fields based on provided progress
-                    if ($progress === Progress::CANCELED) {
-                        $visit->canceled_by = $currentUserId;
-                    } else if ($progress === Progress::PAID) {
-                        $visit->approved_by = $currentUserId;
-                    }
-                }
-
-                // Always create with active status
-                $visit->status = Status::ACTIVE;
-
                 if (!$visit->save()) {
-                    $messages = $visit->getMessages(); // This is Phalcon\Messages\MessageInterface[]
-                    $msg = "An unknown error occurred."; // Default/fallback
-
-                    if (count($messages) > 0) {
-                        // Get the first message object from the array
-                        $obj = $messages[0]; // or current($phalconMessages)
-
-                        // Extract the string message from the object
-                        // The MessageInterface guarantees the getMessage() method.
-                        $msg = $obj->getMessage();
-                    }
-
-                    // Pass the extracted string message to your responder
-                    return $this->respondWithError($msg, 422);
+                    return $this->respondWithError($this->getFirstErrorMessage($visit), 422);
                 }
 
                 return $this->respondWithSuccess([
-                    'message' => 'Visit created successfully',
-                    'visit_id' => $visit->id,
-                    'progress' => $visit->progress,
-                    'address_id' => $visit->address_id,
-                    'duration_minutes' => $visit->getDurationMinutes()
-                ], 201, 'Visit created successfully');
+                    'message' => 'Visit scheduled successfully',
+                    'visit' => $this->formatVisitData($visit)
+                ], 201, 'Visit scheduled successfully');
             });
 
         } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+            return $this->handleException($e);
         }
     }
 
     /**
-     * Get a specific visit by ID
+     * Get all visits (Manager/Admin only)
      */
-    public function getById(int $id): array {
+    public function getAllVisits(): array {
         try {
-            // Get current user ID
-            $currentUserId = $this->getCurrentUserId();
-
-            // Find visit
-            $visit = Visit::findFirst($id);
-            if (!$visit) {
-                return $this->respondWithError('Visit not found', 404);
-            }
-
-            // Authorization check: can only view own visits or as manager/admin
-            if ($visit->user_id !== $currentUserId && !$this->isManagerOrHigher()) {
+            // Authorization: Manager/Admin only
+            if (!$this->isManagerOrHigher()) {
                 return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
             }
 
-            // Get related data
-            $visitData = $visit->toArray();
-            $visitData['duration_minutes'] = $visit->getDurationMinutes();
-            $visitData['progress_description'] = $visit->getProgressDescription();
-            $visitData['address'] = $visit->getAddress();
-            $visitData['patient'] = $visit->getPatient();
-            $visitData['user'] = $visit->getUser();
+            // Get all visits with custom ordering
+            $visits = Visit::findAllVisits();
 
-            return $this->respondWithSuccess($visitData);
-
-        } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
-        }
-    }
-
-    /**
-     * Get visits with optional filtering
-     */
-    public function getVisits(): array {
-        try {
-            // Get query parameters for filtering
-            $userId = $this->request->getQuery('user_id', 'int', null);
-            $patientId = $this->request->getQuery('patient_id', 'int', null);
-            $addressId = $this->request->getQuery('address_id', 'int', null);
-            $progress = $this->request->getQuery('progress', 'int', null);
-            $status = $this->request->getQuery('status', 'int', Status::ACTIVE);
-            $startDate = $this->request->getQuery('start_date', 'string', null);
-            $endDate = $this->request->getQuery('end_date', 'string', null);
-            $page = $this->request->getQuery('page', 'int', 1);
-            $pageSize = $this->request->getQuery('pageSize', 'int', 50);
-
-            // Build query parameters
-            $params = [
-                'status' => $status,
-                'order' => 'DESC'
-            ];
-
-            if ($progress !== null) {
-                $params['progress'] = $progress;
-            }
-
-            if ($startDate && $endDate) {
-                $params['start_date'] = $startDate;
-                $params['end_date'] = $endDate;
-            }
-
-            if ($addressId !== null) {
-                $params['address_id'] = $addressId;
-            }
-
-            // Get visits based on parameters
-            if ($userId) {
-                // Check authorization for accessing user-specific visits
-                $currentUserId = $this->getCurrentUserId();
-                if ($userId !== $currentUserId && !$this->isManagerOrHigher()) {
-                    return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
-                }
-                $visits = Visit::findByUser($userId, $params);
-            } elseif ($patientId) {
-                // Managers and above can access patient visits
-                if (!$this->isManagerOrHigher()) {
-                    return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
-                }
-                $visits = Visit::findByPatient($patientId, $params);
-            } else {
-                // General visit query - managers and above only
-                if (!$this->isManagerOrHigher()) {
-                    return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
-                }
-
-                // Build conditions for general query
-                $conditions = ['status = :status:'];
-                $bind = ['status' => $status];
-                $bindTypes = ['status' => \PDO::PARAM_INT];
-
-                if ($addressId !== null) {
-                    $conditions[] = 'address_id = :address_id:';
-                    $bind['address_id'] = $addressId;
-                    $bindTypes['address_id'] = \PDO::PARAM_INT;
-                }
-
-                if ($progress !== null) {
-                    $conditions[] = 'progress = :progress:';
-                    $bind['progress'] = $progress;
-                    $bindTypes['progress'] = \PDO::PARAM_INT;
-                }
-
-                if ($startDate && $endDate) {
-                    $conditions[] = 'start_time >= :start_date: AND start_time <= :end_date:';
-                    $bind['start_date'] = $startDate . ' 00:00:00';
-                    $bind['end_date'] = $endDate . ' 23:59:59';
-                    $bindTypes['start_date'] = \PDO::PARAM_STR;
-                    $bindTypes['end_date'] = \PDO::PARAM_STR;
-                }
-
-                $visits = Visit::find([
-                    'conditions' => implode(' AND ', $conditions),
-                    'bind' => $bind,
-                    'bindTypes' => $bindTypes,
-                    'order' => 'start_time DESC'
-                ]);
-            }
-
-            // Convert to array and add additional data
-            $visitArray = [];
+            $visitsData = [];
             foreach ($visits as $visit) {
-                $visitData = $visit->toArray();
-                $visitData['duration_minutes'] = $visit->getDurationMinutes();
-                $visitData['progress_description'] = $visit->getProgressDescription();
-                $visitData['address'] = $visit->getAddress();
-                $visitData['patient'] = $visit->getPatient();
-                $visitData['user'] = $visit->getUser();
-
-                $visitArray[] = $visitData;
+                $visitsData[] = $this->formatVisitData($visit);
             }
 
             return $this->respondWithSuccess([
-                'visits' => $visitArray,
-                'count' => count($visitArray)
+                'count' => count($visitsData),
+                'visits' => $visitsData
             ]);
 
         } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+            return $this->handleException($e);
         }
     }
 
@@ -353,846 +157,522 @@ class VisitController extends BaseController {
      */
     public function getUserVisits(int $userId): array {
         try {
-            // Check authorization
             $currentUserId = $this->getCurrentUserId();
+
+            // Authorization: can only view own visits or as manager/admin
             if ($userId !== $currentUserId && !$this->isManagerOrHigher()) {
-                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
+                return $this->respondWithError(Message::UNAUTHORIZED_ACCESS, 403);
             }
 
-            // Get query parameters
-            $progress = $this->request->getQuery('progress', 'int', null);
-            $status = $this->request->getQuery('status', 'int', Status::ACTIVE);
-            $startDate = $this->request->getQuery('start_date', 'string', null);
-            $endDate = $this->request->getQuery('end_date', 'string', null);
-            $addressId = $this->request->getQuery('address_id', 'int', null);
+            // Get user visits (active status only by default)
+            $visits = Visit::findByUser($userId);
 
-            // Build parameters
-            $params = [
-                'status' => $status,
-                'order' => 'DESC'
-            ];
-
-            if ($progress !== null) {
-                $params['progress'] = $progress;
-            }
-
-            if ($startDate && $endDate) {
-                $params['start_date'] = $startDate;
-                $params['end_date'] = $endDate;
-            }
-
-            if ($addressId !== null) {
-                $params['address_id'] = $addressId;
-            }
-
-            // Get visits
-            $visits = Visit::findByUser($userId, $params);
-
-            // Convert to array and add additional data
-            $visitArray = [];
+            $visitsData = [];
             foreach ($visits as $visit) {
-                $visitData = $visit->toArray();
-                $visitData['duration_minutes'] = $visit->getDurationMinutes();
-                $visitData['progress_description'] = $visit->getProgressDescription();
-                $visitData['address'] = $visit->getAddress();
-                $visitData['patient'] = $visit->getPatient();
-                $visitData['user'] = $visit->getUser();
-
-                $visitArray[] = $visitData;
+                $visitsData[] = $this->formatVisitData($visit);
             }
 
-            return $this->respondWithSuccess($visitArray);
+            return $this->respondWithSuccess([
+                'count' => count($visitsData),
+                'visits' => $visitsData
+            ]);
 
         } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+            return $this->handleException($e);
         }
     }
 
     /**
-     * Get visits for a specific patient
+     * Get visits for a specific patient (Manager/Admin only)
      */
     public function getPatientVisits(int $patientId): array {
         try {
-            // Verify manager role or higher
+            // Authorization: Manager/Admin only
             if (!$this->isManagerOrHigher()) {
-                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
+                return $this->respondWithError('Only managers and administrators can view patient visits', 403);
             }
 
-            // Get query parameters
-            $progress = $this->request->getQuery('progress', 'int', null);
-            $status = $this->request->getQuery('status', 'int', Status::ACTIVE);
-            $startDate = $this->request->getQuery('start_date', 'string', null);
-            $endDate = $this->request->getQuery('end_date', 'string', null);
-            $addressId = $this->request->getQuery('address_id', 'int', null);
+            // Validate patient exists
+            $patient = Patient::findFirstById($patientId);
+            if (!$patient) {
+                return $this->respondWithError(Message::PATIENT_NOT_FOUND, 404);
+            }
 
-            // Build parameters
-            $params = [
-                'status' => $status,
-                'order' => 'DESC'
+            // Get patient visits with custom ordering
+            $conditions = ['patient_id = :patient_id: AND status = :status:'];
+            $bind = [
+                'patient_id' => $patientId,
+                'status' => Status::ACTIVE
+            ];
+            $bindTypes = [
+                'patient_id' => \PDO::PARAM_INT,
+                'status' => \PDO::PARAM_INT
             ];
 
-            if ($progress !== null) {
-                $params['progress'] = $progress;
-            }
+            $visits = Visit::findWithCustomOrder($conditions, $bind, $bindTypes);
 
-            if ($startDate && $endDate) {
-                $params['start_date'] = $startDate;
-                $params['end_date'] = $endDate;
-            }
-
-            if ($addressId !== null) {
-                $params['address_id'] = $addressId;
-            }
-
-            // Get visits
-            $visits = Visit::findByPatient($patientId, $params);
-
-            // Convert to array and add additional data
-            $visitArray = [];
+            $visitsData = [];
             foreach ($visits as $visit) {
-                $visitData = $visit->toArray();
-                $visitData['duration_minutes'] = $visit->getDurationMinutes();
-                $visitData['progress_description'] = $visit->getProgressDescription();
-                $visitData['address'] = $visit->getAddress();
-                $visitData['patient'] = $visit->getPatient();
-                $visitData['user'] = $visit->getUser();
-
-                $visitArray[] = $visitData;
+                $visitsData[] = $this->formatVisitData($visit);
             }
 
-            return $this->respondWithSuccess($visitArray);
+            // Include patient info in response
+            $patientData = $patient->toArray();
+
+            return $this->respondWithSuccess([
+                'patient' => $patientData,
+                'count' => count($visitsData),
+                'visits' => $visitsData
+            ]);
 
         } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+            return $this->handleException($e);
         }
     }
 
     /**
-     * Get today's visits
+     * Get a specific visit by ID
      */
-    public function getTodaysVisits(): array {
+    public function getVisitById(int $visitId): array {
         try {
-            // Check if user has permission to view today's visits
-            $currentUserId = $this->getCurrentUserId();
-            $userId = null;
-
-            // If not manager or higher, only show own visits
-            if (!$this->isManagerOrHigher()) {
-                $userId = $currentUserId;
-            }
-
-            // Get today's visits
-            $visits = Visit::findTodaysVisits($userId);
-
-            // Convert to array and add additional data
-            $visitArray = [];
-            foreach ($visits as $visit) {
-                $visitData = $visit->toArray();
-                $visitData['duration_minutes'] = $visit->getDurationMinutes();
-                $visitData['progress_description'] = $visit->getProgressDescription();
-                $visitData['address'] = $visit->getAddress();
-                $visitData['patient'] = $visit->getPatient();
-                $visitData['user'] = $visit->getUser();
-
-                $visitArray[] = $visitData;
-            }
-
-            return $this->respondWithSuccess($visitArray);
-
-        } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
-        }
-    }
-
-    /**
-     * Update an existing visit
-     */
-    public function update(int $id): array {
-        try {
-            // Get current user ID
             $currentUserId = $this->getCurrentUserId();
 
-            // Find visit
-            $visit = Visit::findFirst($id);
+            $visit = Visit::findFirstById($visitId);
             if (!$visit) {
                 return $this->respondWithError('Visit not found', 404);
             }
 
-            // Authorization check: can only update own visits or as manager/admin
+            // Authorization: can only view own visits or as manager/admin
             if ($visit->user_id !== $currentUserId && !$this->isManagerOrHigher()) {
-                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
+                return $this->respondWithError(Message::UNAUTHORIZED_ACCESS, 403);
             }
 
-            // Check if visit is deleted
-            if (!$visit->isActive()) {
-                return $this->respondWithError('Cannot update an inactive visit', 400);
-            }
+            return $this->respondWithSuccess($this->formatVisitData($visit));
 
+        } catch (Exception $e) {
+            return $this->handleException($e);
+        }
+    }
+
+    /**
+     * Update a visit
+     * Can update: address_id, visit_date, start_time, total_hours, note
+     */
+    public function updateVisit(int $visitId): array {
+        try {
+            $currentUserId = $this->getCurrentUserId();
             $data = $this->getRequestBody();
 
-            // Update visit within transaction
-            return $this->withTransaction(function() use ($visit, $data, $currentUserId) {
-                // Update fields if provided
-                $updateableFields = [
-                    Visit::USER_ID,
-                    Visit::PATIENT_ID,
-                    Visit::ADDRESS_ID,
-                    Visit::START_TIME,
-                    Visit::END_TIME,
-                    Visit::NOTE,
-                    Visit::PROGRESS,
-                    Visit::STATUS
-                ];
+            // Find the visit
+            $visit = Visit::findFirstById($visitId);
+            if (!$visit) {
+                return $this->respondWithError('Visit not found', 404);
+            }
 
-                // Track if time fields are being updated
-                $timeFieldsUpdated = false;
-                $startTimeUpdated = false;
-                $endTimeUpdated = false;
-                $startTime = null;
-                $endTime = null;
+            // Check if user is the owner or manager/admin
+            $isOwner = $visit->user_id === $currentUserId;
+            $isManagerOrAdmin = $this->isManagerOrHigher();
 
-                // Track if progress is being updated
-                $oldProgress = $visit->progress;
-                $progressUpdated = false;
+            // Authorization check
+            if (!$isOwner && !$isManagerOrAdmin) {
+                return $this->respondWithError('You can only update your own visits', 403);
+            }
+
+            // If user is caregiver (owner), check restrictions
+            if ($isOwner && !$isManagerOrAdmin) {
+                // Check if visit is approved
+                if ($visit->progress >= Progress::PAID) {
+                    return $this->respondWithError('Cannot update approved visits', 403);
+                }
+
+                // Check if visit is active
+                if ($visit->status !== Status::ACTIVE) {
+                    return $this->respondWithError('Cannot update inactive visits', 403);
+                }
+            }
+            // If manager/admin, no restrictions - can update any visit
+
+            // Define updatable fields
+            $updateableFields = [
+                Visit::ADDRESS_ID,
+                Visit::VISIT_DATE,
+                Visit::START_TIME,
+                Visit::TOTAL_HOURS,
+                Visit::NOTE
+            ];
+
+            // Check if any updatable field is present
+            $hasUpdateableField = false;
+            foreach ($updateableFields as $field) {
+                if (isset($data[$field])) {
+                    $hasUpdateableField = true;
+                    break;
+                }
+            }
+
+            if (!$hasUpdateableField) {
+                return $this->respondWithError('No valid fields to update', 400);
+            }
+
+            // Update within transaction
+            return $this->withTransaction(function() use ($visit, $data, $updateableFields) {
+                $updatedFields = [];
 
                 foreach ($updateableFields as $field) {
                     if (isset($data[$field])) {
                         switch ($field) {
-                            case Visit::USER_ID:
-                                $userId = (int)$data[$field];
-                                $user = User::findFirst($userId);
-                                if (!$user) {
-                                    return $this->respondWithError(Message::USER_NOT_FOUND, 404);
-                                }
-                                $visit->user_id = $userId;
-                                break;
-
-                            case Visit::PATIENT_ID:
-                                $patientId = (int)$data[$field];
-                                $patient = Patient::findFirst($patientId);
-                                if (!$patient) {
-                                    return $this->respondWithError(Message::PATIENT_NOT_FOUND, 404);
-                                }
-                                if (!$patient->isActive()) {
-                                    return $this->respondWithError('Cannot assign visit to inactive patient', 400);
-                                }
-
-                                // If changing patient, validate that current address_id still belongs to new patient
-                                if ($visit->address_id && $patientId !== $visit->patient_id) {
-                                    $address = Address::findFirst([
-                                        'conditions' => 'id = :address_id: AND person_id = :patient_id: AND person_type = :person_type:',
-                                        'bind' => [
-                                            'address_id' => $visit->address_id,
-                                            'patient_id' => $patientId,
-                                            'person_type' => PersonType::PATIENT
-                                        ]
-                                    ]);
-
-                                    if (!$address) {
-                                        // Clear address_id if it doesn't belong to new patient
-                                        $visit->address_id = null;
-                                    }
-                                }
-
-                                $visit->patient_id = $patientId;
-                                break;
-
                             case Visit::ADDRESS_ID:
-                                if (empty($data[$field])) {
-                                    // Allow clearing the address
-                                    $visit->address_id = null;
-                                } else {
-                                    $addressId = (int)$data[$field];
-
-                                    // Verify address exists and belongs to the patient
-                                    $address = Address::findFirst([
-                                        'conditions' => 'id = :address_id: AND person_id = :patient_id: AND person_type = :person_type:',
-                                        'bind' => [
-                                            'address_id' => $addressId,
-                                            'patient_id' => $visit->patient_id,
-                                            'person_type' => PersonType::PATIENT
-                                        ]
-                                    ]);
-
-                                    if (!$address) {
-                                        return $this->respondWithError('Invalid address for this patient', 400);
-                                    }
-
-                                    $visit->address_id = $addressId;
+                                // Validate address belongs to the patient
+                                $addressId = (int)$data[$field];
+                                $address = $this->validatePatientAddress($addressId, $visit->patient_id);
+                                if (!$address) {
+                                    return $this->respondWithError('Invalid address for this patient', 400);
                                 }
+                                $visit->address_id = $addressId;
+                                $updatedFields[] = 'address';
+                                break;
+
+                            case Visit::VISIT_DATE:
+                                $visit->visit_date = $data[$field];
+                                $updatedFields[] = 'visit date';
                                 break;
 
                             case Visit::START_TIME:
-                                $startTime = new DateTime($data[$field]);
-                                $visit->start_time = $startTime->format('Y-m-d H:i:s');
-                                $timeFieldsUpdated = true;
-                                $startTimeUpdated = true;
+                                $visit->start_time = $data[$field];
+                                // End time will be recalculated automatically in beforeUpdate
+                                $updatedFields[] = 'start time';
                                 break;
 
-                            case Visit::END_TIME:
-                                $endTime = new DateTime($data[$field]);
-                                $visit->end_time = $endTime->format('Y-m-d H:i:s');
-                                $timeFieldsUpdated = true;
-                                $endTimeUpdated = true;
-                                break;
-
-                            case Visit::PROGRESS:
-                                $progress = (int)$data[$field];
-                                if (!in_array($progress, [
-                                    Progress::CANCELED,
-                                    Progress::SCHEDULED,
-                                    Progress::IN_PROGRESS,
-                                    Progress::COMPLETED,
-                                    Progress::PAID
-                                ])) {
-                                    return $this->respondWithError(Message::STATUS_INVALID, 400);
+                            case Visit::TOTAL_HOURS:
+                                $totalHours = (int)$data[$field];
+                                if ($totalHours < 1 || $totalHours > 24) {
+                                    return $this->respondWithError('Total hours must be between 1 and 24', 400);
                                 }
-
-                                // Only update progress if it's actually changing
-                                if ($progress !== $oldProgress) {
-                                    $visit->progress = $progress;
-                                    $progressUpdated = true;
-
-                                    // Update the appropriate tracking field based on the new progress
-                                    switch ($progress) {
-                                        case Progress::CANCELED:
-                                            $visit->canceled_by = $currentUserId;
-                                            break;
-                                        case Progress::SCHEDULED:
-                                            // If going back to scheduled, we're basically rescheduling
-                                            if (!$visit->scheduled_by) {
-                                                $visit->scheduled_by = $currentUserId;
-                                            }
-                                            break;
-                                        case Progress::IN_PROGRESS:
-                                            // Set scheduled_by if not set (in case of direct check-in)
-                                            if (!$visit->scheduled_by) {
-                                                $visit->scheduled_by = $currentUserId;
-                                            }
-                                            $visit->checkin_by = $currentUserId;
-                                            break;
-                                        case Progress::COMPLETED:
-                                            // Ensure all previous steps are tracked
-                                            if (!$visit->scheduled_by) {
-                                                $visit->scheduled_by = $currentUserId;
-                                            }
-                                            if (!$visit->checkin_by) {
-                                                $visit->checkin_by = $currentUserId;
-                                            }
-                                            $visit->checkout_by = $currentUserId;
-                                            break;
-                                        case Progress::PAID:
-                                            // Ensure all previous steps are tracked
-                                            if (!$visit->scheduled_by) {
-                                                $visit->scheduled_by = $currentUserId;
-                                            }
-                                            if (!$visit->checkin_by) {
-                                                $visit->checkin_by = $currentUserId;
-                                            }
-                                            if (!$visit->checkout_by) {
-                                                $visit->checkout_by = $currentUserId;
-                                            }
-                                            $visit->approved_by = $currentUserId;
-                                            break;
-                                    }
-                                }
+                                $visit->total_hours = $totalHours;
+                                // End time will be recalculated if start_time exists
+                                $updatedFields[] = 'total hours';
                                 break;
 
-                            case Visit::STATUS:
-                                $status = (int)$data[$field];
-                                if (!in_array($status, [
-                                    Status::ACTIVE,
-                                    Status::ARCHIVED,
-                                    Status::SOFT_DELETED
-                                ])) {
-                                    return $this->respondWithError(Message::STATUS_INVALID, 400);
-                                }
-                                $visit->status = $status;
+                            case Visit::NOTE:
+                                $visit->note = $data[$field];
+                                $updatedFields[] = 'note';
                                 break;
-
-                            default:
-                                $visit->$field = $data[$field];
-                                break;
-                        }
-                    }
-                }
-
-                // Validate time fields if they were updated
-                if ($timeFieldsUpdated) {
-                    // If only one time field was updated, get the current value of the other
-                    if ($startTimeUpdated && !$endTimeUpdated) {
-                        $endTime = new DateTime($visit->end_time);
-                    } else if (!$startTimeUpdated && $endTimeUpdated) {
-                        $startTime = new DateTime($visit->start_time);
-                    }
-
-                    // Validate that end time is after start time
-                    if ($endTime <= $startTime) {
-                        return $this->respondWithError('End time cannot be before start time', 400);
-                    }
-                }
-
-                // Allow direct setting of tracking fields for admins only
-                if ($this->isAdmin()) {
-                    $trackingFields = [
-                        'scheduled_by',
-                        'checkin_by',
-                        'checkout_by',
-                        'canceled_by',
-                        'approved_by'
-                    ];
-
-                    foreach ($trackingFields as $field) {
-                        if (isset($data[$field])) {
-                            // Verify the user exists
-                            $trackingUserId = (int)$data[$field];
-                            if ($trackingUserId > 0) {
-                                $trackingUser = User::findFirst($trackingUserId);
-                                if (!$trackingUser) {
-                                    return $this->respondWithError("User ID $trackingUserId for $field not found", 404);
-                                }
-                                $visit->$field = $trackingUserId;
-                            } else {
-                                // Allow setting to null to clear tracking
-                                $visit->$field = null;
-                            }
                         }
                     }
                 }
 
                 if (!$visit->save()) {
-                    $messages = $visit->getMessages(); // This is Phalcon\Messages\MessageInterface[]
-                    $msg = "An unknown error occurred."; // Default/fallback
-
-                    if (count($messages) > 0) {
-                        // Get the first message object from the array
-                        $obj = $messages[0]; // or current($phalconMessages)
-
-                        // Extract the string message from the object
-                        // The MessageInterface guarantees the getMessage() method.
-                        $msg = $obj->getMessage();
-                    }
-
-                    // Pass the extracted string message to your responder
-                    return $this->respondWithError($msg, 422);
+                    return $this->respondWithError($this->getFirstErrorMessage($visit), 422);
                 }
 
                 return $this->respondWithSuccess([
                     'message' => 'Visit updated successfully',
-                    'visit_id' => $visit->id,
-                    'progress' => $visit->progress,
-                    'address_id' => $visit->address_id,
-                    'duration_minutes' => $visit->getDurationMinutes()
-                ], 201, 'Visit updated successfully');
+                    'updated_fields' => $updatedFields,
+                    'visit' => $this->formatVisitData($visit)
+                ], 200, 'Visit updated successfully');
             });
 
         } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+            return $this->handleException($e);
         }
     }
 
     /**
-     * Soft delete a visit (mark as deleted)
+     * Check in to a visit
      */
-    public function delete(int $id): array
-    {
+    public function checkin(int $visitId): array {
         try {
-            // Get current user ID
             $currentUserId = $this->getCurrentUserId();
 
-            // Find visit
-            $visit = Visit::findFirst($id);
+            $visit = Visit::findFirstById($visitId);
             if (!$visit) {
                 return $this->respondWithError('Visit not found', 404);
             }
 
-            // Authorization check: can only delete own visits or as manager/admin
+            // Authorization: owner or manager/admin
             if ($visit->user_id !== $currentUserId && !$this->isManagerOrHigher()) {
-                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
-            }
-
-            // Check if visit is already deleted
-            if ($visit->status === Status::SOFT_DELETED) {
-                return $this->respondWithError('Visit is already deleted', 400);
-            }
-
-            // Soft delete visit within transaction
-            return $this->withTransaction(function() use ($visit) {
-                // Set status to deleted
-                $visit->status = Status::SOFT_DELETED;
-
-                if (!$visit->save()) {
-                    $messages = $visit->getMessages(); // This is Phalcon\Messages\MessageInterface[]
-                    $msg = "An unknown error occurred."; // Default/fallback
-
-                    if (count($messages) > 0) {
-                        // Get the first message object from the array
-                        $obj = $messages[0]; // or current($phalconMessages)
-
-                        // Extract the string message from the object
-                        // The MessageInterface guarantees the getMessage() method.
-                        $msg = $obj->getMessage();
-                    }
-
-                    // Pass the extracted string message to your responder
-                    return $this->respondWithError($msg, 422);
-                }
-
-                return $this->respondWithSuccess([
-                    'message' => 'Visit deleted successfully',
-                    'visit_id' => $visit->id
-                ], 201, 'Visit deleted successfully');
-            });
-
-        } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
-        }
-    }
-
-    /**
-     * Change visit progress status
-     */
-    public function updateProgress(int $id): array
-    {
-        try {
-            // Get current user ID
-            $currentUserId = $this->getCurrentUserId();
-
-            // Find visit
-            $visit = Visit::findFirst($id);
-            if (!$visit) {
-                return $this->respondWithError('Visit not found', 404);
-            }
-
-            // Authorization check: can only update own visits or as manager/admin
-            if ($visit->user_id !== $currentUserId && !$this->isManagerOrHigher()) {
-                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
-            }
-
-            // Check if visit is active
-            if (!$visit->isActive()) {
-                return $this->respondWithError('Cannot update progress of an inactive visit', 400);
-            }
-
-            $data = $this->getRequestBody();
-
-            if (!isset($data['progress'])) {
-                return $this->respondWithError('Progress value is required', 400);
-            }
-
-            $progress = (int)$data['progress'];
-
-            // Validate progress value
-            if (!in_array($progress, [
-                Progress::CANCELED,
-                Progress::SCHEDULED,
-                Progress::IN_PROGRESS,
-                Progress::COMPLETED,
-                Progress::PAID
-            ])) {
-                return $this->respondWithError(Message::STATUS_INVALID, 400);
-            }
-
-            // Update progress within transaction
-            return $this->withTransaction(function() use ($visit, $progress, $currentUserId) {
-                $oldProgress = $visit->progress;
-                $visit->progress = $progress;
-
-                // Update tracking fields based on new progress
-                switch ($progress) {
-                    case Progress::CANCELED:
-                        $visit->canceled_by = $currentUserId;
-                        break;
-                    case Progress::SCHEDULED:
-                        if (!$visit->scheduled_by) {
-                            $visit->scheduled_by = $currentUserId;
-                        }
-                        break;
-                    case Progress::IN_PROGRESS:
-                        if (!$visit->scheduled_by) {
-                            $visit->scheduled_by = $currentUserId;
-                        }
-                        $visit->checkin_by = $currentUserId;
-                        break;
-                    case Progress::COMPLETED:
-                        if (!$visit->scheduled_by) {
-                            $visit->scheduled_by = $currentUserId;
-                        }
-                        if (!$visit->checkin_by) {
-                            $visit->checkin_by = $currentUserId;
-                        }
-                        $visit->checkout_by = $currentUserId;
-                        break;
-                    case Progress::PAID:
-                        if (!$visit->scheduled_by) {
-                            $visit->scheduled_by = $currentUserId;
-                        }
-                        if (!$visit->checkin_by) {
-                            $visit->checkin_by = $currentUserId;
-                        }
-                        if (!$visit->checkout_by) {
-                            $visit->checkout_by = $currentUserId;
-                        }
-                        $visit->approved_by = $currentUserId;
-                        break;
-                }
-
-                if (!$visit->save()) {
-                    $messages = $visit->getMessages(); // This is Phalcon\Messages\MessageInterface[]
-                    $msg = "An unknown error occurred."; // Default/fallback
-
-                    if (count($messages) > 0) {
-                        // Get the first message object from the array
-                        $obj = $messages[0]; // or current($phalconMessages)
-
-                        // Extract the string message from the object
-                        // The MessageInterface guarantees the getMessage() method.
-                        $msg = $obj->getMessage();
-                    }
-
-                    // Pass the extracted string message to your responder
-                    return $this->respondWithError($msg, 422);
-                }
-
-                return $this->respondWithSuccess([
-                    'message' => 'Visit progress updated successfully',
-                    'visit_id' => $visit->id,
-                    'old_progress' => $oldProgress,
-                    'new_progress' => $progress,
-                    'progress_description' => $visit->getProgressDescription()
-                ],201,'Visit progress updated successfully');
-            });
-
-        } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
-        }
-    }
-
-    /**
-     * Check in to a visit (start visit)
-     */
-    public function checkIn(int $id): array {
-        try {
-            // Get current user ID
-            $currentUserId = $this->getCurrentUserId();
-
-            // Find visit
-            $visit = Visit::findFirst($id);
-            if (!$visit) {
-                return $this->respondWithError('Visit not found', 404);
-            }
-
-            // Authorization check: can only check in to own visits
-            if ($visit->user_id !== $currentUserId) {
                 return $this->respondWithError('You can only check in to your own visits', 403);
             }
 
-            // Check if visit is active
-            if (!$visit->isActive()) {
-                return $this->respondWithError('Cannot check in to an inactive visit', 400);
+            // Validate visit can be checked in
+            if (!$visit->canCheckIn()) {
+                return $this->respondWithError('Visit cannot be checked in. Current status: ' . $visit->getProgressDescription(), 400);
             }
 
-            // Check if visit is in the right state
-            if ($visit->progress !== Progress::SCHEDULED) {
-                return $this->respondWithError('Can only check in to scheduled visits', 400);
-            }
-
-            // Update to in-progress within transaction
-            return $this->withTransaction(function() use ($visit, $currentUserId) {
+            return $this->withTransaction(function() use ($visit) {
                 $visit->progress = Progress::IN_PROGRESS;
-                $visit->checkin_by = $currentUserId;
+                $visit->checkin_by = $visit->user_id; // Always the assigned user, not current user
 
                 if (!$visit->save()) {
-                    $messages = $visit->getMessages(); // This is Phalcon\Messages\MessageInterface[]
-                    $msg = "An unknown error occurred."; // Default/fallback
-
-                    if (count($messages) > 0) {
-                        // Get the first message object from the array
-                        $obj = $messages[0]; // or current($phalconMessages)
-
-                        // Extract the string message from the object
-                        // The MessageInterface guarantees the getMessage() method.
-                        $msg = $obj->getMessage();
-                    }
-
-                    // Pass the extracted string message to your responder
-                    return $this->respondWithError($msg, 422);
+                    return $this->respondWithError($this->getFirstErrorMessage($visit), 422);
                 }
 
                 return $this->respondWithSuccess([
-                    'message' => 'Successfully checked in to visit',
-                    'visit_id' => $visit->id,
-                    'progress' => $visit->getProgressDescription(),
-                    'address_id' => $visit->address_id
-                ], 200, 'Successfully checked in to visit');
+                    'message' => 'Successfully checked in',
+                    'visit' => $this->formatVisitData($visit)
+                ], 200, 'Successfully checked in');
             });
 
         } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+            return $this->handleException($e);
         }
     }
 
     /**
-     * Check out from a visit (complete visit)
+     * Check out from a visit
      */
-    public function checkOut(int $id): array {
+    public function checkout(int $visitId): array {
         try {
-            // Get current user ID
             $currentUserId = $this->getCurrentUserId();
 
-            // Find visit
-            $visit = Visit::findFirst($id);
+            $visit = Visit::findFirstById($visitId);
             if (!$visit) {
                 return $this->respondWithError('Visit not found', 404);
             }
 
-            // Authorization check: can only check out from own visits
-            if ($visit->user_id !== $currentUserId) {
+            // Authorization: owner or manager/admin
+            if ($visit->user_id !== $currentUserId && !$this->isManagerOrHigher()) {
                 return $this->respondWithError('You can only check out from your own visits', 403);
             }
 
-            // Check if visit is active
-            if (!$visit->isActive()) {
-                return $this->respondWithError('Cannot check out from an inactive visit', 400);
+            // Validate visit can be checked out
+            if (!$visit->canCheckOut()) {
+                return $this->respondWithError('Visit cannot be checked out. Current status: ' . $visit->getProgressDescription(), 400);
             }
 
-            // Check if visit is in the right state
-            if ($visit->progress !== Progress::IN_PROGRESS) {
-                return $this->respondWithError('Can only check out from in-progress visits', 400);
-            }
-
-            $data = $this->getRequestBody();
-
-            // Update to completed within transaction
-            return $this->withTransaction(function() use ($visit, $data, $currentUserId) {
+            return $this->withTransaction(function() use ($visit) {
                 $visit->progress = Progress::COMPLETED;
-                $visit->checkout_by = $currentUserId;
-
-                // Update note if provided
-                if (isset($data['note'])) {
-                    $visit->note = $data['note'];
-                }
+                $visit->checkout_by = $visit->user_id; // Always the assigned user, not current user
 
                 if (!$visit->save()) {
-                    $messages = $visit->getMessages(); // This is Phalcon\Messages\MessageInterface[]
-                    $msg = "An unknown error occurred."; // Default/fallback
-
-                    if (count($messages) > 0) {
-                        // Get the first message object from the array
-                        $obj = $messages[0]; // or current($phalconMessages)
-
-                        // Extract the string message from the object
-                        // The MessageInterface guarantees the getMessage() method.
-                        $msg = $obj->getMessage();
-                    }
-
-                    // Pass the extracted string message to your responder
-                    return $this->respondWithError($msg, 422);
+                    return $this->respondWithError($this->getFirstErrorMessage($visit), 422);
                 }
 
                 return $this->respondWithSuccess([
-                    'message' => 'Successfully checked out from visit',
-                    'visit_id' => $visit->id,
-                    'progress' => $visit->getProgressDescription(),
-                    'duration_minutes' => $visit->getDurationMinutes(),
-                    'address_id' => $visit->address_id
-                ], 201, 'Successfully checked out from visit');
+                    'message' => 'Successfully checked out',
+                    'visit' => $this->formatVisitData($visit)
+                ], 200, 'Successfully checked out');
             });
 
         } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+            return $this->handleException($e);
+        }
+    }
+
+    /**
+     * Approve a visit (Manager/Admin only)
+     */
+    public function approve(int $visitId): array {
+        try {
+            // Authorization: Manager/Admin only
+            if (!$this->isManagerOrHigher()) {
+                return $this->respondWithError('Only managers and administrators can approve visits', 403);
+            }
+
+            $currentUserId = $this->getCurrentUserId();
+
+            $visit = Visit::findFirstById($visitId);
+            if (!$visit) {
+                return $this->respondWithError('Visit not found', 404);
+            }
+
+            // Validate visit can be approved
+            if (!$visit->canApprove()) {
+                return $this->respondWithError('Visit cannot be approved. Current status: ' . $visit->getProgressDescription(), 400);
+            }
+
+            return $this->withTransaction(function() use ($visit, $currentUserId) {
+                $visit->progress = Progress::PAID;
+                $visit->approved_by = $currentUserId; // The manager/admin who approved
+
+                if (!$visit->save()) {
+                    return $this->respondWithError($this->getFirstErrorMessage($visit), 422);
+                }
+
+                return $this->respondWithSuccess([
+                    'message' => 'Visit approved successfully',
+                    'visit' => $this->formatVisitData($visit)
+                ], 200, 'Visit approved successfully');
+            });
+
+        } catch (Exception $e) {
+            return $this->handleException($e);
         }
     }
 
     /**
      * Cancel a visit
      */
-    public function cancel(int $id): array{
+    public function cancel(int $visitId): array {
         try {
-            // Get current user ID
             $currentUserId = $this->getCurrentUserId();
+            $data = $this->getRequestBody();
 
-            // Find visit
-            $visit = Visit::findFirst($id);
+            // Validate required note
+            if (empty($data[Visit::NOTE])) {
+                return $this->respondWithError('Cancellation reason (note) is required', 400);
+            }
+
+            $visit = Visit::findFirstById($visitId);
             if (!$visit) {
                 return $this->respondWithError('Visit not found', 404);
             }
 
-            // Authorization check: can only cancel own visits or as manager/admin
+            // Authorization: owner or manager/admin
             if ($visit->user_id !== $currentUserId && !$this->isManagerOrHigher()) {
-                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
+                return $this->respondWithError('You can only cancel your own visits', 403);
             }
 
-            // Check if visit is active
-            if (!$visit->isActive()) {
-                return $this->respondWithError('Cannot cancel an inactive visit', 400);
+            // Validate visit can be canceled
+            if (!$visit->canCancel()) {
+                return $this->respondWithError('Visit cannot be canceled. Current status: ' . $visit->getProgressDescription(), 400);
             }
 
-            // Check if visit can be canceled
-            if ($visit->progress === Progress::COMPLETED || $visit->progress === Progress::PAID) {
-                return $this->respondWithError('Cannot cancel a completed or paid visit', 400);
-            }
-
-            if ($visit->progress === Progress::CANCELED) {
-                return $this->respondWithError('Visit is already canceled', 400);
-            }
-
-            $data = $this->getRequestBody();
-
-            // Cancel visit within transaction
-            return $this->withTransaction(function() use ($visit, $data, $currentUserId) {
+            return $this->withTransaction(function() use ($visit, $currentUserId, $data) {
                 $visit->progress = Progress::CANCELED;
-                $visit->canceled_by = $currentUserId;
-
-                // Update note if provided
-                if (isset($data['note'])) {
-                    $visit->note = $data['note'];
-                }
+                $visit->canceled_by = $currentUserId; // The user who canceled (self or manager/admin)
+                $visit->note = $data[Visit::NOTE]; // Required cancellation reason
 
                 if (!$visit->save()) {
-                    $messages = $visit->getMessages(); // This is Phalcon\Messages\MessageInterface[]
-                    $msg = "An unknown error occurred."; // Default/fallback
-
-                    if (count($messages) > 0) {
-                        // Get the first message object from the array
-                        $obj = $messages[0]; // or current($phalconMessages)
-
-                        // Extract the string message from the object
-                        // The MessageInterface guarantees the getMessage() method.
-                        $msg = $obj->getMessage();
-                    }
-
-                    // Pass the extracted string message to your responder
-                    return $this->respondWithError($msg, 422);
+                    return $this->respondWithError($this->getFirstErrorMessage($visit), 422);
                 }
 
                 return $this->respondWithSuccess([
                     'message' => 'Visit canceled successfully',
-                    'visit_id' => $visit->id,
-                    'address_id' => $visit->address_id
-                ], 201, 'Visit canceled successfully');
+                    'visit' => $this->formatVisitData($visit)
+                ], 200, 'Visit canceled successfully');
             });
 
         } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+            return $this->handleException($e);
         }
+    }
+
+    /**
+     * Change visit status to Visible/Active (Manager/Admin only)
+     */
+    public function changeStatusVisible(int $visitId): array {
+        return $this->changeVisitStatus($visitId, Status::ACTIVE, 'visible');
+    }
+
+    /**
+     * Change visit status to Archived (Manager/Admin only)
+     */
+    public function changeStatusArchived(int $visitId): array {
+        return $this->changeVisitStatus($visitId, Status::ARCHIVED, 'archived');
+    }
+
+    /**
+     * Change visit status to Soft Deleted (Manager/Admin only)
+     */
+    public function changeStatusSoftDeleted(int $visitId): array {
+        return $this->changeVisitStatus($visitId, Status::SOFT_DELETED, 'soft deleted');
+    }
+
+    /**
+     * Helper method to change visit status
+     */
+    private function changeVisitStatus(int $visitId, int $newStatus, string $statusName): array {
+        try {
+            // Authorization: Manager/Admin only
+            if (!$this->isManagerOrHigher()) {
+                return $this->respondWithError('Only managers and administrators can change visit status', 403);
+            }
+
+            $visit = Visit::findFirstById($visitId);
+            if (!$visit) {
+                return $this->respondWithError('Visit not found', 404);
+            }
+
+            // Don't change if already in the desired status
+            if ($visit->status === $newStatus) {
+                return $this->respondWithError("Visit is already {$statusName}", 400);
+            }
+
+            return $this->withTransaction(function() use ($visit, $newStatus, $statusName) {
+                $visit->status = $newStatus;
+
+                if (!$visit->save()) {
+                    return $this->respondWithError($this->getFirstErrorMessage($visit), 422);
+                }
+
+                return $this->respondWithSuccess([
+                    'message' => "Visit status changed to {$statusName}",
+                    'visit' => $this->formatVisitData($visit)
+                ], 200, "Visit status changed to {$statusName}");
+            });
+
+        } catch (Exception $e) {
+            return $this->handleException($e);
+        }
+    }
+
+    /**
+     * Helper method to validate patient address
+     */
+    private function validatePatientAddress(int $addressId, int $patientId): ?Address {
+        return Address::findFirst([
+            'conditions' => 'id = :address_id: AND person_id = :patient_id: AND person_type = :person_type:',
+            'bind' => [
+                'address_id' => $addressId,
+                'patient_id' => $patientId,
+                'person_type' => PersonType::PATIENT
+            ],
+            'bindTypes' => [
+                'address_id' => \PDO::PARAM_INT,
+                'patient_id' => \PDO::PARAM_INT,
+                'person_type' => \PDO::PARAM_INT
+            ]
+        ]);
+    }
+
+    /**
+     * Helper method to check if user is assigned to patient
+     */
+    private function isUserAssignedToPatient(int $userId, int $patientId): bool {
+        return UserPatient::isUserAssignedToPatient($userId, $patientId);
+    }
+
+    /**
+     * Helper method to format visit data for response
+     */
+    private function formatVisitData(Visit $visit): array {
+        $data = $visit->toArray();
+
+        // Add calculated fields
+        $data['duration_minutes'] = $visit->getDurationMinutes();
+        $data['progress_description'] = $visit->getProgressDescription();
+
+        // Add related data
+        $data['user'] = $visit->getUserData();
+        $data['patient'] = $visit->getPatientData();
+        $data['address'] = $visit->getAddressData();
+
+        // Add status descriptions
+        $data['is_today'] = $visit->visit_date === date('Y-m-d');
+        $data['is_future'] = $visit->visit_date > date('Y-m-d');
+        $data['is_past'] = $visit->visit_date < date('Y-m-d');
+
+        return $data;
+    }
+
+    /**
+     * Helper method to get first error message from model
+     */
+    private function getFirstErrorMessage($model): string {
+        $messages = $model->getMessages();
+        if (count($messages) > 0) {
+            return $messages[0]->getMessage();
+        }
+        return 'An unknown error occurred';
+    }
+
+    /**
+     * Helper method to handle exceptions
+     */
+    private function handleException(Exception $e): array {
+        $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
+        error_log('VisitController Exception: ' . $message);
+        return $this->respondWithError('An error occurred: ' . $e->getMessage(), 500);
     }
 }
