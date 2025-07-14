@@ -1,87 +1,78 @@
--- Drop table if exists with all its dependencies
+-- Drop table if exists with all its dependencies (triggers, foreign keys, etc.)
 DROP TABLE IF EXISTS `visit`;
 
--- Create the visit table for tracking patient visits by caregivers
+-- Create the visit table for tracking patient visits
 CREATE TABLE `visit` (
     -- Primary identification
-    `id` BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT COMMENT 'Primary key, unique identifier for the visit, auto-incremented',
+                         `id` BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT COMMENT 'Primary key, unique identifier for the visit, auto-incremented',
 
     -- Related foreign ids
-    `caregiver_id` BIGINT UNSIGNED NOT NULL COMMENT 'Identifier for the user (caregiver) assigned to the visit',
-    `patient_id` BIGINT UNSIGNED NOT NULL COMMENT 'Identifier for the patient receiving the visit',
-    `address_id` BIGINT UNSIGNED NOT NULL COMMENT 'Identifier for the patient address where the visit takes place',
+                         `user_id` BIGINT UNSIGNED NOT NULL COMMENT 'Identifier for the user (caregiver)',
+                         `patient_id` BIGINT UNSIGNED NOT NULL COMMENT 'Identifier for the patient',
+                         `address_id` BIGINT UNSIGNED NOT NULL COMMENT 'Identifier for the patient address where the visit will take place',
 
-    -- === SCHEDULING / PLANNING Information (Required at creation) ===
-    `visit_date` DATE NOT NULL COMMENT 'The specific date the visit is scheduled for',
-    `scheduled_hours` DECIMAL(4,2) NOT NULL COMMENT 'The planned duration of the visit in hours (e.g., 2.5 for 2h 30m)',
+    -- Visit information
+                         `visit_date` DATE NOT NULL COMMENT 'Date of the visit',
+                         `start_time` DATETIME DEFAULT NULL COMMENT 'Visit start time in 24:00 hrs format',
+                         `end_time` DATETIME DEFAULT NULL COMMENT 'Visit end time in 24:00 hrs format',
+                         `total_hours` TINYINT UNSIGNED NOT NULL DEFAULT 1 COMMENT 'Visit total of hours',
+                         `note` TEXT CHARACTER SET utf8mb4 DEFAULT NULL COMMENT 'Visit note, comment, observation etc',
 
-    -- === ACTUAL / LOGGED Information (NULL until check-in/out occurs) ===
-    `actual_start_datetime` DATETIME NULL DEFAULT NULL COMMENT 'The actual timestamp when the caregiver checked in (UTC)',
-    `actual_end_datetime` DATETIME NULL DEFAULT NULL COMMENT 'The actual timestamp when the caregiver checked out (UTC)',
-    `actual_duration_minutes` INT UNSIGNED AS (
-        CASE
-            WHEN actual_start_datetime IS NOT NULL AND actual_end_datetime IS NOT NULL
-            THEN TIMESTAMPDIFF(MINUTE, actual_start_datetime, actual_end_datetime)
-            ELSE NULL
-        END
-    ) STORED COMMENT 'Automatically calculated actual visit duration in minutes. Stored for indexing.',
+    -- Visit status information
+                         `progress` TINYINT NOT NULL DEFAULT 0 COMMENT 'Visit progress: canceled=-1, scheduled/to-do=0, checkin/in-progress=1, checkout/completed=2, approved/paid=3',
 
-    -- General Visit Information
-    `note` TEXT CHARACTER SET utf8mb4 DEFAULT NULL COMMENT 'Visit note, comment, observation etc.',
+    -- User tracking for each state change
+                         `scheduled_by` BIGINT UNSIGNED DEFAULT NULL COMMENT 'User ID who scheduled the visit',
+                         `checkin_by` BIGINT UNSIGNED DEFAULT NULL COMMENT 'User ID who checked in the visit',
+                         `checkout_by` BIGINT UNSIGNED DEFAULT NULL COMMENT 'User ID who checked out/completed the visit',
+                         `canceled_by` BIGINT UNSIGNED DEFAULT NULL COMMENT 'User ID who canceled the visit',
+                         `approved_by` BIGINT UNSIGNED DEFAULT NULL COMMENT 'User ID who approved/paid the visit',
 
-    -- Visit status and history tracking
-    `progress` ENUM(
-        'SCHEDULED',      -- To-do, not yet started
-        'IN_PROGRESS',    -- Caregiver has checked in
-        'COMPLETED',      -- Caregiver has checked out
-        'APPROVED',       -- Admin/system has approved for payroll
-        'CANCELED'        -- Visit was canceled
-    ) NOT NULL DEFAULT 'SCHEDULED' COMMENT 'The current stage of the visit workflow',
+    -- Record status, allows to delete records in soft-deletion, archived, or just normal active
+                         `status` TINYINT NOT NULL DEFAULT 1 COMMENT 'Record status: 1=Active/Visible/Normal, 2=Archived, 3=Soft-Deleted',
 
-    -- Audit trail for state changes (who and when)
-    `scheduled_by` BIGINT UNSIGNED DEFAULT NULL COMMENT 'User ID who created the visit record',
-    `checkin_by` BIGINT UNSIGNED DEFAULT NULL COMMENT 'User ID who checked in the visit',
-    `checkout_by` BIGINT UNSIGNED DEFAULT NULL COMMENT 'User ID who checked out/completed the visit',
-    `canceled_by` BIGINT UNSIGNED DEFAULT NULL COMMENT 'User ID who canceled the visit',
-    `approved_by` BIGINT UNSIGNED DEFAULT NULL COMMENT 'User ID who approved the visit for payment',
-
-    `checkin_at` DATETIME DEFAULT NULL COMMENT 'Timestamp when the visit was checked in (redundant with actual_start_datetime but useful for audit clarity)',
-    `checkout_at` DATETIME DEFAULT NULL COMMENT 'Timestamp when the visit was checked out (redundant with actual_end_datetime but useful for audit clarity)',
-    `canceled_at` DATETIME DEFAULT NULL COMMENT 'Timestamp when the visit was canceled',
-    `approved_at` DATETIME DEFAULT NULL COMMENT 'Timestamp when the visit was approved',
-
-    -- Record status, allows for soft-deletion or archiving
-    `status` TINYINT NOT NULL DEFAULT 1 COMMENT 'Record status: 1=Active, 2=Archived, 3=Soft-Deleted',
-
-    -- Record-level audit timestamps
-    `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT 'Timestamp when the record was created (UTC)',
-    `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Timestamp of last record update (UTC)',
+    -- Audit timestamps
+                         `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT 'Timestamp when the account was created (UTC)',
+                         `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Timestamp of last record update (UTC)',
 
     -- Indexes
-    INDEX `idx_caregiver_id` (`caregiver_id`),
-    INDEX `idx_patient_id` (`patient_id`),
-    INDEX `idx_progress` (`progress`),
-    INDEX `idx_status` (`status`),
-    INDEX `idx_visit_date` (`visit_date`), -- Crucial for finding visits on a certain day
-    INDEX `idx_actual_datetimes` (`actual_start_datetime`, `actual_end_datetime`),
-    INDEX `idx_caregiver_schedule` (`caregiver_id`, `visit_date`), -- For quickly finding a caregiver's daily schedule
-    INDEX `idx_patient_schedule` (`patient_id`, `visit_date`),   -- For quickly finding a patient's daily schedule
+                         INDEX `idx_user_id` (`user_id`),
+                         INDEX `idx_patient_id` (`patient_id`),
+                         INDEX `idx_address_id` (`address_id`),
+                         INDEX `idx_progress` (`progress`),
+                         INDEX `idx_status` (`status`),
+                         INDEX `idx_dates` (`start_time`, `end_time`),
+                         INDEX `idx_scheduled_by` (`scheduled_by`),
+                         INDEX `idx_checkout_by` (`checkout_by`),
+                         INDEX `idx_patient_address` (`patient_id`, `address_id`),
 
     -- Constraints
-    CONSTRAINT `chk_status` CHECK(`status` IN (1,2,3)),
-    CONSTRAINT `chk_actual_datetimes` CHECK (`actual_end_datetime` IS NULL OR `actual_start_datetime` IS NULL OR `actual_end_datetime` >= `actual_start_datetime`),
+                         CONSTRAINT `chk_progress` CHECK(`progress` IN (-1,0,1,2,3)),
+                         CONSTRAINT `chk_status` CHECK(`status` IN (1,2,3)),
+                         CONSTRAINT `chk_dates` CHECK(`end_time` >= `start_time`),
 
-    -- Foreign key constraints (renamed for clarity)
-    CONSTRAINT `fk_visit_caregiver` FOREIGN KEY (`caregiver_id`) REFERENCES `user` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT `fk_visit_patient` FOREIGN KEY (`patient_id`) REFERENCES `patient` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT `fk_visit_address` FOREIGN KEY (`address_id`) REFERENCES `address` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT `fk_visit_scheduled_by` FOREIGN KEY (`scheduled_by`) REFERENCES `user` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
-    CONSTRAINT `fk_visit_checkin_by` FOREIGN KEY (`checkin_by`) REFERENCES `user` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
-    CONSTRAINT `fk_visit_checkout_by` FOREIGN KEY (`checkout_by`) REFERENCES `user` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
-    CONSTRAINT `fk_visit_canceled_by` FOREIGN KEY (`canceled_by`) REFERENCES `user` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
-    CONSTRAINT `fk_visit_approved_by` FOREIGN KEY (`approved_by`) REFERENCES `user` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
+    -- Foreign key constraints
+                         CONSTRAINT `fk_visit_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`)
+                             ON DELETE RESTRICT ON UPDATE CASCADE,
+                         CONSTRAINT `fk_visit_patient` FOREIGN KEY (`patient_id`) REFERENCES `patient` (`id`)
+                             ON DELETE RESTRICT ON UPDATE CASCADE,
+                         CONSTRAINT `fk_visit_address` FOREIGN KEY (`address_id`) REFERENCES `address` (`id`)
+                             ON DELETE RESTRICT ON UPDATE CASCADE,
+                         CONSTRAINT `fk_visit_scheduled_by` FOREIGN KEY (`scheduled_by`) REFERENCES `user` (`id`)
+                             ON DELETE SET NULL ON UPDATE CASCADE,
+                         CONSTRAINT `fk_visit_checkin_by` FOREIGN KEY (`checkin_by`) REFERENCES `user` (`id`)
+                             ON DELETE SET NULL ON UPDATE CASCADE,
+                         CONSTRAINT `fk_visit_checkout_by` FOREIGN KEY (`checkout_by`) REFERENCES `user` (`id`)
+                             ON DELETE SET NULL ON UPDATE CASCADE,
+                         CONSTRAINT `fk_visit_canceled_by` FOREIGN KEY (`canceled_by`) REFERENCES `user` (`id`)
+                             ON DELETE SET NULL ON UPDATE CASCADE,
+                         CONSTRAINT `fk_visit_approved_by` FOREIGN KEY (`approved_by`) REFERENCES `user` (`id`)
+                             ON DELETE SET NULL ON UPDATE CASCADE
+
+    -- Note: Address-patient relationship validation is enforced at application level
+    -- to ensure address_id belongs to the specified patient_id with person_type=1
 
 ) ENGINE=InnoDB
 DEFAULT CHARSET=utf8mb4
 COLLATE=utf8mb4_unicode_ci
-COMMENT='Tracks patient care visits, separating planned schedule from actual logged times.';
+COMMENT='Visit tracking table for patient care management with specific address locations';

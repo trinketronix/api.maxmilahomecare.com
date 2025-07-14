@@ -40,8 +40,10 @@ class Visit extends Model {
     public int $patient_id;
 
     // Visit information
-    public string $start_time;
-    public string $end_time;
+    public string $visit_date;
+    public ?string $start_time = null;
+    public ?string $end_time = null;
+    public int $total_hours;
     public ?string $note = null;
 
     // Visit status information
