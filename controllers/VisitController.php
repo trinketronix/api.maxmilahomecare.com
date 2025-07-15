@@ -8,6 +8,7 @@ use Api\Constants\PersonType;
 use Api\Constants\Progress;
 use Api\Constants\Status;
 use Api\Models\Address;
+use Api\Models\OrderedVisit;
 use Api\Models\Patient;
 use Api\Models\User;
 use Api\Models\UserPatient;
@@ -134,8 +135,8 @@ class VisitController extends BaseController {
                 return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
             }
 
-            // Get all visits with custom ordering
-            $visits = Visit::findAllVisits();
+            // Use OrderedVisit model for pre-sorted results
+            $visits = OrderedVisit::find();
 
             $visitsData = [];
             foreach ($visits as $visit) {
@@ -164,8 +165,18 @@ class VisitController extends BaseController {
                 return $this->respondWithError(Message::UNAUTHORIZED_ACCESS, 403);
             }
 
-            // Get user visits (active status only by default)
-            $visits = Visit::findByUser($userId);
+            // Use OrderedVisit model for pre-sorted results
+            $visits = OrderedVisit::find([
+                'conditions' => 'user_id = :user_id: AND status = :status:',
+                'bind' => [
+                    'user_id' => $userId,
+                    'status' => Status::ACTIVE
+                ],
+                'bindTypes' => [
+                    'user_id' => \PDO::PARAM_INT,
+                    'status' => \PDO::PARAM_INT
+                ]
+            ]);
 
             $visitsData = [];
             foreach ($visits as $visit) {
@@ -198,18 +209,18 @@ class VisitController extends BaseController {
                 return $this->respondWithError(Message::PATIENT_NOT_FOUND, 404);
             }
 
-            // Get patient visits with custom ordering
-            $conditions = ['patient_id = :patient_id: AND status = :status:'];
-            $bind = [
-                'patient_id' => $patientId,
-                'status' => Status::ACTIVE
-            ];
-            $bindTypes = [
-                'patient_id' => \PDO::PARAM_INT,
-                'status' => \PDO::PARAM_INT
-            ];
-
-            $visits = Visit::findWithCustomOrder($conditions, $bind, $bindTypes);
+            // Use OrderedVisit model for pre-sorted results
+            $visits = OrderedVisit::find([
+                'conditions' => 'patient_id = :patient_id: AND status = :status:',
+                'bind' => [
+                    'patient_id' => $patientId,
+                    'status' => Status::ACTIVE
+                ],
+                'bindTypes' => [
+                    'patient_id' => \PDO::PARAM_INT,
+                    'status' => \PDO::PARAM_INT
+                ]
+            ]);
 
             $visitsData = [];
             foreach ($visits as $visit) {
@@ -248,129 +259,6 @@ class VisitController extends BaseController {
             }
 
             return $this->respondWithSuccess($this->formatVisitData($visit));
-
-        } catch (Exception $e) {
-            return $this->handleException($e);
-        }
-    }
-
-    /**
-     * Update a visit
-     * Can update: address_id, visit_date, start_time, total_hours, note
-     */
-    public function updateVisit(int $visitId): array {
-        try {
-            $currentUserId = $this->getCurrentUserId();
-            $data = $this->getRequestBody();
-
-            // Find the visit
-            $visit = Visit::findFirstById($visitId);
-            if (!$visit) {
-                return $this->respondWithError('Visit not found', 404);
-            }
-
-            // Check if user is the owner or manager/admin
-            $isOwner = $visit->user_id === $currentUserId;
-            $isManagerOrAdmin = $this->isManagerOrHigher();
-
-            // Authorization check
-            if (!$isOwner && !$isManagerOrAdmin) {
-                return $this->respondWithError('You can only update your own visits', 403);
-            }
-
-            // If user is caregiver (owner), check restrictions
-            if ($isOwner && !$isManagerOrAdmin) {
-                // Check if visit is approved
-                if ($visit->progress >= Progress::PAID) {
-                    return $this->respondWithError('Cannot update approved visits', 403);
-                }
-
-                // Check if visit is active
-                if ($visit->status !== Status::ACTIVE) {
-                    return $this->respondWithError('Cannot update inactive visits', 403);
-                }
-            }
-            // If manager/admin, no restrictions - can update any visit
-
-            // Define updatable fields
-            $updateableFields = [
-                Visit::ADDRESS_ID,
-                Visit::VISIT_DATE,
-                Visit::START_TIME,
-                Visit::TOTAL_HOURS,
-                Visit::NOTE
-            ];
-
-            // Check if any updatable field is present
-            $hasUpdateableField = false;
-            foreach ($updateableFields as $field) {
-                if (isset($data[$field])) {
-                    $hasUpdateableField = true;
-                    break;
-                }
-            }
-
-            if (!$hasUpdateableField) {
-                return $this->respondWithError('No valid fields to update', 400);
-            }
-
-            // Update within transaction
-            return $this->withTransaction(function() use ($visit, $data, $updateableFields) {
-                $updatedFields = [];
-
-                foreach ($updateableFields as $field) {
-                    if (isset($data[$field])) {
-                        switch ($field) {
-                            case Visit::ADDRESS_ID:
-                                // Validate address belongs to the patient
-                                $addressId = (int)$data[$field];
-                                $address = $this->validatePatientAddress($addressId, $visit->patient_id);
-                                if (!$address) {
-                                    return $this->respondWithError('Invalid address for this patient', 400);
-                                }
-                                $visit->address_id = $addressId;
-                                $updatedFields[] = 'address';
-                                break;
-
-                            case Visit::VISIT_DATE:
-                                $visit->visit_date = $data[$field];
-                                $updatedFields[] = 'visit date';
-                                break;
-
-                            case Visit::START_TIME:
-                                $visit->start_time = $data[$field];
-                                // End time will be recalculated automatically in beforeUpdate
-                                $updatedFields[] = 'start time';
-                                break;
-
-                            case Visit::TOTAL_HOURS:
-                                $totalHours = (int)$data[$field];
-                                if ($totalHours < 1 || $totalHours > 24) {
-                                    return $this->respondWithError('Total hours must be between 1 and 24', 400);
-                                }
-                                $visit->total_hours = $totalHours;
-                                // End time will be recalculated if start_time exists
-                                $updatedFields[] = 'total hours';
-                                break;
-
-                            case Visit::NOTE:
-                                $visit->note = $data[$field];
-                                $updatedFields[] = 'note';
-                                break;
-                        }
-                    }
-                }
-
-                if (!$visit->save()) {
-                    return $this->respondWithError($this->getFirstErrorMessage($visit), 422);
-                }
-
-                return $this->respondWithSuccess([
-                    'message' => 'Visit updated successfully',
-                    'updated_fields' => $updatedFields,
-                    'visit' => $this->formatVisitData($visit)
-                ], 200, 'Visit updated successfully');
-            });
 
         } catch (Exception $e) {
             return $this->handleException($e);

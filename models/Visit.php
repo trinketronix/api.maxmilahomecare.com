@@ -336,55 +336,16 @@ class Visit extends Model {
     }
 
     /**
-     * Find visits with custom ordering for display
-     * Orders by: today's in-progress first, then scheduled, future scheduled, canceled, past visits
+     * Note: For custom ordered results, use OrderedVisit model instead
+     * This method remains for backward compatibility and simple queries
      */
     public static function findWithCustomOrder(array $conditions = [], array $bind = [], array $bindTypes = []): \Phalcon\Mvc\Model\ResultsetInterface {
-        $today = date('Y-m-d');
-
-        // Build the ORDER BY clause for custom sorting
-        $orderBy = "
-            CASE 
-                WHEN visit_date = '{$today}' AND progress = " . Progress::IN_PROGRESS . " THEN 1
-                WHEN visit_date = '{$today}' AND progress = " . Progress::SCHEDULED . " THEN 2
-                WHEN visit_date > '{$today}' AND progress = " . Progress::SCHEDULED . " THEN 3
-                WHEN progress = " . Progress::CANCELED . " THEN 4
-                ELSE 5
-            END,
-            visit_date DESC,
-            start_time DESC
-        ";
-
+        // Simply order by date and time for basic queries
         return self::find([
             'conditions' => implode(' AND ', $conditions),
             'bind' => $bind,
             'bindTypes' => $bindTypes,
-            'order' => $orderBy
+            'order' => 'visit_date DESC, start_time DESC'
         ]);
-    }
-
-    /**
-     * Find visits for a specific user
-     */
-    public static function findByUser(int $userId, array $params = []): \Phalcon\Mvc\Model\ResultsetInterface {
-        $conditions = ['user_id = :user_id:'];
-        $bind = ['user_id' => $userId];
-        $bindTypes = ['user_id' => \PDO::PARAM_INT];
-
-        // Add status filter (default to active/visible)
-        if (!isset($params['include_all_statuses'])) {
-            $conditions[] = 'status = :status:';
-            $bind['status'] = Status::ACTIVE;
-            $bindTypes['status'] = \PDO::PARAM_INT;
-        }
-
-        return self::findWithCustomOrder($conditions, $bind, $bindTypes);
-    }
-
-    /**
-     * Find all visits (for managers/admins)
-     */
-    public static function findAllVisits(): \Phalcon\Mvc\Model\ResultsetInterface {
-        return self::findWithCustomOrder();
     }
 }
