@@ -8,7 +8,7 @@ use Api\Constants\PersonType;
 use Api\Constants\Progress;
 use Api\Constants\Status;
 use Api\Models\Address;
-use Api\Models\OrderedVisit;
+use Api\Models\OrderedVisits;
 use Api\Models\Patient;
 use Api\Models\User;
 use Api\Models\UserPatient;
@@ -135,8 +135,8 @@ class VisitController extends BaseController {
                 return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
             }
 
-            // Use OrderedVisit model for pre-sorted results
-            $visits = OrderedVisit::find();
+            // Use OrderedVisits model for pre-sorted results
+            $visits = OrderedVisits::find();
 
             $visitsData = [];
             foreach ($visits as $visit) {
@@ -165,8 +165,8 @@ class VisitController extends BaseController {
                 return $this->respondWithError(Message::UNAUTHORIZED_ACCESS, 403);
             }
 
-            // Use OrderedVisit model for pre-sorted results
-            $visits = OrderedVisit::find([
+            // Use OrderedVisits model for pre-sorted results
+            $visits = OrderedVisits::find([
                 'conditions' => 'user_id = :user_id: AND status = :status:',
                 'bind' => [
                     'user_id' => $userId,
@@ -209,8 +209,8 @@ class VisitController extends BaseController {
                 return $this->respondWithError(Message::PATIENT_NOT_FOUND, 404);
             }
 
-            // Use OrderedVisit model for pre-sorted results
-            $visits = OrderedVisit::find([
+            // Use OrderedVisits model for pre-sorted results
+            $visits = OrderedVisits::find([
                 'conditions' => 'patient_id = :patient_id: AND status = :status:',
                 'bind' => [
                     'patient_id' => $patientId,
