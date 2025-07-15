@@ -26,7 +26,7 @@ Content-Type: application/json
 {
   "user_id": 2,
   "patient_id": 5,
-  "start_time": "{{$isoTimestamp 'YYYY-MM-DD' -1}}",
+  "date": "{{$isoTimestamp 'YYYY-MM-DD'}}",
   "end_time": "{{$isoTimestamp 'YYYY-MM-DD' -1}}",
   "note": "Past visit for testing"
 }
