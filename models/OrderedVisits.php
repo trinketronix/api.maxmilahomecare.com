@@ -9,7 +9,7 @@ namespace Api\Models;
  * This model extends Visit and uses the ordered_visits view
  * to provide pre-sorted visit results
  */
-class OrderedVisit extends Visit {
+class OrderedVisits extends Visit {
     // Additional property from the view
     public ?int $sort_order = null;
 
