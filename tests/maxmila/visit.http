@@ -89,11 +89,11 @@ Authorization: {{maxmila.token}}
 
 ### Get all visits
 GET {{maxmila.baseUrl}}/visits
-Authorization: {{maxmila.manager.token}}
+Authorization: {{maxmila.caregiver.token}}
 
 ### Filter visits by user
-GET {{maxmila.baseUrl}}/visits?user_id=1
-Authorization: {{maxmila.token}}
+GET {{maxmila.baseUrl}}/visit/1
+Authorization: {{maxmila.manager.token}}
 
 ### Filter visits by patient
 GET {{maxmila.baseUrl}}/visits?patient_id=1
@@ -136,8 +136,8 @@ Authorization: {{maxmila.token}}
 ### ========================================
 
 ### Get all visits for a specific user
-GET {{maxmila.baseUrl}}/user/visits/2
-Authorization: {{maxmila.manager.token}}
+GET {{maxmila.baseUrl}}/user/visits/83
+Authorization: {{maxmila.caregiver.token}}
 
 ### Filter user visits by progress
 GET {{maxmila.baseUrl}}/visits/user/1?progress=0

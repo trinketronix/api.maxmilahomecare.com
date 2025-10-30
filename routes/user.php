@@ -20,8 +20,8 @@ if (isset($app)) {
 
     // Update photo routes
     // For updating own photo (backward compatibility)
-    $app->put('/user/update/photo', [$user, 'updatePhoto']);
+    $app->post('/user/update/photo', [$user, 'updatePhoto']);
 
     // For updating photo for a specific user (admin/manager)
-    $app->put('/user/{userId:[0-9]+}/update/photo', [$user, 'updatePhoto']);
+    $app->post('/user/{userId:[0-9]+}/update/photo', [$user, 'updatePhoto']);
 }
