@@ -600,7 +600,7 @@ class AuthController extends BaseController {
         </div>
         <h1>{$title}</h1>
         <p>{$message}</p>
-        <a href="{$appBaseUrl}/login" class="button">Go to Login</a>
+        <a href="{$appBaseUrl}/signin" class="button">Go to Login</a>
     </div>
 </body>
 </html>
