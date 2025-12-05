@@ -267,7 +267,28 @@ class Address extends Model {
     /**
      * Find addresses by person ID and type
      */
+    /**
+     * Find addresses by person ID and type
+     * For patients (person_type = 1), includes the system address (id = 0)
+     */
     public static function findByPerson(int $personId, int $personType): \Phalcon\Mvc\Model\ResultsetInterface {
+        // For patients, include system address in query
+        if ($personType === 1) {
+            return self::find([
+                'conditions' => '(person_id = :person_id: AND person_type = :person_type:) OR id = 0',
+                'bind' => [
+                    'person_id' => $personId,
+                    'person_type' => $personType
+                ],
+                'bindTypes' => [
+                    'person_id' => \PDO::PARAM_INT,
+                    'person_type' => \PDO::PARAM_INT
+                ],
+                'order' => 'created_at DESC'
+            ]);
+        }
+
+        // For non-patients (users), return only their addresses
         return self::find([
             'conditions' => 'person_id = :person_id: AND person_type = :person_type:',
             'bind' => [
@@ -281,6 +302,21 @@ class Address extends Model {
             'order' => 'created_at DESC'
         ]);
     }
+//    public static function findByPerson(int $personId, int $personType): \Phalcon\Mvc\Model\ResultsetInterface {
+//        return self::find([
+//            'conditions' => 'person_id = :person_id: AND person_type = :person_type:',
+//            'bind' => [
+//                'person_id' => $personId,
+//                'person_type' => $personType
+//            ],
+//            'bindTypes' => [
+//                'person_id' => \PDO::PARAM_INT,
+//                'person_type' => \PDO::PARAM_INT
+//            ],
+//            'order' => 'created_at DESC'
+//        ]);
+//    }
+
 
     /**
      * Find addresses within a certain radius of coordinates

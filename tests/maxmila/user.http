@@ -4,18 +4,18 @@
 ### ========================================
 
 ### Update current user's information (logged in user)
-PUT {{baseUrl}}/user
-Authorization: {{token}}
+PUT {{maxmila.baseUrl}}/user
+Authorization: eyJpZCI6MTA4LCJ1c2VybmFtZSI6InRyaW5rZXRyb25peEBnbWFpbC5jb20iLCJyb2xlIjoyLCJleHBpcmF0aW9uIjoxNzYyOTQ3ODc1NTkwfQ==
 Content-Type: application/json
 
 {
-  "firstname": "John",
-  "lastname": "Doe",
-  "middlename": "Michael",
-  "birthdate": "1990-01-15",
+  "firstname": "Trinko",
+  "lastname": "Troniko",
+  "middlename": "Trenecito",
+  "birthdate": "1976-12-16",
   "phone": "+1-555-123-4567",
   "phone2": "+1-555-987-6543",
-  "email": "john.doe@example.com",
+  "email": "trinketronix@gmail.com",
   "email2": "john.doe.alt@example.com",
   "languages": "English, Spanish",
   "description": "Experienced caregiver with 5 years in home healthcare",
@@ -42,14 +42,16 @@ Content-Type: application/json
 }
 
 ### Update another user's information (Admin/Manager only)
-PUT {{maxmila.baseUrl}}/user/1
-Authorization: {{maxmila.administrator.token}}
+PUT {{maxmila.baseUrl}}/user/108
+Authorization: eyJpZCI6MTA4LCJ1c2VybmFtZSI6InRyaW5rZXRyb25peEBnbWFpbC5jb20iLCJyb2xlIjoyLCJleHBpcmF0aW9uIjoxNzYyOTQ5OTMyNDA3fQ==
 Content-Type: application/json
 
 {
-  "lastname": "Smith",
-  "email2": "mundo.smith@example.com",
-  "description": "Rajitas con queso"
+  "firstname": "El Pollo",
+  "middlename": "Huiniko",
+  "lastname": "Chupas",
+  "email2": "tronko@example.com",
+  "description": "Rajitas con queso rebanado"
 }
 
 ### ========================================

@@ -146,12 +146,12 @@ class User extends Model {
     /**
      * Create a new user with minimal required information
      */
-    public static function createTemplate(int $id, string $email): bool {
+    public static function createTemplate(int $id, string $email, string $lastname = "TBD", string $firstname = "TBD"): bool {
         $user = new self();
         $user->id = $id;
         $user->email = $email;
-        $user->lastname = 'TBD';
-        $user->firstname = 'TBD';
+        $user->lastname = $lastname;
+        $user->firstname = $firstname;
         $user->photo = self::DEFAULT_PHOTO_FILE;
         return $user->save();
     }
