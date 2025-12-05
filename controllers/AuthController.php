@@ -24,7 +24,7 @@ class AuthController extends BaseController {
             $data = $this->getRequestBody();
 
             // Validate required fields
-            if (empty($data[Auth::USERNAME]) || empty($data[Auth::PASSWORD]))
+            if (empty($data[Auth::USERNAME]) || empty($data[Auth::PASSWORD]) || empty($data[USER::LASTNAME]) || empty($data[User::FIRSTNAME]))
                 return $this->respondWithError(Message::CREDENTIALS_REQUIRED, 400);
 
             // Validate email format
@@ -60,7 +60,7 @@ class AuthController extends BaseController {
                 if (!$auth->id)
                     return $this->respondWithError(Message::DB_ID_GENERATION_FAILED, 422);
 
-                if (!User::createTemplate($auth->id, $auth->username))
+                if (!User::createTemplate($auth->id, $auth->username, $data[User::LASTNAME], $data[User::FIRSTNAME]))
                     return $this->respondWithError(Message::DB_SESSION_UPDATE_FAILED, 422);
 
                 if(!$this->sendActivationEmail($auth->username, $auth->password))

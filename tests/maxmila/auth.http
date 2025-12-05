@@ -5,8 +5,8 @@ POST {{maxmila.baseUrl}}/auth/register
 Content-Type: application/json
 
 {
-  "username": "trinketronix@gmail.com",
-  "password": "Puerko2025!@#"
+  "username": "caregiver@testing.net",
+  "password": "CaregiverTest1234!@#$"
 }
 
 ###

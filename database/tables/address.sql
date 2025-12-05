@@ -42,3 +42,18 @@ CREATE TABLE `address` (
 DEFAULT CHARSET=utf8mb4
 COLLATE=utf8mb4_unicode_ci
 COMMENT='Addresses for users and patients';
+
+
+-- 1. Update constraint for Community Address
+ALTER TABLE `address`
+DROP CONSTRAINT `chk_person_type`,
+ADD CONSTRAINT `chk_person_type` CHECK (person_type IN (-1, 0, 1));
+
+-- 2. Enable inserting 0
+SET SESSION sql_mode = 'NO_AUTO_VALUE_ON_ZERO';
+
+-- 3. Insert system address
+INSERT INTO `address` (id, person_id, person_type, type, address, city, county, state, zipcode)
+VALUES (0, 0, -1, 'System', 'Community', 'Maxmila', 'System', 'XX', 'ABCDE');
+
+-- That's it! Next insert will automatically be 1244
