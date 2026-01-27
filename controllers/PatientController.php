@@ -55,6 +55,21 @@ class PatientController extends BaseController {
                 if (isset($data[Patient::ADMISSION]))
                     $patient->admission = $data[Patient::ADMISSION];
 
+                if (isset($data[Patient::GENDER]))
+                    $patient->gender = $data[Patient::GENDER];
+
+                if (isset($data[Patient::BIRTHDATE]))
+                    $patient->birthdate = $data[Patient::BIRTHDATE];
+
+                if (isset($data[Patient::PHONE2]))
+                    $patient->phone2 = $data[Patient::PHONE2];
+
+                if (isset($data[Patient::PHONE3]))
+                    $patient->phone3 = $data[Patient::PHONE3];
+
+                if (isset($data[Patient::ADMISSION]))
+                    $patient->admission = $data[Patient::ADMISSION];
+
                 // Default to active status
                 $patient->status = Status::ACTIVE;
 

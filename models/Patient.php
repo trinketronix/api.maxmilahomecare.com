@@ -18,7 +18,11 @@ class Patient extends Model {
     public const string FIRSTNAME = 'firstname';
     public const string MIDDLENAME = 'middlename';
     public const string LASTNAME = 'lastname';
+    public const string GENDER = 'gender';
+    public const string BIRTHDATE = 'birthdate';
     public const string PHONE = 'phone';
+    public const string PHONE2 = 'phone2';
+    public const string PHONE3 = 'phone3';
     public const string STATUS = 'status';
     public const string PHOTO = 'photo';
     public const string CREATED_AT = 'created_at';
@@ -36,9 +40,13 @@ class Patient extends Model {
     public string $firstname;
     public ?string $middlename = null;
     public string $lastname;
+    public ?string $gender = null;
+    public ?string $birthdate = null;
 
     // Contact information
     public string $phone;
+    public ?string $phone2 = null;
+    public ?string $phone3 = null;
 
     // Status
     public int $status = Status::ACTIVE;
