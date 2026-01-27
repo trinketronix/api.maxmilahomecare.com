@@ -5,3 +5,4 @@
 -- create user_patient
 -- create visit
 -- create auth_user
+-- create ordered_visits

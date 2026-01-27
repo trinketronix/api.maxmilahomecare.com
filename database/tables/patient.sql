@@ -12,12 +12,16 @@ CREATE TABLE `patient` (
     `firstname` VARCHAR(100) NOT NULL COMMENT 'Patient''s first/given name',
     `middlename` VARCHAR(100) DEFAULT NULL COMMENT 'Patient''s middle name, optional',
     `lastname` VARCHAR(100) NOT NULL COMMENT 'Patient''s last/family name',
+    `gender` ENUM('male', 'female') DEFAULT NULL COMMENT 'Patient gender',
+    `birthdate` DATE DEFAULT NULL COMMENT 'Patient''s date of birth in YYYY-MM-DD format',
 
     -- Contact information
     `phone` VARCHAR(20) NOT NULL COMMENT 'Primary contact phone number',
+    `phone2` VARCHAR(20) NOT NULL COMMENT 'Secondary contact phone number',
+    `phone3` VARCHAR(20) NOT NULL COMMENT 'Thirdly contact phone number',
 
     -- Record status, allows to delete records in soft-deletion, archived, or just normal active
-    `status` TINYINT NOT NULL DEFAULT 0 COMMENT 'Record status: 1=Active/Visible/Normal, 2=Archived, 3=Soft-Deleted',
+    `status` TINYINT NOT NULL DEFAULT 1 COMMENT 'Record status: 0=Waiting/Not-Active, 1=Active/Visible/Normal, 2=Archived, 3=Soft-Deleted',
 
     -- Profile media
     `photo` VARCHAR(2048) DEFAULT '/patient/photo/default.jpg' COMMENT 'URL to patient''s profile picture/avatar',
