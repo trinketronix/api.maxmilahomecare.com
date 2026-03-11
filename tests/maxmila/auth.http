@@ -83,6 +83,6 @@ PUT {{maxmila.baseUrl}}/auth/change/password
 Content-Type: application/json
 
 {
-  "username": "henrynina48083@hotmail.com",
-  "password": "Hongjun2026"
+  "username": "hectorsalpen@gmail.com",
+  "password": "Mju72wsx"
 }
