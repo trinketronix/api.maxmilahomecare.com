@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+date_default_timezone_set('America/Detroit');
 
 use Phalcon\Mvc\Micro;
 use Phalcon\Di\FactoryDefault;

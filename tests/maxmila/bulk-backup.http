@@ -121,7 +121,7 @@ Content-Type: application/json
 ###
 # group: Backup Recovery
 # @name Update Bulk Users
-PUT {{maxmila.baseUrl}}/bulk/users
+POST {{maxmila.baseUrl}}/bulk/users
 Content-Type: application/json
 
 [
