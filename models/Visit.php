@@ -23,6 +23,7 @@ class Visit extends Model {
     public const string START_TIME = 'start_time';
     public const string END_TIME = 'end_time';
     public const string TOTAL_HOURS = 'total_hours';
+    public const string EXTRA_MINUTES = 'extra_minutes';
     public const string NOTE = 'note';
     public const string PROGRESS = 'progress';
     public const string SCHEDULED_BY = 'scheduled_by';
@@ -47,6 +48,7 @@ class Visit extends Model {
     public ?string $start_time = null;
     public ?string $end_time = null;
     public int $total_hours = 1;
+    public int $extra_minutes = 0;
     public ?string $note = null;
 
     // Visit status information
@@ -144,6 +146,15 @@ class Visit extends Model {
             ])
         );
 
+        // Extra minutes validation
+        $validator->add(
+            self::EXTRA_MINUTES,
+            new InclusionIn([
+                'domain' => [0, 15, 30, 45],
+                'message' => 'Extra minutes must be 0, 15, 30, or 45'
+            ])
+        );
+
         // Time validation: if start_time is set, end_time should be calculated
         if (!empty($this->start_time) && !empty($this->end_time)) {
             $startTime = new DateTime($this->start_time);
@@ -195,8 +206,8 @@ class Visit extends Model {
      * Actions before update
      */
     public function beforeUpdate(): bool {
-        // Recalculate end_time if start_time or total_hours changed
-        if ($this->hasChanged([self::START_TIME, self::TOTAL_HOURS]) && !empty($this->start_time)) {
+        // Recalculate end_time if start_time, total_hours, or extra_minutes changed
+        if ($this->hasChanged([self::START_TIME, self::TOTAL_HOURS, self::EXTRA_MINUTES]) && !empty($this->start_time)) {
             $this->calculateEndTime();
         }
 
@@ -204,12 +215,15 @@ class Visit extends Model {
     }
 
     /**
-     * Calculate end time based on start time and total hours
+     * Calculate end time based on start time, total hours, and extra minutes
      */
     private function calculateEndTime(): void {
-        if (!empty($this->start_time) && $this->total_hours > 0) {
+        if (!empty($this->start_time) && ($this->total_hours > 0 || $this->extra_minutes > 0)) {
             $startTime = new DateTime($this->start_time);
             $startTime->modify("+{$this->total_hours} hours");
+            if ($this->extra_minutes > 0) {
+                $startTime->modify("+{$this->extra_minutes} minutes");
+            }
             $this->end_time = $startTime->format('Y-m-d H:i:s');
         }
     }
@@ -219,7 +233,7 @@ class Visit extends Model {
      */
     public function getDurationMinutes(): int {
         if (empty($this->start_time) || empty($this->end_time)) {
-            return $this->total_hours * 60;
+            return ($this->total_hours * 60) + $this->extra_minutes;
         }
 
         $startTime = new DateTime($this->start_time);

@@ -1,42 +1,52 @@
-name: Deploy Maxmila Homecare Rest API (Test)
+name: Deploy api for testing
 on:
   pull_request:
     types: [closed]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-test
+  cancel-in-progress: false
+
 jobs:
   deploy:
-    if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main'
     name: Deploy Test
     runs-on: ubuntu-latest
+    if: >
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.base.ref == 'main'
+
+    environment: test
     steps:
-      - name: Get the latest source code
-        uses: actions/checkout@v4.2.2
+      - name: Checkout repository
+        uses: actions/checkout@v6.0.2
         with:
           fetch-depth: 0
-
-      - name: Sync files for Testing
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+      - name: Deploy via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
         with:
           server: ${{ secrets.FTP_MAX_SERVER }}
           username: ${{ secrets.FTP_API_USERNAME_TEST }}
           password: ${{ secrets.FTP_API_PASSWORD_TEST }}
           protocol: ftps
-          timeout: 90000          # Increased timeout to 90s
-          max-retries: 3          # Add retry attempts
-          log-level: verbose      # More detailed logging
-          dangerous-clean-slate: false  # Prevent full directory cleanup
-          exclude: |              # Exclude unnecessary files
+          server-dir: /
+          timeout: 90000
+          max-retries: 2
+          log-level: verbose
+          dangerous-clean-slate: false
+          state-name: .ftp-deploy-sync-state.json
+          exclude: |
             **/.git*
-            **/.git*/**
+            **/.github/**
             **/.env*
             **/tests/**
             **/database/**
-            tests/**
-            database/**
+            **/node_modules/**
+            **/vendor/**
             .gitignore
-            http-client.env.json
-            LICENSE
             README.md
+            LICENSE
+            http-client.env.json
             secrets.txt
-          state-name: .ftp-deploy-sync-state.json    # Keep track of sync state
-          server-dir: /          # Specify your root directory if needed

@@ -1,4 +1,4 @@
-name: Deploy Maxmila Homecare Rest API (Production)
+name: Deploy api to production
 on:
   release:
     types: [published]
@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Get the latest source code
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v6.0.2
         with:
           fetch-depth: 0
 
@@ -34,7 +34,7 @@ jobs:
           echo "Environment: ${{ github.event.inputs.environment }}"
 
       - name: Sync files for Production
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
         with:
           server: ${{ secrets.FTP_MAX_SERVER }}
           username: ${{ secrets.FTP_API_USERNAME_PROD }}
@@ -44,18 +44,18 @@ jobs:
           max-retries: 3          # Add retry attempts
           log-level: verbose      # More detailed logging
           dangerous-clean-slate: false  # Prevent full directory cleanup
-          exclude: |              # Exclude unnecessary files
+          exclude: |
             **/.git*
-            **/.git*/**
+            **/.github/**
             **/.env*
             **/tests/**
             **/database/**
-            tests/**
-            database/**
+            **/node_modules/**
+            **/vendor/**
             .gitignore
-            http-client.env.json
-            LICENSE
             README.md
+            LICENSE
+            http-client.env.json
             secrets.txt
           state-name: .ftp-deploy-sync-state.json    # Keep track of sync state
           server-dir: /          # Specify your root directory if needed

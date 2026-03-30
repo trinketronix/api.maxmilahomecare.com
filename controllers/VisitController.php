@@ -21,7 +21,7 @@ class VisitController extends BaseController {
     /**
      * Schedule a new visit
      * Required: user_id, patient_id, address_id, visit_date, total_hours
-     * Optional: start_time, note
+     * Optional: start_time, note, extra_minutes
      */
     public function schedule(): array {
         try {
@@ -84,8 +84,14 @@ class VisitController extends BaseController {
                 return $this->respondWithError('Total hours must be between 1 and 24', 400);
             }
 
+            // Validate extra minutes (optional, defaults to 0)
+            $extraMinutes = isset($data[Visit::EXTRA_MINUTES]) ? (int)$data[Visit::EXTRA_MINUTES] : 0;
+            if (!in_array($extraMinutes, [0, 15, 30, 45], true)) {
+                return $this->respondWithError('Extra minutes must be 0, 15, 30, or 45', 400);
+            }
+
             // Create visit within transaction
-            return $this->withTransaction(function() use ($data, $userId, $patientId, $addressId, $totalHours, $currentUserId) {
+            return $this->withTransaction(function() use ($data, $userId, $patientId, $addressId, $totalHours, $extraMinutes, $currentUserId) {
                 $visit = new Visit();
 
                 // Set required fields
@@ -94,6 +100,7 @@ class VisitController extends BaseController {
                 $visit->address_id = $addressId;
                 $visit->visit_date = $data[Visit::VISIT_DATE];
                 $visit->total_hours = $totalHours;
+                $visit->extra_minutes = $extraMinutes;
 
                 // Set defaults
                 $visit->scheduled_by = $userId; // Always the user who will perform the visit
