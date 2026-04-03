@@ -43,6 +43,11 @@ class VisitController extends BaseController {
                 }
             }
 
+            // Validate address_id separately since 0 (Community) is a valid value
+            if (!isset($data[Visit::ADDRESS_ID]) || $data[Visit::ADDRESS_ID] === '' || $data[Visit::ADDRESS_ID] === null) {
+                return $this->respondWithError('Address ID is required', 400);
+            }
+
             $userId = (int)$data[Visit::USER_ID];
 
             // Authorization: can only schedule for self or as manager/admin
@@ -66,11 +71,13 @@ class VisitController extends BaseController {
                 return $this->respondWithError('Cannot schedule visit for inactive patient', 400);
             }
 
-            // Validate address belongs to patient
+            // Validate address belongs to patient (skip for Community address)
             $addressId = (int)$data[Visit::ADDRESS_ID];
-            $address = $this->validatePatientAddress($addressId, $patientId);
-            if (!$address) {
-                return $this->respondWithError('Invalid address for this patient', 400);
+            if ($addressId !== 0) {
+                $address = $this->validatePatientAddress($addressId, $patientId);
+                if (!$address) {
+                    return $this->respondWithError('Invalid address for this patient', 400);
+                }
             }
 
             // Validate user is assigned to patient (optional business rule)
