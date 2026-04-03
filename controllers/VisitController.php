@@ -32,7 +32,6 @@ class VisitController extends BaseController {
             $requiredFields = [
                 Visit::USER_ID => 'User ID is required',
                 Visit::PATIENT_ID => 'Patient ID is required',
-                Visit::ADDRESS_ID => 'Address ID is required',
                 Visit::VISIT_DATE => 'Visit date is required',
                 Visit::TOTAL_HOURS => 'Total hours is required'
             ];
