@@ -96,6 +96,29 @@ class VisitController extends BaseController {
                 return $this->respondWithError('Extra minutes must be 0, 15, 30, or 45', 400);
             }
 
+            // Duplicate guard: reject if identical visit was created in the last 60 seconds
+            $duplicateConditions = 'user_id = :uid: AND patient_id = :pid: AND address_id = :aid: AND visit_date = :vdate: AND total_hours = :th: AND extra_minutes = :em: AND created_at >= :since:';
+            $duplicateBind = [
+                'uid'   => $userId,
+                'pid'   => $patientId,
+                'aid'   => $addressId,
+                'vdate' => $data[Visit::VISIT_DATE],
+                'th'    => $totalHours,
+                'em'    => $extraMinutes,
+                'since' => date('Y-m-d H:i:s', time() - 60),
+            ];
+            $existing = Visit::findFirst([
+                'conditions' => $duplicateConditions,
+                'bind'       => $duplicateBind,
+            ]);
+            if ($existing) {
+                // Return the already-created visit instead of making a duplicate
+                return $this->respondWithSuccess([
+                    'message' => 'Visit scheduled successfully',
+                    'visit'   => $this->formatVisitData($existing)
+                ], 201, 'Visit scheduled successfully');
+            }
+
             // Create visit within transaction
             return $this->withTransaction(function() use ($data, $userId, $patientId, $addressId, $totalHours, $extraMinutes, $currentUserId) {
                 $visit = new Visit();
