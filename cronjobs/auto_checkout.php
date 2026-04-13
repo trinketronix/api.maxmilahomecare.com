@@ -42,7 +42,10 @@ try {
     $sql = "UPDATE `visit`
                SET `progress`    = 2,
                    `checkout_by` = `user_id`,
-                   `end_time`    = DATE_ADD(`start_time`, INTERVAL `total_hours` HOUR),
+                   `end_time`    = DATE_ADD(
+                                       DATE_ADD(`start_time`, INTERVAL `total_hours` HOUR),
+                                       INTERVAL `extra_minutes` MINUTE
+                                   ),
                    `updated_at`  = NOW()
              WHERE `progress`    = 1
                AND `visit_date` <= :today";
