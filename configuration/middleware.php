@@ -67,7 +67,6 @@ if (isset($app)) {
             '#^/patient/upload/photo$#',
             '#^/patient/update/photo$#',
             '#^/patient/\d+/upload/photo$#',
-            '#^/patient/\d+/update/photo$#'
         ];
 
         foreach ($uploadPatterns as $pattern) {
@@ -360,6 +359,9 @@ if (isset($app)) {
         $response->setHeader('X-Content-Type-Options', 'nosniff');
         $response->setHeader('X-Frame-Options', 'DENY');
         $response->setHeader('X-XSS-Protection', '1; mode=block');
+        $response->setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+        $response->setHeader('Pragma', 'no-cache');
+        $response->setHeader('Expires', '0');
         $response->setContentType('application/json', 'UTF-8');
         $response->setHeader('Access-Control-Allow-Origin', '*');
         $response->setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD');
