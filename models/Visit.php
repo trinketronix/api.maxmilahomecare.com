@@ -140,9 +140,9 @@ class Visit extends Model {
         $validator->add(
             self::TOTAL_HOURS,
             new \Phalcon\Filter\Validation\Validator\Between([
-                'minimum' => 1,
+                'minimum' => 0,
                 'maximum' => 24,
-                'message' => 'Total hours must be between 1 and 24'
+                'message' => 'Total hours must be between 0 and 24'
             ])
         );
 
