@@ -86,12 +86,15 @@ class VisitController extends BaseController {
 
             // Validate total hours
             $totalHours = (int)$data[Visit::TOTAL_HOURS];
-            if ($totalHours < 1 || $totalHours > 24) {
-                return $this->respondWithError('Total hours must be between 1 and 24', 400);
+            if ($totalHours < 0 || $totalHours > 24) {
+                return $this->respondWithError('Total hours must be between 0 and 24', 400);
             }
 
             // Validate extra minutes (optional, defaults to 0)
             $extraMinutes = isset($data[Visit::EXTRA_MINUTES]) ? (int)$data[Visit::EXTRA_MINUTES] : 0;
+            if ($totalHours === 0 && $extraMinutes === 0) {
+                return $this->respondWithError('Visit duration must be greater than zero', 400);
+            }
             if (!in_array($extraMinutes, [0, 15, 30, 45], true)) {
                 return $this->respondWithError('Extra minutes must be 0, 15, 30, or 45', 400);
             }
