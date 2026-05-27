@@ -32,8 +32,7 @@ class VisitController extends BaseController {
             $requiredFields = [
                 Visit::USER_ID => 'User ID is required',
                 Visit::PATIENT_ID => 'Patient ID is required',
-                Visit::VISIT_DATE => 'Visit date is required',
-                Visit::TOTAL_HOURS => 'Total hours is required'
+                Visit::VISIT_DATE => 'Visit date is required'
             ];
 
             foreach ($requiredFields as $field => $message) {
@@ -41,10 +40,17 @@ class VisitController extends BaseController {
                     return $this->respondWithError($message, 400);
                 }
             }
-
-            // Validate address_id separately since 0 (Community) is a valid value
-            if (!isset($data[Visit::ADDRESS_ID]) || $data[Visit::ADDRESS_ID] === '' || $data[Visit::ADDRESS_ID] === null) {
-                return $this->respondWithError('Address ID is required', 400);
+            // Fields where 0 IS a valid value — check for "actually absent" instead of falsy.
+            // address_id: 0 = Community.
+            // total_hours: 0 = minutes-only visit (e.g., 15-min med pass).
+            $presenceRequired = [
+                Visit::ADDRESS_ID   => 'Address ID is required',
+                Visit::TOTAL_HOURS  => 'Total hours is required',
+            ];
+            foreach ($presenceRequired as $field => $message) {
+                if (!isset($data[$field]) || $data[$field] === '' || $data[$field] === null) {
+                    return $this->respondWithError($message, 400);
+                }
             }
 
             $userId = (int)$data[Visit::USER_ID];

@@ -16,6 +16,7 @@ CREATE TABLE `visit` (
                          `start_time` DATETIME DEFAULT NULL COMMENT 'Visit start time',
                          `end_time` DATETIME DEFAULT NULL COMMENT 'Visit end time (calculated from start_time + total_hours)',
                          `total_hours` TINYINT UNSIGNED NOT NULL DEFAULT 1 COMMENT 'Visit total of hours',
+                         `extra_minutes` TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Visit extra minutes',
                          `note` TEXT CHARACTER SET utf8mb4 DEFAULT NULL COMMENT 'Visit note, comment, observation etc',
 
     -- Visit status information
@@ -50,7 +51,7 @@ CREATE TABLE `visit` (
                          CONSTRAINT `chk_progress` CHECK(`progress` IN (-1,0,1,2,3)),
                          CONSTRAINT `chk_status` CHECK(`status` IN (1,2,3)),
                          CONSTRAINT `chk_dates` CHECK(`end_time` IS NULL OR `end_time` >= `start_time`),
-                         CONSTRAINT `chk_total_hours` CHECK(`total_hours` >= 1 AND `total_hours` <= 24),
+                         CONSTRAINT `chk_total_hours` CHECK(`total_hours` >= 0 AND `total_hours` <= 24),
 
     -- Foreign key constraints
                          CONSTRAINT `fk_visit_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`)
