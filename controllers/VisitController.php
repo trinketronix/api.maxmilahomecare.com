@@ -129,7 +129,7 @@ class VisitController extends BaseController {
             }
 
             // Create visit within transaction
-            return $this->withTransaction(function() use ($data, $userId, $patientId, $addressId, $totalHours, $extraMinutes, $currentUserId) {
+            return $this->withTransaction(function() use ($data, $userId, $patientId, $addressId, $totalHours, $extraMinutes) {
                 $visit = new Visit();
 
                 // Set required fields

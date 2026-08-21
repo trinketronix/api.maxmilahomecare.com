@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint PHP
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+          tools: composer:v2
+
+      - name: Syntax check every tracked PHP file
+        run: git ls-files '*.php' | xargs -n 1 -P 4 php -l > /dev/null
+
+      - name: No output before <?php (breaks headers on the server)
+        run: |
+          bad=0
+          for f in $(git ls-files '*.php'); do
+            head -c 5 "$f" | grep -qE '^(<\?php|#!/)' || { echo "::error file=$f::must start with <?php"; bad=1; }
+          done
+          exit $bad
+
+      - name: Every routes/*.php file must be loaded by index.php (glob) and reference an existing controller
+        run: |
+          bad=0
+          for f in routes/*.php; do
+            for c in $(grep -oE 'use Api\\Controllers\\[A-Za-z]+' "$f" | awk -F'\\' '{print $NF}'); do
+              [ -f "controllers/$c.php" ] || { echo "::error file=$f::controller $c not found"; bad=1; }
+            done
+          done
+          exit $bad
+
+      - name: composer validate
+        run: composer validate --no-check-publish --strict
+
+      - name: Install dev tools (phpstan, phalcon ide-stubs)
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Static analysis (phpstan)
+        run: composer stan

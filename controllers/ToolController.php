@@ -56,20 +56,7 @@ class ToolController extends BaseController {
 
                 // Save the tool
                 if (!$tool->save()) {
-                    $messages = $tool->getMessages(); // This is Phalcon\Messages\MessageInterface[]
-                    $msg = "An unknown error occurred."; // Default/fallback
-
-                    if (count($messages) > 0) {
-                        // Get the first message object from the array
-                        $obj = $messages[0]; // or current($phalconMessages)
-
-                        // Extract the string message from the object
-                        // The MessageInterface guarantees the getMessage() method.
-                        $msg = $obj->getMessage();
-                    }
-
-                    // Pass the extracted string message to your responder
-                    return $this->respondWithError($msg, 422);
+                    return $this->respondWithError($this->getFirstErrorMessage($tool), 422);
                 }
 
                 return $this->respondWithSuccess([
@@ -79,10 +66,8 @@ class ToolController extends BaseController {
                 ], 201, 'Tool created successfully');
             });
 
-        } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        } catch (\Throwable $e) {
+            return $this->handleException($e);
         }
     }
 
@@ -127,10 +112,8 @@ class ToolController extends BaseController {
                 'tools' => $tools->toArray()
             ]);
 
-        } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        } catch (\Throwable $e) {
+            return $this->handleException($e);
         }
     }
 
@@ -150,10 +133,8 @@ class ToolController extends BaseController {
 
             return $this->respondWithSuccess($tool->toArray());
 
-        } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        } catch (\Throwable $e) {
+            return $this->handleException($e);
         }
     }
 
@@ -196,20 +177,7 @@ class ToolController extends BaseController {
 
                 // Save the tool
                 if (!$tool->save()) {
-                    $messages = $tool->getMessages(); // This is Phalcon\Messages\MessageInterface[]
-                    $msg = "An unknown error occurred."; // Default/fallback
-
-                    if (count($messages) > 0) {
-                        // Get the first message object from the array
-                        $obj = $messages[0]; // or current($phalconMessages)
-
-                        // Extract the string message from the object
-                        // The MessageInterface guarantees the getMessage() method.
-                        $msg = $obj->getMessage();
-                    }
-
-                    // Pass the extracted string message to your responder
-                    return $this->respondWithError($msg, 422);
+                    return $this->respondWithError($this->getFirstErrorMessage($tool), 422);
                 }
 
                 return $this->respondWithSuccess([
@@ -218,10 +186,8 @@ class ToolController extends BaseController {
                 ], 201, 'Tool updated successfully');
             });
 
-        } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        } catch (\Throwable $e) {
+            return $this->handleException($e);
         }
     }
 
@@ -242,20 +208,7 @@ class ToolController extends BaseController {
             // Delete the tool within a transaction
             return $this->withTransaction(function() use ($tool) {
                 if (!$tool->delete()) {
-                    $messages = $tool->getMessages(); // This is Phalcon\Messages\MessageInterface[]
-                    $msg = "An unknown error occurred."; // Default/fallback
-
-                    if (count($messages) > 0) {
-                        // Get the first message object from the array
-                        $obj = $messages[0]; // or current($phalconMessages)
-
-                        // Extract the string message from the object
-                        // The MessageInterface guarantees the getMessage() method.
-                        $msg = $obj->getMessage();
-                    }
-
-                    // Pass the extracted string message to your responder
-                    return $this->respondWithError($msg, 422);
+                    return $this->respondWithError($this->getFirstErrorMessage($tool), 422);
                 }
 
                 return $this->respondWithSuccess([
@@ -264,10 +217,8 @@ class ToolController extends BaseController {
                 ], 201, 'Tool deleted successfully');
             });
 
-        } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        } catch (\Throwable $e) {
+            return $this->handleException($e);
         }
     }
 }

@@ -12,6 +12,9 @@ use Phalcon\Filter\Validation\Validator\Uniqueness;
 use Phalcon\Mvc\Model;
 use Phalcon\Mvc\Model\Behavior\Timestampable;
 
+/**
+ * @method static User|null findFirstById(int $id)
+ */
 class User extends Model {
     // Column constants
     public const string ID = 'id';

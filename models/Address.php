@@ -12,6 +12,9 @@ use Phalcon\Filter\Validation\Validator\PresenceOf;
 use Phalcon\Filter\Validation\Validator\Regex;
 use Phalcon\Mvc\Model;
 
+/**
+ * @method static Address|null findFirstById(int $id)
+ */
 class Address extends Model {
     // Common address types
     public const string HOUSE = 'House';

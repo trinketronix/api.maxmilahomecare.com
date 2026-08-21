@@ -1,6 +1,3 @@
-# Ignore .git folder (used by git CLI)
-.git/
-
 # Ignore .idea folder (used by JetBrains IDEs like PhpStorm)
 .idea/
 
@@ -12,8 +9,14 @@
 .htaccess_prod
 .htaccess_test
 
-# Ignore .ftpquota file
+# Ignore .ftpquota file and FTP deploy state
 .ftpquota
+.ftp-deploy-sync-state.json
+
+# Dependencies, logs, local tooling
+vendor/
+composer.lock
+*.log
 
 # Ignore secrets.txt
 secrets.txt
@@ -31,3 +34,5 @@ patient/photo/*
 # Backup/seed payloads contain real personal data and must never be committed
 tests/maxmila/bulk-backup.http
 tests/maxmila/*backup*.http
+
+

@@ -10,6 +10,9 @@ use Phalcon\Filter\Validation;
 use Phalcon\Filter\Validation\Validator\PresenceOf;
 use Phalcon\Mvc\Model;
 
+/**
+ * @method static Patient|null findFirstById(int $id)
+ */
 class Patient extends Model {
     // Column constants
     public const string ID = 'id';

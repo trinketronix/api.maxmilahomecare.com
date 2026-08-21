@@ -186,36 +186,10 @@ HTACCESS;
     }
 
     /**
-     * Get an Auth model by user ID with optional caching
+     * Get an Auth model by user ID
      */
     protected function getAuthUserById(int $userId): ?Auth {
-        // Check if cache service is available
-        if ($this->getDI()->has('cache')) {
-            return $this->getAuthUserFromCacheOrDb($userId);
-        }
-
-        // Fallback to direct database query
         return Auth::findFirstById($userId);
-    }
-
-    /**
-     * Get Auth model from cache or database
-     */
-    private function getAuthUserFromCacheOrDb(int $userId): ?Auth {
-        $cacheKey = "user_$userId";
-        $cachedUser = $this->cache->get($cacheKey);
-
-        if ($cachedUser) {
-            return unserialize($cachedUser);
-        }
-
-        $user = Auth::findFirstById($userId);
-
-        if ($user) {
-            $this->cache->save($cacheKey, serialize($user), 3600); // Cache for 1 hour
-        }
-
-        return $user;
     }
 
     /**
@@ -283,15 +257,18 @@ HTACCESS;
     }
 
     protected function processEmail(string $to, string $subject, string $body, bool $isHtml = false): ?array {
+        $mail = null;
         try {
             $mail = new Sender(true);
             $mail->isSMTP();
             $mail->Host =  getenv('EMAIL_HOSTPATH') ?: '127.0.0.1';
             $mail->Port = getenv('EMAIL_SERVPORT') ?: 25;
-            $mail->SMTPAuth = getenv('EMAIL_SMTPAUTH') ?: false;
+            $mail->SMTPAuth = filter_var(getenv('EMAIL_SMTPAUTH') ?: 'false', FILTER_VALIDATE_BOOLEAN); // env values are strings ("true"/"false")
             $mail->Username = getenv('EMAIL_USERNAME') ?: '';
             $mail->Password = getenv('EMAIL_PASSWORD') ?: '';
-            $mail->SMTPSecure = Sender::ENCRYPTION_SMTPS;
+            // EMAIL_SMTPSECURE: "ssl" (default, implicit TLS on 465), "tls" (STARTTLS) or "" (none, local dev)
+            $smtpSecure = getenv('EMAIL_SMTPSECURE');
+            $mail->SMTPSecure = $smtpSecure === false ? Sender::ENCRYPTION_SMTPS : $smtpSecure;
             $mail->SMTPDebug = SMTP::DEBUG_OFF;
 
             $mail->setFrom(getenv('EMAIL_REP_ADDR') ?: 'failsafe@maxmilahomecare.com', getenv('EMAIL_REP_NAME') ?: 'Maxmila Homecare Failsafe System');
@@ -304,7 +281,7 @@ HTACCESS;
 
             return $mail->send();
         } catch (Exception $e) {
-            error_log("BaseController->processEmail(): Exception: " . $e->getMessage(). " Sender:" . $mail->ErrorInfo);
+            error_log("BaseController->processEmail(): Exception: " . $e->getMessage() . " Sender:" . ($mail->ErrorInfo ?? 'n/a'));
             return null;
         }
     }

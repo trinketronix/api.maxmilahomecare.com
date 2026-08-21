@@ -1,0 +1,15 @@
+parameters:
+    level: 1
+    paths:
+        - index.php
+        - configuration
+        - constants
+        - controllers
+        - models
+        - routes
+        - services
+    scanDirectories:
+        - vendor/phalcon/ide-stubs/src
+        - utils
+    bootstrapFiles:
+        - phpstan-bootstrap.php

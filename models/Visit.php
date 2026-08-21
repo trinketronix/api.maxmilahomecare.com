@@ -13,6 +13,9 @@ use Phalcon\Filter\Validation\Validator\InclusionIn;
 use Phalcon\Filter\Validation\Validator\PresenceOf;
 use Phalcon\Mvc\Model;
 
+/**
+ * @method static Visit|null findFirstById(int $id)
+ */
 class Visit extends Model {
     // Column constants
     public const string ID = 'id';

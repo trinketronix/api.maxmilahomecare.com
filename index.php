@@ -33,10 +33,6 @@ if (isset($_GET['_url']) && strpos($_SERVER['REQUEST_URI'], '?_url=') !== false)
     }
 }
 
-// Log for debugging
-error_log("Fixed URI: " . $_SERVER['REQUEST_URI']);
-error_log("Query String: " . $_SERVER['QUERY_STRING']);
-
 try {
     $container = new FactoryDefault();
     require_once BASE_PATH . '/configuration/services.php';
@@ -44,21 +40,9 @@ try {
     $eventsManager = new EventsManager();
     $app->setEventsManager($eventsManager);
     require_once BASE_PATH . '/configuration/middleware.php';
-    $routeFiles = [
-        'account',
-        'address',
-        'auth',
-        'bulk',
-        'default',
-        'email',
-        'patient',
-        'tool',
-        'user',
-        'userpatient',
-        'visit'
-    ];
-    foreach ($routeFiles as $routeFile) {
-        require_once BASE_PATH . "/routes/{$routeFile}.php";
+    // Every file in routes/ is loaded automatically: add a resource by adding a file there.
+    foreach (glob(BASE_PATH . '/routes/*.php') as $routeFile) {
+        require_once $routeFile;
     }
     $app->notFound(function () {
         return [
