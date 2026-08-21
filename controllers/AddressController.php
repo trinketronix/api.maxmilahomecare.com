@@ -415,23 +415,19 @@ class AddressController extends BaseController {
                 return $this->respondWithError('Invalid person type', 400);
             }
 
-            // Find nearby addresses
-            $addresses = Address::findNearby($latitude, $longitude, $radius);
+            // Find nearby addresses (plain array: Phalcon's Resultset::filter() does not take a boolean predicate)
+            $addresses = iterator_to_array(Address::findNearby($latitude, $longitude, $radius), false);
 
             // Filter by person type if specified
             if ($personType !== null) {
-                $addresses = $addresses->filter(function($address) use ($personType) {
-                    return $address->person_type == $personType;
-                });
+                $addresses = array_filter($addresses, fn (Address $a) => (int)$a->person_type === $personType);
             }
 
-            // For user addresses, ensure authorization
+            // Caregivers only see patient/community addresses and their own
             if (!$this->isManagerOrHigher()) {
                 $currentUserId = $this->getCurrentUserId();
-                $addresses = $addresses->filter(function($address) use ($currentUserId) {
-                    return $address->person_type != PersonType::USER ||
-                        $address->person_id == $currentUserId;
-                });
+                $addresses = array_filter($addresses, fn (Address $a) =>
+                    (int)$a->person_type !== PersonType::USER || (int)$a->person_id === $currentUserId);
             }
 
             // Calculate distance for each address

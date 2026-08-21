@@ -17,11 +17,12 @@ class OrderedVisits extends Visit {
      * Initialize model
      */
     public function initialize(): void {
+        // Inherit parent relationships first: Visit::initialize() sets the source to "visit",
+        // so the view must be set afterwards or this model silently reads the base table.
+        parent::initialize();
+
         // Set source to the view
         $this->setSource('ordered_visits');
-
-        // Inherit parent relationships
-        parent::initialize();
 
         // Mark as read-only since it's based on a view
         $this->keepSnapshots(false);
