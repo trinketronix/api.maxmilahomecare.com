@@ -46,10 +46,8 @@ class AccountController extends BaseController {
                 'users' => $usersArray
             ]);
 
-        } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        } catch (\Throwable $e) {
+            return $this->handleException($e);
         }
     }
 
@@ -95,10 +93,8 @@ class AccountController extends BaseController {
 
             return $this->respondWithSuccess($userData);
 
-        } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        } catch (\Throwable $e) {
+            return $this->handleException($e);
         }
     }
 }

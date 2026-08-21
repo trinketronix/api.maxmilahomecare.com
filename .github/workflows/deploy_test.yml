@@ -1,7 +1,9 @@
 name: Deploy api for testing
+
 on:
-  pull_request:
-    types: [closed]
+  push:
+    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -11,19 +13,20 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  lint:
+    uses: ./.github/workflows/ci.yml
+
   deploy:
     name: Deploy Test
+    needs: lint
     runs-on: ubuntu-latest
-    if: >
-      github.event.pull_request.merged == true &&
-      github.event.pull_request.base.ref == 'main'
-
     environment: test
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6.0.2
         with:
           fetch-depth: 0
+
       - name: Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.6
         with:
@@ -44,9 +47,17 @@ jobs:
             **/tests/**
             **/database/**
             **/cronjobs/**
+            **/docker/**
+            **/documentation/**
             **/node_modules/**
             **/vendor/**
             .gitignore
+            .editorconfig
+            compose.yaml
+            composer.json
+            composer.lock
+            phpstan.neon
+            CLAUDE.md
             README.md
             LICENSE
             http-client.env.json

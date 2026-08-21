@@ -57,7 +57,7 @@ class UserPatientController extends BaseController {
             if ($existingAssignment) {
                 // If it exists but is inactive, reactivate it
                 if ($existingAssignment->status === Status::INACTIVE) {
-                    return $this->withTransaction(function() use ($existingAssignment) {
+                    return $this->withTransaction(function() use ($existingAssignment, $data) {
                         $existingAssignment->status = Status::ACTIVE;
                         $existingAssignment->assigned_by = $this->getCurrentUserId();
                         $existingAssignment->assigned_at = date('Y-m-d H:i:s');
@@ -66,20 +66,7 @@ class UserPatientController extends BaseController {
                             $existingAssignment->notes = $data[UserPatient::NOTES];
 
                         if (!$existingAssignment->save()) {
-                            $messages = $existingAssignment->getMessages(); // This is Phalcon\Messages\MessageInterface[]
-                            $msg = "An unknown error occurred."; // Default/fallback
-
-                            if (count($messages) > 0) {
-                                // Get the first message object from the array
-                                $obj = $messages[0]; // or current($phalconMessages)
-
-                                // Extract the string message from the object
-                                // The MessageInterface guarantees the getMessage() method.
-                                $msg = $obj->getMessage();
-                            }
-
-                            // Pass the extracted string message to your responder
-                            return $this->respondWithError($msg, 422);
+                            return $this->respondWithError($this->getFirstErrorMessage($existingAssignment), 422);
                         }
 
                         return $this->respondWithSuccess([
@@ -103,20 +90,7 @@ class UserPatientController extends BaseController {
                     $assignment->notes = $data[UserPatient::NOTES];
 
                 if (!$assignment->save()) {
-                    $messages = $assignment->getMessages(); // This is Phalcon\Messages\MessageInterface[]
-                    $msg = "An unknown error occurred."; // Default/fallback
-
-                    if (count($messages) > 0) {
-                        // Get the first message object from the array
-                        $obj = $messages[0]; // or current($phalconMessages)
-
-                        // Extract the string message from the object
-                        // The MessageInterface guarantees the getMessage() method.
-                        $msg = $obj->getMessage();
-                    }
-
-                    // Pass the extracted string message to your responder
-                    return $this->respondWithError($msg, 422);
+                    return $this->respondWithError($this->getFirstErrorMessage($assignment), 422);
                 }
 
                 return $this->respondWithSuccess([
@@ -125,10 +99,8 @@ class UserPatientController extends BaseController {
                 ], 201, 'User-patient assignment created successfully');
             });
 
-        } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        } catch (\Throwable $e) {
+            return $this->handleException($e);
         }
     }
 
@@ -215,13 +187,7 @@ class UserPatientController extends BaseController {
                                 }
 
                                 if (!$existingAssignment->save()) {
-                                    $messages = $existingAssignment->getMessages();
-                                    $msg = "An unknown error occurred.";
-
-                                    if (count($messages) > 0) {
-                                        $obj = $messages[0];
-                                        $msg = $obj->getMessage();
-                                    }
+                                    $msg = $this->getFirstErrorMessage($existingAssignment);
 
                                     $results['failed'][] = [
                                         UserPatient::PATIENT_ID => $patientId,
@@ -259,13 +225,7 @@ class UserPatientController extends BaseController {
                         }
 
                         if (!$assignment->save()) {
-                            $messages = $assignment->getMessages();
-                            $msg = "An unknown error occurred.";
-
-                            if (count($messages) > 0) {
-                                $obj = $messages[0];
-                                $msg = $obj->getMessage();
-                            }
+                            $msg = $this->getFirstErrorMessage($assignment);
 
                             $results['failed'][] = [
                                 UserPatient::PATIENT_ID => $patientId,
@@ -337,10 +297,8 @@ class UserPatientController extends BaseController {
                 ], 201, $message);
             });
 
-        } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        } catch (\Throwable $e) {
+            return $this->handleException($e);
         }
     }
 
@@ -437,13 +395,7 @@ class UserPatientController extends BaseController {
                         $existingAssignment->status = Status::INACTIVE;
 
                         if (!$existingAssignment->save()) {
-                            $messages = $existingAssignment->getMessages();
-                            $msg = "An unknown error occurred.";
-
-                            if (count($messages) > 0) {
-                                $obj = $messages[0];
-                                $msg = $obj->getMessage();
-                            }
+                            $msg = $this->getFirstErrorMessage($existingAssignment);
 
                             $results['failed'][] = [
                                 UserPatient::PATIENT_ID => $patientId,
@@ -515,10 +467,8 @@ class UserPatientController extends BaseController {
                 ], 201, $message);
             });
 
-        } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        } catch (\Throwable $e) {
+            return $this->handleException($e);
         }
     }
 
@@ -549,20 +499,7 @@ class UserPatientController extends BaseController {
                 $assignment->status = Status::INACTIVE;
 
                 if (!$assignment->save()) {
-                    $messages = $assignment->getMessages(); // This is Phalcon\Messages\MessageInterface[]
-                    $msg = "An unknown error occurred."; // Default/fallback
-
-                    if (count($messages) > 0) {
-                        // Get the first message object from the array
-                        $obj = $messages[0]; // or current($phalconMessages)
-
-                        // Extract the string message from the object
-                        // The MessageInterface guarantees the getMessage() method.
-                        $msg = $obj->getMessage();
-                    }
-
-                    // Pass the extracted string message to your responder
-                    return $this->respondWithError($msg, 422);
+                    return $this->respondWithError($this->getFirstErrorMessage($assignment), 422);
                 }
                 return $this->respondWithSuccess([
                     'message' => 'Assignment deactivated successfully',
@@ -570,10 +507,8 @@ class UserPatientController extends BaseController {
                 ], 201, 'Assignment deactivated successfully');
             });
 
-        } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        } catch (\Throwable $e) {
+            return $this->handleException($e);
         }
     }
 
@@ -632,10 +567,8 @@ class UserPatientController extends BaseController {
                 'patients' => $patientsData
             ]);
 
-        } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        } catch (\Throwable $e) {
+            return $this->handleException($e);
         }
     }
 
@@ -701,10 +634,8 @@ class UserPatientController extends BaseController {
                 'patients' => $unassignedPatientsData
             ]);
 
-        } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        } catch (\Throwable $e) {
+            return $this->handleException($e);
         }
     }
 
@@ -778,10 +709,8 @@ class UserPatientController extends BaseController {
                 'patients' => $patientsData
             ]);
 
-        } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        } catch (\Throwable $e) {
+            return $this->handleException($e);
         }
     }
 
@@ -856,10 +785,8 @@ class UserPatientController extends BaseController {
                 'patients' => $unassignedPatientsData
             ]);
 
-        } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        } catch (\Throwable $e) {
+            return $this->handleException($e);
         }
     }
 
@@ -938,10 +865,8 @@ class UserPatientController extends BaseController {
                 'users' => $usersData
             ]);
 
-        } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        } catch (\Throwable $e) {
+            return $this->handleException($e);
         }
     }
 
@@ -1030,10 +955,8 @@ class UserPatientController extends BaseController {
                 'users' => $unassignedUsersData
             ]);
 
-        } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        } catch (\Throwable $e) {
+            return $this->handleException($e);
         }
     }
 

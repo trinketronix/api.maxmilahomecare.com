@@ -14,6 +14,10 @@ use Phalcon\Filter\Validation\Validator\InclusionIn;
 use Phalcon\Filter\Validation\Validator\PresenceOf;
 use Phalcon\Filter\Validation\Validator\Uniqueness;
 
+/**
+ * @method static Auth|null findFirstById(int $id)
+ * @method static Auth|null findFirstByUsername(string $username)
+ */
 class Auth extends Model {
     // Class constants for column names
     public const string ID = 'id';

@@ -1,4 +1,5 @@
 name: Deploy api to production
+
 on:
   release:
     types: [published]
@@ -8,18 +9,24 @@ on:
         description: 'Reason for manual deployment'
         required: true
         default: 'Manual update and deployment'
-      environment:
-        description: 'Environment to deploy to'
-        required: true
-        default: 'production'
-        type: choice
-        options:
-          - production
-          - staging
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
 jobs:
+  lint:
+    uses: ./.github/workflows/ci.yml
+
   deploy:
     name: Deploy Production
+    needs: lint
     runs-on: ubuntu-latest
+    # Configure required reviewers on the "production" environment in GitHub to add an approval gate.
+    environment: production
     steps:
       - name: Get the latest source code
         uses: actions/checkout@v6.0.2
@@ -31,7 +38,6 @@ jobs:
         run: |
           echo "Manual deployment triggered"
           echo "Reason: ${{ github.event.inputs.reason }}"
-          echo "Environment: ${{ github.event.inputs.environment }}"
 
       - name: Sync files for Production
         uses: SamKirkland/FTP-Deploy-Action@v4.3.6
@@ -40,10 +46,10 @@ jobs:
           username: ${{ secrets.FTP_API_USERNAME_PROD }}
           password: ${{ secrets.FTP_API_PASSWORD_PROD }}
           protocol: ftps
-          timeout: 90000          # Increased timeout to 60s
-          max-retries: 3          # Add retry attempts
-          log-level: verbose      # More detailed logging
-          dangerous-clean-slate: false  # Prevent full directory cleanup
+          timeout: 90000
+          max-retries: 3
+          log-level: verbose
+          dangerous-clean-slate: false
           exclude: |
             **/.git*
             **/.github/**
@@ -51,12 +57,20 @@ jobs:
             **/tests/**
             **/database/**
             **/cronjobs/**
+            **/docker/**
+            **/documentation/**
             **/node_modules/**
             **/vendor/**
             .gitignore
+            .editorconfig
+            compose.yaml
+            composer.json
+            composer.lock
+            phpstan.neon
+            CLAUDE.md
             README.md
             LICENSE
             http-client.env.json
             secrets.txt
-          state-name: .ftp-deploy-sync-state.json    # Keep track of sync state
-          server-dir: /          # Specify your root directory if needed
+          state-name: .ftp-deploy-sync-state.json
+          server-dir: /

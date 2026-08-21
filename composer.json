@@ -1,0 +1,34 @@
+{
+    "name": "trinketronix/api.maxmilahomecare.com",
+    "description": "Maxmila Homecare REST API (PHP 8.4, Phalcon 5 Micro)",
+    "type": "project",
+    "license": "proprietary",
+    "require": {
+        "php": "^8.4",
+        "ext-phalcon": "^5.0",
+        "ext-pdo_mysql": "*",
+        "ext-json": "*",
+        "ext-fileinfo": "*"
+    },
+    "suggest": {
+        "ext-imagick": "Resizes and re-encodes uploaded photos (falls back to storing the validated original)"
+    },
+    "require-dev": {
+        "phalcon/ide-stubs": "^5.0",
+        "phpstan/phpstan": "^2.0"
+    },
+    "config": {
+        "platform-check": false,
+        "sort-packages": true,
+        "platform": {
+            "php": "8.4.0",
+            "ext-phalcon": "5.19.0"
+        }
+    },
+    "scripts": {
+        "lint": "git ls-files '*.php' | xargs -n 1 -P 4 php -l > /dev/null && echo 'lint ok'",
+        "stan": "phpstan analyse --memory-limit=512M",
+        "serve": "php -S 0.0.0.0:8080 .htrouter.php"
+    },
+    "_comment": "config.platform lets composer install the dev tools (phpstan, ide-stubs) on machines without the Phalcon extension; the app itself still needs ext-phalcon at runtime (see compose.yaml)."
+}

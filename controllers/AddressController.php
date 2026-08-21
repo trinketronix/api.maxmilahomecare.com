@@ -119,20 +119,7 @@ class AddressController extends BaseController {
                 }
 
                 if (!$address->save()) {
-                    $messages = $address->getMessages(); // This is Phalcon\Messages\MessageInterface[]
-                    $msg = "An unknown error occurred."; // Default/fallback
-
-                    if (count($messages) > 0) {
-                        // Get the first message object from the array
-                        $obj = $messages[0]; // or current($phalconMessages)
-
-                        // Extract the string message from the object
-                        // The MessageInterface guarantees the getMessage() method.
-                        $msg = $obj->getMessage();
-                    }
-
-                    // Pass the extracted string message to your responder
-                    return $this->respondWithError($msg, 422);
+                    return $this->respondWithError($this->getFirstErrorMessage($address), 422);
                 }
 
                 return $this->respondWithSuccess([
@@ -141,9 +128,7 @@ class AddressController extends BaseController {
                 ], 201, 'Address created successfully');
             });
 
-        } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
+        } catch (\Throwable $e) {
             return $this->handleException($e);
         }
     }
@@ -186,10 +171,8 @@ class AddressController extends BaseController {
 
             return $this->respondWithSuccess($addresses->toArray());
 
-        } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        } catch (\Throwable $e) {
+            return $this->handleException($e);
         }
     }
 
@@ -211,10 +194,8 @@ class AddressController extends BaseController {
 
             return $this->respondWithSuccess($address->toArray());
 
-        } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        } catch (\Throwable $e) {
+            return $this->handleException($e);
         }
     }
 
@@ -290,20 +271,7 @@ class AddressController extends BaseController {
                 }
 
                 if (!$address->save()) {
-                    $messages = $address->getMessages(); // This is Phalcon\Messages\MessageInterface[]
-                    $msg = "An unknown error occurred."; // Default/fallback
-
-                    if (count($messages) > 0) {
-                        // Get the first message object from the array
-                        $obj = $messages[0]; // or current($phalconMessages)
-
-                        // Extract the string message from the object
-                        // The MessageInterface guarantees the getMessage() method.
-                        $msg = $obj->getMessage();
-                    }
-
-                    // Pass the extracted string message to your responder
-                    return $this->respondWithError($msg, 422);
+                    return $this->respondWithError($this->getFirstErrorMessage($address), 422);
                 }
 
                 return $this->respondWithSuccess([
@@ -311,10 +279,8 @@ class AddressController extends BaseController {
                 ],201, 'Address updated successfully');
             });
 
-        } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        } catch (\Throwable $e) {
+            return $this->handleException($e);
         }
     }
 
@@ -349,20 +315,7 @@ class AddressController extends BaseController {
 
             return $this->withTransaction(function() use ($address) {
                 if (!$address->delete()) {
-                    $messages = $address->getMessages(); // This is Phalcon\Messages\MessageInterface[]
-                    $msg = "An unknown error occurred."; // Default/fallback
-
-                    if (count($messages) > 0) {
-                        // Get the first message object from the array
-                        $obj = $messages[0]; // or current($phalconMessages)
-
-                        // Extract the string message from the object
-                        // The MessageInterface guarantees the getMessage() method.
-                        $msg = $obj->getMessage();
-                    }
-
-                    // Pass the extracted string message to your responder
-                    return $this->respondWithError($msg, 422);
+                    return $this->respondWithError($this->getFirstErrorMessage($address), 422);
                 }
 
                 return $this->respondWithSuccess([
@@ -370,10 +323,8 @@ class AddressController extends BaseController {
                 ], 201, 'Address deleted successfully');
             });
 
-        } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        } catch (\Throwable $e) {
+            return $this->handleException($e);
         }
     }
 
@@ -452,10 +403,8 @@ class AddressController extends BaseController {
 
             return $this->respondWithSuccess($result);
 
-        } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        } catch (\Throwable $e) {
+            return $this->handleException($e);
         }
     }
 

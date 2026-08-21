@@ -20,7 +20,6 @@ class UserController extends BaseController {
         try {
             // Get current user from authenticated token
             $tokenUserId = $this->getCurrentUserId();
-            $currentUserRole = $this->getCurrentUserRole();
 
             // Find user to update
             $user = User::findFirst($userId);
@@ -58,7 +57,7 @@ class UserController extends BaseController {
             // Track all updates
             $updates = [];
 
-            return $this->withTransaction(function() use ($user, $data, $allowedFields, $updates, $tokenUserId, $currentUserRole, $userId) {
+            return $this->withTransaction(function() use ($user, $data, $allowedFields, $updates, $tokenUserId, $userId) {
                 // Apply updates for allowed fields
                 foreach ($allowedFields as $field) {
                     if (isset($data[$field])) {
@@ -97,20 +96,7 @@ class UserController extends BaseController {
 
                 // Save the user
                 if (!$user->save()) {
-                    $messages = $user->getMessages(); // This is Phalcon\Messages\MessageInterface[]
-                    $msg = "An unknown error occurred."; // Default/fallback
-
-                    if (count($messages) > 0) {
-                        // Get the first message object from the array
-                        $obj = $messages[0]; // or current($phalconMessages)
-
-                        // Extract the string message from the object
-                        // The MessageInterface guarantees the getMessage() method.
-                        $msg = $obj->getMessage();
-                    }
-
-                    // Pass the extracted string message to your responder
-                    return $this->respondWithError($msg, 422);
+                    return $this->respondWithError($this->getFirstErrorMessage($user), 422);
                 }
 
                 // Prepare response data
@@ -130,10 +116,8 @@ class UserController extends BaseController {
                 ], 201, Message::USER_UPDATED);
             });
 
-        } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        } catch (\Throwable $e) {
+            return $this->handleException($e);
         }
     }
 
@@ -187,10 +171,8 @@ class UserController extends BaseController {
 
             return $this->respondWithSuccess($userData);
 
-        } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        } catch (\Throwable $e) {
+            return $this->handleException($e);
         }
     }
 
@@ -294,10 +276,8 @@ class UserController extends BaseController {
 
             return $this->respondWithSuccess($userData);
 
-        } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        } catch (\Throwable $e) {
+            return $this->handleException($e);
         }
     }
 }

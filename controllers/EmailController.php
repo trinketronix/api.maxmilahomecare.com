@@ -55,10 +55,8 @@ class EmailController extends BaseController{
             } else {
                 return $this->respondWithError($message, 417);
             }
-        } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 417);
+        } catch (\Throwable $e) {
+            return $this->handleException($e);
         }
     }
 }
