@@ -1,4 +1,30 @@
+### Tool endpoints - throwaway table used for load testing (authenticated; create is admin only)
+
 ###
-# @name Get List of Tools
-GET {{maxmila.baseUrl}}/tools
+# @name Create Tool (admin)
+POST {{maxmila.baseUrl}}/tool
 Content-Type: application/json
+Authorization: {{maxmila.administrator.token}}
+
+{
+  "name": "Hammer",
+  "description": "Drives nails",
+  "material": "Steel",
+  "inventor": "Unknown",
+  "year": 1800
+}
+
+###
+# @name List Tools
+GET {{maxmila.baseUrl}}/tools
+Authorization: {{maxmila.caregiver.token}}
+
+###
+# @name Search Tools
+GET {{maxmila.baseUrl}}/tools?q=ham
+Authorization: {{maxmila.caregiver.token}}
+
+###
+# @name Get Tool
+GET {{maxmila.baseUrl}}/tool/1
+Authorization: {{maxmila.caregiver.token}}

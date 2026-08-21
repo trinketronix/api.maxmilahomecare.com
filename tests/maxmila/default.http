@@ -1,4 +1,8 @@
 ###
-# @name Get List of Tools
-GET {{maxmila.baseUrl}}/tools
-Content-Type: application/json
+# @name API info / health (public)
+GET {{maxmila.baseUrl}}/
+
+###
+# @name Unknown endpoint - expect 404 envelope
+GET {{maxmila.baseUrl}}/does/not/exist
+Authorization: {{maxmila.caregiver.token}}

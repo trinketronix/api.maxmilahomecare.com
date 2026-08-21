@@ -1,22 +1,16 @@
+### Auth endpoints
+### Variables come from http-client.env.json (see http-client.env.example.json at the repo root)
 
 ###
-# @name Create Account
+# @name Register (public) - account is created Not Verified; activate via the emailed link or "Activate Account"
 POST {{maxmila.baseUrl}}/auth/register
 Content-Type: application/json
 
 {
   "username": "caregiver@testing.net",
-  "password": "CaregiverTest1234!@#$"
-}
-
-###
-# @name Login Custom
-POST {{maxmila.baseUrl}}/auth/login
-Content-Type: application/json
-
-{
-  "username": "{{maxmila.custom.username}}",
-  "password": "{{maxmila.custom.password}}"
+  "password": "CaregiverTest1234!@#$",
+  "firstname": "Test",
+  "lastname": "Caregiver"
 }
 
 ###
@@ -50,39 +44,102 @@ Content-Type: application/json
 }
 
 ###
-# @name Activate Account by the System
-PUT {{maxmila.baseUrl}}/auth/activate/account
-Content-Type: application/json
-Authorization: {{maxmila.caregiver.token}}
-
-{
-  "id": "77"
-}
-
-###
-# @name Renew Token
-PUT {{maxmila.baseUrl}}/auth/renew/token
-Content-Type: application/json
-Authorization: {{maxmila.token}}
-
-
-###
-# @name Change Role
-PUT {{maxmila.baseUrl}}/auth/change/role
-Content-Type: application/json
-Authorization: {{maxmila.token}}
-
-{
-  "id": 1,
-  "role": 1
-}
-
-###
-# @name Change Password from system
-PUT {{maxmila.baseUrl}}/auth/change/password
+# @name Login Custom
+POST {{maxmila.baseUrl}}/auth/login
 Content-Type: application/json
 
 {
   "username": "{{maxmila.custom.username}}",
   "password": "{{maxmila.custom.password}}"
+}
+
+###
+# @name Renew Token (any authenticated user)
+PUT {{maxmila.baseUrl}}/auth/renew/token
+Content-Type: application/json
+Authorization: {{maxmila.caregiver.token}}
+
+{}
+
+###
+# @name Activate Account (manager/admin) - body id = account to activate
+PUT {{maxmila.baseUrl}}/auth/activate/account
+Content-Type: application/json
+Authorization: {{maxmila.manager.token}}
+
+{
+  "id": 77
+}
+
+###
+# @name Inactivate Account (manager/admin) - revokes the account's token
+PUT {{maxmila.baseUrl}}/auth/inactivate/account
+Content-Type: application/json
+Authorization: {{maxmila.manager.token}}
+
+{
+  "id": 77
+}
+
+###
+# @name Archive Account (manager/admin)
+PUT {{maxmila.baseUrl}}/auth/archive/account
+Content-Type: application/json
+Authorization: {{maxmila.manager.token}}
+
+{
+  "id": 77
+}
+
+###
+# @name Delete Account (manager/admin, soft delete)
+PUT {{maxmila.baseUrl}}/auth/delete/account
+Content-Type: application/json
+Authorization: {{maxmila.manager.token}}
+
+{
+  "id": 77
+}
+
+###
+# @name Change Role (manager/admin; role 0 requires admin) - expect 403 when a manager targets an admin
+PUT {{maxmila.baseUrl}}/auth/change/role
+Content-Type: application/json
+Authorization: {{maxmila.administrator.token}}
+
+{
+  "id": 77,
+  "role": 1
+}
+
+###
+# @name Change My Password (authenticated) - the token is revoked on success, log in again
+PUT {{maxmila.baseUrl}}/auth/change/password
+Content-Type: application/json
+Authorization: {{maxmila.caregiver.token}}
+
+{
+  "current_password": "{{maxmila.caregiver.password}}",
+  "password": "{{maxmila.caregiver.password}}"
+}
+
+###
+# @name Reset Another User's Password (administrator only)
+PUT {{maxmila.baseUrl}}/auth/change/password
+Content-Type: application/json
+Authorization: {{maxmila.administrator.token}}
+
+{
+  "username": "caregiver@testing.net",
+  "password": "CaregiverTest1234!@#$"
+}
+
+###
+# @name Change Password without token - expect 401 (this used to be public)
+PUT {{maxmila.baseUrl}}/auth/change/password
+Content-Type: application/json
+
+{
+  "username": "caregiver@testing.net",
+  "password": "whatever123"
 }

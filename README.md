@@ -1,140 +1,72 @@
 # Maxmila Homecare API
 
-A modern REST API for healthcare service management built with PHP 8.4 and the Phalcon 5 framework.
+REST API for Maxmila Homecare's caregiver scheduling and visit tracking, built with **PHP 8.4** and
+**Phalcon 5 (Micro)** on MySQL/MariaDB. Consumed by the Maxmila mobile and web apps.
 
-## Overview
+- **Client integration guide** (endpoints, auth, payloads, enums, TypeScript types):
+  [`documentation/MAXMILA-API-CLIENT.md`](documentation/MAXMILA-API-CLIENT.md) — copy it into any
+  front-end project that talks to this API.
+- **Security roadmap**: [`documentation/SECURITY-MIGRATION-PLAN.md`](documentation/SECURITY-MIGRATION-PLAN.md)
 
-Maxmila Homecare API is a comprehensive backend system for managing healthcare services, specifically designed for home care providers. The system handles user authentication, role-based access control, patient information management, address tracking, and visit scheduling and monitoring.
+## Run it locally
 
-## Features
+Requirements: Docker (the Phalcon extension is compiled into the dev image; nothing else to install).
 
-- **User Management**: Complete user lifecycle with role-based access control (Admin, Manager, Caregiver)
-- **Patient Management**: Patient registration, updates, and status tracking
-- **Address Management**: Flexible address system for both users and patients with geocoding support
-- **Visit Tracking**: Schedule, monitor, and report on caregiver visits to patients
-- **Secure Authentication**: Token-based authentication with automatic expiration
-- **API Documentation**: Comprehensive API documentation with examples
-- **HHAexchange Integration**: Synchronization with HHAexchange service provider system
+```bash
+docker compose up --build          # API on http://localhost:8080, MariaDB on :3306, Mailpit UI on http://localhost:8025
+curl http://localhost:8080/        # environment + database name
+```
 
-## Technical Stack
+The database is created from `database/tables/reinstall_all.sql` on the first start (`docker compose down -v` to reset).
+Every email the API sends is captured by Mailpit. The repository is bind-mounted, so edits are live.
 
-- **PHP 8.4**: Leveraging the latest PHP features including strict typing
-- **Phalcon 5**: High-performance PHP framework with minimal overhead
-- **MySQL/MariaDB**: Relational database for data storage
-- **RESTful Architecture**: Modern API design with consistent response formats
-- **JWT-like Authentication**: Secure token-based authentication system
-- **Middleware Pattern**: Request/response processing through configurable middleware
+Without Docker you need PHP 8.4 with `phalcon`, `pdo_mysql`, `fileinfo` (and optionally `imagick`), then
+`php -S 0.0.0.0:8080 .htrouter.php` with the environment variables from `compose.yaml` exported.
 
-## Installation
+## Develop
 
-### Requirements
+```bash
+composer install                   # dev tools only (phpstan + Phalcon IDE stubs); the app has no vendor dependencies
+composer lint                      # php -l over every tracked file
+composer stan                      # phpstan level 1 (must stay clean; CI enforces it)
+bash database/build.sh             # regenerate create_all.sql / reinstall_all.sql after editing database/tables|views
+bash database/build.sh --check     # what CI runs
+```
 
-- PHP 8.4+
-- Phalcon 5 extension
-- MySQL 5.7+ or MariaDB 10.3+
-- Apache/Nginx web server
+Integration requests live in `tests/maxmila/*.http` (JetBrains HTTP Client). Copy
+`http-client.env.example.json` to `http-client.env.json` (git-ignored) and fill in the credentials/tokens.
 
-## API Endpoints
+Layout: `index.php` (bootstrap, loads every `routes/*.php`) → `configuration/middleware.php`
+(CORS, content-type, token auth, body parsing, response envelope) → `routes/` → `controllers/`
+(extend `BaseController`) → `models/` (Phalcon models; column-name constants double as request keys).
+Constants for roles/status/progress are in `constants/`. Schema lives in `database/tables/*.sql` and
+`database/views/*.sql`; `database/migrations/` holds hand-applied changes for the live databases.
 
-### Authentication
+## Configuration
 
-- `POST /api/auth/register` - Create a new user account
-- `POST /api/auth/login` - Authenticate and receive token
-- `PUT /api/auth/token/renew` - Renew authentication token
-- `PUT /api/auth/activate` - Activate a user account
-- `PUT /api/auth/role` - Change user role
-- `PUT /api/auth/password` - Change user password
+All runtime configuration comes from environment variables (on the shared host: `SetEnv` in the
+web root's `.htaccess`, which is not committed):
 
-### Users
+| Variable | Purpose |
+|---|---|
+| `APP_ENV` | `dev` enables request logging and debug details in the 500 handler; anything else is production |
+| `API_BASE_URL`, `APP_BASE_URL` | used in emails (activation link) and the activation page |
+| `DB_HOSTPATH`, `DB_USERNAME`, `DB_PASSWORD`, `DB_DATABASE` | MySQL/MariaDB connection |
+| `EMAIL_HOSTPATH`, `EMAIL_SERVPORT`, `EMAIL_SMTPAUTH`, `EMAIL_USERNAME`, `EMAIL_PASSWORD`, `EMAIL_SMTPSECURE` (`ssl`\|`tls`\|``), `EMAIL_REP_ADDR`, `EMAIL_REP_NAME` | SMTP |
 
-- `PUT /api/users/{userId}` - Update user information
-- `POST /api/users/photo` - Upload user profile photo
-- `PUT /api/users/photo` - Update user profile photo
+Time zone is America/Detroit for PHP and the DB session.
 
-### Patients
+## Deploy
 
-- `POST /api/patients` - Create a new patient
-- `PUT /api/patients/{id}` - Update a patient
-- `DELETE /api/patients/{id}` - Delete a patient (soft delete)
-- `PUT /api/patients/{id}/archive` - Archive a patient
-- `PUT /api/patients/{id}/restore` - Restore a patient
-
-### Addresses
-
-- `POST /api/addresses` - Create a new address
-- `GET /api/addresses/person/{personId}/{personType}` - Get addresses for a person
-- `GET /api/addresses/{id}` - Get a specific address
-- `PUT /api/addresses/{id}` - Update an address
-- `DELETE /api/addresses/{id}` - Delete an address
-- `POST /api/addresses/nearby` - Find addresses within a radius
-
-### Visits
-
-- `POST /api/visits` - Create a new visit
-- `PUT /api/visits/{id}` - Update a visit
-- `DELETE /api/visits/{id}` - Delete a visit (soft delete)
-- `PUT /api/visits/{id}/progress` - Update visit progress
-- `PUT /api/visits/{id}/check-in` - Check in to a visit
-- `PUT /api/visits/{id}/check-out` - Check out from a visit
-- `PUT /api/visits/{id}/cancel` - Cancel a visit
-
-## Environment Configuration
-
-The application supports multiple environments through configuration files:
-
-- `config/env/development.php` - Development environment settings
-- `config/env/production.php` - Production environment settings
-
-Set the `APP_ENV` variable in your web server configuration or .htaccess file to specify which environment to use.
-
-## Middleware
-
-The application uses a middleware system for request/response processing:
-
-- **CORS Handling**: Configure cross-origin resource sharing
-- **Authentication**: Validate tokens and set user context
-- **Content Type Validation**: Ensure proper request formats
-- **Response Formatting**: Standardize API responses
-
-## Models
-
-Core data models include:
-
-- **Auth**: User authentication and access control
-- **User**: User profile information
-- **Patient**: Patient details and status
-- **Address**: Location information with geocoding
-- **Visit**: Scheduling and tracking of care visits
-
-## Security Features
-
-- **Token-based Authentication**: Secure JWT-like tokens with expiration
-- **Role-based Access Control**: Granular permissions based on user roles
-- **Password Hashing**: Secure password storage with salting
-- **Input Validation**: Comprehensive validation on all endpoints
-- **SSN Encryption**: Secure handling of sensitive information
-- **XSS Protection**: Security headers to prevent cross-site scripting
-
-## Mobile App Integration
-
-The API is designed to be consumed by native mobile applications:
-
-- Android client app
-- iOS client app
-- HarmonyOS client app
-
-## Development
-
-### Environment Setup
-
-1. Configure PHP development environment
-2. Set up local database
-3. Configure environment variables
-
-### Deployment
-
-The application is deployed to shared hosting via FTP.
+- Push/merge to `main` → `.github/workflows/deploy_test.yml` lints, runs phpstan and the schema
+  drift check, then FTP-syncs to the test server.
+- Publish a GitHub release (or run the workflow manually) → `deploy_prod.yml` does the same for
+  production (protect the `production` environment with required reviewers).
+- `tests/`, `database/`, `cronjobs/`, `docker/`, `documentation/` and tooling files are never uploaded.
+- Schema changes are applied by hand from `database/migrations/` before deploying code that needs them.
+- `cronjobs/auto_checkout.php` is installed separately **outside the web root** with a
+  `cronjobs/.env` (see `.env.example`) and scheduled daily after midnight Detroit time.
 
 ## License
 
-Proprietary - All rights reserved Maxmila Homecare LLC & Trinketronix LLC
+See [`LICENSE`](LICENSE). Copyright Maxmila Homecare LLC & Trinketronix LLC.
