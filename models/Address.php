@@ -138,11 +138,11 @@ class Address extends Model {
             );
         }
 
-        // Person type validation
+        // Person type validation (COMMUNITY is the system row with id 0, created by SQL, never via the API)
         $validator->add(
             self::PERSON_TYPE,
             new InclusionIn([
-                'domain' => [PersonType::USER, PersonType::PATIENT],
+                'domain' => [PersonType::COMMUNITY, PersonType::USER, PersonType::PATIENT],
                 'message' => 'Invalid person type'
             ])
         );

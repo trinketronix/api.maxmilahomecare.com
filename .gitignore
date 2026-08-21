@@ -36,3 +36,7 @@ tests/maxmila/bulk-backup.http
 tests/maxmila/*backup*.http
 
 
+
+
+# Cron credentials live next to the cron script on the server, never in git
+cronjobs/.env
