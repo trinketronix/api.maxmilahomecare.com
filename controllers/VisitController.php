@@ -14,6 +14,7 @@ use Api\Models\User;
 use Api\Models\UserPatient;
 use Api\Models\Visit;
 use Api\Constants\Message;
+use Api\Services\InvalidQueryException;
 use DateTime;
 use Exception;
 
@@ -171,116 +172,110 @@ class VisitController extends BaseController {
     }
 
     /**
-     * Get all visits (Manager/Admin only)
+     * All visits (managers/admins).
+     * Query: page, per_page, user_id, patient_id, progress (-1..3), status (1|2|3, default: any),
+     *        start_date, end_date (YYYY-MM-DD, inclusive, on visit_date).
      */
     public function getAllVisits(): array {
-        try {
-            // Authorization: Manager/Admin only
-            if (!$this->isManagerOrHigher()) {
-                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
-            }
-
-            // Use OrderedVisits model for pre-sorted results
-            $visits = OrderedVisits::find();
-
-            $visitsData = [];
-            foreach ($visits as $visit) {
-                $visitsData[] = $this->formatVisitData($visit);
-            }
-
-            return $this->respondWithSuccess([
-                'count' => count($visitsData),
-                'visits' => $visitsData
-            ]);
-
-        } catch (Exception $e) {
-            return $this->handleException($e);
+        if (!$this->isManagerOrHigher()) {
+            return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
         }
+        return $this->listVisits([], null, ['user_id', 'patient_id']);
     }
 
     /**
-     * Get visits for a specific user
+     * Visits of one caregiver (self, or managers/admins).
+     * Query: page, per_page, patient_id, progress, status (default 1 = active), start_date, end_date.
      */
     public function getUserVisits(int $userId): array {
-        try {
-            $currentUserId = $this->getCurrentUserId();
+        $currentUserId = $this->getCurrentUserId();
 
-            // Authorization: can only view own visits or as manager/admin
-            if ($userId !== $currentUserId && !$this->isManagerOrHigher()) {
-                return $this->respondWithError(Message::UNAUTHORIZED_ACCESS, 403);
-            }
-
-            // Use OrderedVisits model for pre-sorted results
-            $visits = OrderedVisits::find([
-                'conditions' => 'user_id = :user_id: AND status = :status:',
-                'bind' => [
-                    'user_id' => $userId,
-                    'status' => Status::ACTIVE
-                ],
-                'bindTypes' => [
-                    'user_id' => \PDO::PARAM_INT,
-                    'status' => \PDO::PARAM_INT
-                ]
-            ]);
-
-            $visitsData = [];
-            foreach ($visits as $visit) {
-                $visitsData[] = $this->formatVisitData($visit);
-            }
-
-            return $this->respondWithSuccess([
-                'count' => count($visitsData),
-                'visits' => $visitsData
-            ]);
-
-        } catch (Exception $e) {
-            return $this->handleException($e);
+        // Authorization: can only view own visits or as manager/admin
+        if ($userId !== $currentUserId && !$this->isManagerOrHigher()) {
+            return $this->respondWithError(Message::UNAUTHORIZED_ACCESS, 403);
         }
+
+        return $this->listVisits(['user_id' => $userId], Status::ACTIVE, ['patient_id']);
     }
 
     /**
-     * Get visits for a specific patient (Manager/Admin only)
+     * Visits of one patient (managers/admins).
+     * Query: page, per_page, user_id, progress, status (default 1 = active), start_date, end_date.
      */
     public function getPatientVisits(int $patientId): array {
+        if (!$this->isManagerOrHigher()) {
+            return $this->respondWithError('Only managers and administrators can view patient visits', 403);
+        }
+
+        $patient = Patient::findFirstById($patientId);
+        if (!$patient) {
+            return $this->respondWithError(Message::PATIENT_NOT_FOUND, 404);
+        }
+
+        return $this->listVisits(['patient_id' => $patientId], Status::ACTIVE, ['user_id'], ['patient' => $patient->toArray()]);
+    }
+
+    /**
+     * Shared implementation of the visit list endpoints.
+     *
+     * @param array      $fixed         Column => value constraints imposed by the route (user_id / patient_id)
+     * @param int|null   $defaultStatus Status applied when the caller does not pass ?status=
+     * @param string[]   $idFilters     Which of user_id / patient_id may be given as query filters
+     * @param array      $extra         Extra keys prepended to the payload (e.g. the patient)
+     */
+    private function listVisits(array $fixed, ?int $defaultStatus, array $idFilters, array $extra = []): array {
         try {
-            // Authorization: Manager/Admin only
-            if (!$this->isManagerOrHigher()) {
-                return $this->respondWithError('Only managers and administrators can view patient visits', 403);
+            $paging = $this->getPaging();
+
+            $conditions = []; $bind = []; $bindTypes = [];
+            $add = static function (string $column, string $op, int|string $value, int $type) use (&$conditions, &$bind, &$bindTypes): void {
+                $conditions[] = "$column $op :$column:";
+                $bind[$column] = $value;
+                $bindTypes[$column] = $type;
+            };
+
+            foreach ($fixed as $column => $value) {
+                $add($column, '=', $value, \PDO::PARAM_INT);
+            }
+            foreach ($idFilters as $column) {
+                $value = $this->queryInt($column, null, 1);
+                if ($value !== null) {
+                    $add($column, '=', $value, \PDO::PARAM_INT);
+                }
             }
 
-            // Validate patient exists
-            $patient = Patient::findFirstById($patientId);
-            if (!$patient) {
-                return $this->respondWithError(Message::PATIENT_NOT_FOUND, 404);
+            $progress = $this->queryInt('progress', [Progress::CANCELED, Progress::SCHEDULED, Progress::IN_PROGRESS, Progress::COMPLETED, Progress::PAID]);
+            if ($progress !== null) {
+                $add('progress', '=', $progress, \PDO::PARAM_INT);
             }
 
-            // Use OrderedVisits model for pre-sorted results
-            $visits = OrderedVisits::find([
-                'conditions' => 'patient_id = :patient_id: AND status = :status:',
-                'bind' => [
-                    'patient_id' => $patientId,
-                    'status' => Status::ACTIVE
-                ],
-                'bindTypes' => [
-                    'patient_id' => \PDO::PARAM_INT,
-                    'status' => \PDO::PARAM_INT
-                ]
-            ]);
-
-            $visitsData = [];
-            foreach ($visits as $visit) {
-                $visitsData[] = $this->formatVisitData($visit);
+            $status = $this->queryInt('status', [Status::ACTIVE, Status::ARCHIVED, Status::SOFT_DELETED]) ?? $defaultStatus;
+            if ($status !== null) {
+                $add('status', '=', $status, \PDO::PARAM_INT);
             }
 
-            // Include patient info in response
-            $patientData = $patient->toArray();
+            $startDate = $this->queryDate('start_date');
+            $endDate = $this->queryDate('end_date');
+            if ($startDate !== null && $endDate !== null && $startDate > $endDate) {
+                throw new InvalidQueryException('start_date must not be after end_date');
+            }
+            if ($startDate !== null) {
+                $conditions[] = 'visit_date >= :start_date:'; $bind['start_date'] = $startDate; $bindTypes['start_date'] = \PDO::PARAM_STR;
+            }
+            if ($endDate !== null) {
+                $conditions[] = 'visit_date <= :end_date:'; $bind['end_date'] = $endDate; $bindTypes['end_date'] = \PDO::PARAM_STR;
+            }
 
-            return $this->respondWithSuccess([
-                'patient' => $patientData,
-                'count' => count($visitsData),
-                'visits' => $visitsData
-            ]);
+            $where = $conditions ? ['conditions' => implode(' AND ', $conditions), 'bind' => $bind, 'bindTypes' => $bindTypes] : [];
+            $total = (int)OrderedVisits::count($where);
 
+            // Explicit ORDER BY: the view's own ordering is not guaranteed to survive LIMIT/OFFSET
+            $visits = OrderedVisits::find($this->applyPaging($where + ['order' => 'sort_order, visit_date DESC, start_time DESC'], $paging));
+
+            return $this->respondWithList('visits', $this->formatVisits($visits), $paging, $total, $extra);
+
+        } catch (InvalidQueryException $e) {
+            return $this->respondWithError($e->getMessage(), 400);
         } catch (Exception $e) {
             return $this->handleException($e);
         }
@@ -676,9 +671,37 @@ class VisitController extends BaseController {
     }
 
     /**
-     * Helper method to format visit data for response
+     * Format many visits with three batched lookups (users, patients, addresses) instead of three per visit.
      */
-    private function formatVisitData(Visit $visit): array {
+    private function formatVisits(iterable $visits): array {
+        $list = is_array($visits) ? $visits : iterator_to_array($visits, false);
+        if (!$list) {
+            return [];
+        }
+
+        $ids = static fn (string $field) => array_values(array_unique(array_map(static fn (Visit $v) => (int)$v->$field, $list)));
+        $byId = static function (iterable $rows): array {
+            $map = [];
+            foreach ($rows as $row) {
+                $map[(int)$row->id] = $row->toArray();
+            }
+            return $map;
+        };
+
+        $maps = [
+            'user'    => $byId(User::find(['conditions' => 'id IN ({ids:array})', 'bind' => ['ids' => $ids('user_id')]])),
+            'patient' => $byId(Patient::find(['conditions' => 'id IN ({ids:array})', 'bind' => ['ids' => $ids('patient_id')]])),
+            'address' => $byId(Address::find(['conditions' => 'id IN ({ids:array})', 'bind' => ['ids' => $ids('address_id')]])),
+        ];
+
+        return array_map(fn (Visit $v) => $this->formatVisitData($v, $maps), $list);
+    }
+
+    /**
+     * Helper method to format visit data for response.
+     * $maps (from formatVisits) avoids per-visit lookups; without it the model getters are used.
+     */
+    private function formatVisitData(Visit $visit, ?array $maps = null): array {
         $data = $visit->toArray();
 
         // Add calculated fields
@@ -686,15 +709,23 @@ class VisitController extends BaseController {
         $data['progress_description'] = $visit->getProgressDescription();
 
         // Add related data
-        $data['user'] = $visit->getUserData();
-        $data['patient'] = $visit->getPatientData();
-        $data['address'] = $visit->getAddressData();
+        if ($maps !== null) {
+            $data['user'] = $maps['user'][(int)$visit->user_id] ?? [];
+            $data['patient'] = $maps['patient'][(int)$visit->patient_id] ?? [];
+            $data['address'] = $maps['address'][(int)$visit->address_id] ?? [];
+        } else {
+            $data['user'] = $visit->getUserData();
+            $data['patient'] = $visit->getPatientData();
+            $data['address'] = $visit->getAddressData();
+        }
 
         // Add status descriptions
-        $data['is_today'] = $visit->visit_date === date('Y-m-d');
-        $data['is_future'] = $visit->visit_date > date('Y-m-d');
-        $data['is_past'] = $visit->visit_date < date('Y-m-d');
+        $today = date('Y-m-d');
+        $data['is_today'] = $visit->visit_date === $today;
+        $data['is_future'] = $visit->visit_date > $today;
+        $data['is_past'] = $visit->visit_date < $today;
 
         return $data;
     }
+
 }

@@ -53,6 +53,39 @@ Every JSON response has the same shape, and the HTTP status code always equals `
 
 Common error codes: `400` validation, `401` missing/invalid/expired token or inactive account, `403` role or ownership, `404` not found, `409` conflict (already assigned, address in use, save failed), `415` content type, `422` model validation failed.
 
+## 3a. Pagination and filters on list endpoints
+
+`GET /accounts`, `GET /patients`, `GET /patients/addresses`, `GET /visits`, `GET /user/visits/{userId}` and `GET /patient/visits/{patientId}` accept query-string parameters:
+
+| Parameter | Applies to | Meaning |
+|---|---|---|
+| `page` | all | 1-based page number. **Without `page` the endpoint returns every row** (legacy behaviour, no `pagination` block). |
+| `per_page` | all | rows per page, 1–200, default 50 |
+| `search` | accounts, patients | case-insensitive "contains" on name/email/username/phone/code (accounts) or first/middle/last name, HHAexchange `patient`/`admission` ids (patients) |
+| `role` | accounts | `0`, `1`, `2` |
+| `status` | accounts (−1…3), patients (0…3), visits (1…3) | record status. Visits: `/visits` defaults to any status; `/user/visits` and `/patient/visits` default to `1` (active) unless overridden |
+| `progress` | visits | `-1`…`3` |
+| `user_id`, `patient_id` | `/visits` (both), `/user/visits` (`patient_id`), `/patient/visits` (`user_id`) | restrict to one caregiver/patient |
+| `start_date`, `end_date` | visits | inclusive range on `visit_date`, `YYYY-MM-DD` |
+
+Response when `page` is given:
+
+```jsonc
+{ "status": "success", "code": 200, "data": {
+    "count": 50,                                   // rows in this response
+    "visits": [ … ],                               // or "patients" / "users"
+    "pagination": { "page": 2, "per_page": 50, "total": 312, "total_pages": 7 }
+} }
+```
+
+- A page past the end is `200` with `count: 0` and the same `total`.
+- Invalid values (`page=0`, `status=9`, `start_date` after `end_date`, malformed dates) are `400` with a descriptive message.
+- Filters without `page` work too and return every matching row without a `pagination` block.
+- With any parameter present, an empty result is `200` + empty list; only the bare request keeps the legacy `204`.
+- Visit lists are ordered by the server (today in-progress → today scheduled → future → canceled → past, then newest first); patients and accounts by last name, first name.
+
+Recommended client defaults: always send `page` + `per_page` (e.g. 50) for visits and patients, and use `start_date`/`end_date` for calendar views instead of downloading the full history.
+
 ## 4. Authentication lifecycle
 
 ```
@@ -173,6 +206,7 @@ export interface VisitView extends Visit {
   sort_order?: number;                // present on list endpoints (1 today in-progress … 5 past)
 }
 
+export interface Pagination { page: number; per_page: number; total: number; total_pages: number; }
 export interface Envelope<T> { status: 'success' | 'error'; code: number; data?: T; message?: string | object; }
 ```
 
@@ -203,7 +237,7 @@ Managers cannot act on administrator accounts (`403`); acting on your own accoun
 
 | Method & path | Who | Body | `data` |
 |---|---|---|---|
-| `GET /accounts` | 🧑‍⚕️ | — | `{ count, users: Account[] }` (`204` when empty) |
+| `GET /accounts` | 🧑‍⚕️ | query: `page, per_page, role, status, search` (§3a) | `{ count, users: Account[], pagination? }` (`204` when empty and no parameters) |
 | `GET /account` | 👤 | — | `Account` (self) |
 | `GET /account/{id}` | self or 🧑‍⚕️ | — | `Account` |
 | `PUT /user/{id}` | self or 🧑‍⚕️ | any of `lastname, firstname, middlename, birthdate, code, phone, phone2, email, email2, languages, description, ssn` | `{ message, user: User, updates: {field: {from, to}} }` (`201`) |
@@ -222,8 +256,8 @@ Managers cannot act on administrator accounts (`403`); acting on your own accoun
 | Method & path | Who | Body | `data` |
 |---|---|---|---|
 | `POST /patient/new` | 🧑‍⚕️ | `{ firstname, lastname, phone, middlename?, patient?, admission?, gender?, birthdate?, phone2?, phone3?, address?: AddressInput }` | `{ message, patient_id, address_id? }` (`201`) |
-| `GET /patients` | 🧑‍⚕️ | — | `{ count, patients: Patient[] }` (`204` empty) |
-| `GET /patients/addresses` | 🧑‍⚕️ | — | `{ count, patients: (Patient & {addresses: Address[]})[] }` |
+| `GET /patients` | 🧑‍⚕️ | query: `page, per_page, status, search` (§3a) | `{ count, patients: Patient[], pagination? }` (`204` empty, no parameters) |
+| `GET /patients/addresses` | 🧑‍⚕️ | same query | `{ count, patients: (Patient & {addresses: Address[]})[], pagination? }` |
 | `GET /patient/{id}` | 🧑‍⚕️ | — | `Patient` |
 | `PUT /patient/{id}` | 🧑‍⚕️ | any of `firstname, middlename, lastname, phone, patient, admission, status` | `{ message, patient_id }` (`201`) |
 | `PUT /patient/{id}/activate` · `/inactivate` · `/archivate` · `/delete` | 🧑‍⚕️ | `{}` | `{ message }` (`202`) |
@@ -266,9 +300,9 @@ Caregivers do not list patients directly; they use the assignment endpoints (§8
 | Method & path | Who | Body | `data` |
 |---|---|---|---|
 | `POST /visit/schedule` | self or 🧑‍⚕️ (for others) | `{ user_id, patient_id, address_id, visit_date, total_hours, extra_minutes?, start_time?, note? }` | `{ message, visit: VisitView }` (`201`) |
-| `GET /visits` | 🧑‍⚕️ | — | `{ count, visits: VisitView[] }` (all, pre-sorted) |
-| `GET /user/visits/{userId}` | self or 🧑‍⚕️ | — | `{ count, visits }` (active only) |
-| `GET /patient/visits/{patientId}` | 🧑‍⚕️ | — | `{ patient, count, visits }` |
+| `GET /visits` | 🧑‍⚕️ | query: `page, per_page, user_id, patient_id, progress, status, start_date, end_date` (§3a) | `{ count, visits: VisitView[], pagination? }` (all statuses by default) |
+| `GET /user/visits/{userId}` | self or 🧑‍⚕️ | query: `page, per_page, patient_id, progress, status, start_date, end_date` | `{ count, visits, pagination? }` (active by default) |
+| `GET /patient/visits/{patientId}` | 🧑‍⚕️ | query: `page, per_page, user_id, progress, status, start_date, end_date` | `{ patient, count, visits, pagination? }` (active by default) |
 | `GET /visit/{id}` | owner or 🧑‍⚕️ | — | `VisitView` |
 | `PUT /visit/{id}` | owner while Scheduled · 🧑‍⚕️ until Approved/Canceled | any of `visit_date, start_time, total_hours, extra_minutes, note, address_id` | `{ message, visit }` |
 | `PUT /visit/{id}/checkin` | owner or 🧑‍⚕️ | `{}` | `{ message, visit }` — only from Scheduled |
@@ -316,7 +350,8 @@ export class MaxmilaApi {
   renew = () => this.call<{ token: string }>('PUT', '/auth/renew/token', {});
   myAccount = () => this.call<Account>('GET', '/account');
   myPatients = (userId: number) => this.call<{ count: number; patients: (Patient & { addresses: Address[] })[] }>('GET', `/assigned/patients/addresses/${userId}`);
-  myVisits = (userId: number) => this.call<{ count: number; visits: VisitView[] }>('GET', `/user/visits/${userId}`);
+  myVisits = (userId: number, page = 1, perPage = 50, filters: Record<string, string | number> = {}) =>
+    this.call<{ count: number; visits: VisitView[]; pagination: Pagination }>('GET', `/user/visits/${userId}?` + new URLSearchParams({ page: String(page), per_page: String(perPage), ...Object.fromEntries(Object.entries(filters).map(([k, v]) => [k, String(v)])) }));
   schedule = (v: { user_id: number; patient_id: number; address_id: number; visit_date: string; total_hours: number; extra_minutes?: number; start_time?: string; note?: string }) =>
     this.call<{ visit: VisitView }>('POST', '/visit/schedule', v);
   checkin = (id: number) => this.call<{ visit: VisitView }>('PUT', `/visit/${id}/checkin`, {});
@@ -353,4 +388,5 @@ Mobile (Swift/Kotlin) clients: same rules — raw token header, JSON content typ
 - `POST /patient/{id}/update/photo` replaces the former `PUT` route (PHP cannot read multipart bodies on PUT).
 - `GET /address/nearby` takes query-string parameters.
 - `/bulk/*`, `/send/email`, `/tools` require authentication (admin for writes).
+- List endpoints accept `page`/`per_page` and filters (§3a); responses gain a `pagination` block when `page` is sent. Existing calls without parameters are unchanged.
 - Tokens are revoked when an account is inactivated/archived/deleted or its role/password changes.

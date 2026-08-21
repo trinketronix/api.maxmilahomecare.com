@@ -188,3 +188,35 @@ Content-Type: application/json
 Authorization: {{maxmila.manager.token}}
 
 {}
+
+### ---- Pagination & filters (see documentation/MAXMILA-API-CLIENT.md §3a) ----
+
+###
+# @name All visits, page 1 of 20
+GET {{maxmila.baseUrl}}/visits?page=1&per_page=20
+Authorization: {{maxmila.manager.token}}
+
+###
+# @name All visits of one caregiver, scheduled only, in a date range
+GET {{maxmila.baseUrl}}/visits?user_id={{maxmila.caregiver.id}}&progress=0&start_date={{$datetime 'YYYY-MM-DD'}}&end_date={{$datetime 'YYYY-MM-DD' 30}}&page=1
+Authorization: {{maxmila.manager.token}}
+
+###
+# @name My visits, canceled ones (status defaults to active)
+GET {{maxmila.baseUrl}}/user/visits/{{maxmila.caregiver.id}}?progress=-1&page=1&per_page=50
+Authorization: {{maxmila.caregiver.token}}
+
+###
+# @name My archived visits (status override)
+GET {{maxmila.baseUrl}}/user/visits/{{maxmila.caregiver.id}}?status=2
+Authorization: {{maxmila.caregiver.token}}
+
+###
+# @name Patient visits by one caregiver, paged
+GET {{maxmila.baseUrl}}/patient/visits/1?user_id={{maxmila.caregiver.id}}&page=1&per_page=10
+Authorization: {{maxmila.manager.token}}
+
+###
+# @name Invalid filter - expect 400
+GET {{maxmila.baseUrl}}/visits?progress=9
+Authorization: {{maxmila.manager.token}}

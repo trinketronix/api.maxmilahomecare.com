@@ -140,3 +140,25 @@ Authorization: {{maxmila.manager.token}}
 # @name Patient visits (manager/admin)
 GET {{maxmila.baseUrl}}/patient/visits/1
 Authorization: {{maxmila.manager.token}}
+
+### ---- Pagination & filters ----
+
+###
+# @name Patients page 1 of 25
+GET {{maxmila.baseUrl}}/patients?page=1&per_page=25
+Authorization: {{maxmila.manager.token}}
+
+###
+# @name Search patients by name or HHAexchange id (no page -> all matches)
+GET {{maxmila.baseUrl}}/patients?search=smith
+Authorization: {{maxmila.manager.token}}
+
+###
+# @name Inactive patients with addresses, paged
+GET {{maxmila.baseUrl}}/patients/addresses?status=0&page=1&per_page=25
+Authorization: {{maxmila.manager.token}}
+
+###
+# @name Invalid page - expect 400
+GET {{maxmila.baseUrl}}/patients?page=0
+Authorization: {{maxmila.manager.token}}

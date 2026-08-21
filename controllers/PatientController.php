@@ -11,6 +11,7 @@ use Exception;
 use Api\Models\Patient;
 use Api\Models\Address;
 use Api\Constants\Message;
+use Api\Services\InvalidQueryException;
 
 class PatientController extends BaseController {
     /**
@@ -387,88 +388,92 @@ class PatientController extends BaseController {
     }
 
     /**
-     * Get all patients
-     * Restricted to Managers and Administrators only
+     * List patients (managers/admins).
+     * Query: page, per_page, status (0|1|2|3), search (first/middle/last name, HHAexchange patient or admission id).
+     * Without any parameter the legacy behaviour is kept: every row, 204 when there are none.
      */
     public function getAllPatients(): array {
+        return $this->listPatients(false);
+    }
+
+    /**
+     * List patients with their addresses (managers/admins). Same query parameters as GET /patients.
+     */
+    public function getAllPatientsWithAddresses(): array {
+        return $this->listPatients(true);
+    }
+
+    /**
+     * Shared implementation of the patient list endpoints.
+     */
+    private function listPatients(bool $withAddresses): array {
         try {
-            // Check if the current user has appropriate role (admin or manager)
             if (!$this->isManagerOrHigher())
                 return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
 
-            // Fetch all patients
-            $patients = Patient::find([
-                'order' => 'lastname, firstname'
-            ]);
+            $paging = $this->getPaging();
+            $status = $this->queryInt('status', [Status::INACTIVE, Status::ACTIVE, Status::ARCHIVED, Status::SOFT_DELETED]);
+            $search = $this->queryText('search');
 
-            if (!$patients)
-                return $this->respondWithError(Message::DB_QUERY_FAILED, 500);
-
-            if ($patients->count() === 0)
-                return $this->respondWithSuccess(Message::DB_NO_RECORDS, 204, Message::DB_NO_RECORDS);
-
-            // Get patient data
-            $patientsArray = [];
-            foreach ($patients as $patient) {
-                $patientData = $patient->toArray();
-                $patientsArray[] = $patientData;
+            $conditions = []; $bind = []; $bindTypes = [];
+            if ($status !== null) {
+                $conditions[] = 'status = :status:'; $bind['status'] = $status; $bindTypes['status'] = \PDO::PARAM_INT;
+            }
+            if ($search !== null) {
+                $conditions[] = $this->likeAnyCondition(['firstname', 'lastname', 'middlename', 'patient', 'admission'], $search, $bind, $bindTypes);
             }
 
-            return $this->respondWithSuccess([
-                'count' => $patients->count(),
-                'patients' => $patientsArray
-            ]);
+            $where = $conditions ? ['conditions' => implode(' AND ', $conditions), 'bind' => $bind, 'bindTypes' => $bindTypes] : [];
+            $total = (int)Patient::count($where);
+            $patients = Patient::find($this->applyPaging($where + ['order' => 'lastname, firstname'], $paging));
 
+            $patientsArray = $patients->toArray();
+
+            if (!$patientsArray && !$this->hasListParams(['status', 'search']))
+                return $this->respondWithSuccess(Message::DB_NO_RECORDS, 204, Message::DB_NO_RECORDS);
+
+            if ($withAddresses && $patientsArray) {
+                $byPatient = $this->addressesByPatient(array_column($patientsArray, 'id'));
+                foreach ($patientsArray as &$patientData) {
+                    $patientData['addresses'] = $byPatient[$patientData['id']] ?? [];
+                }
+                unset($patientData);
+            }
+
+            return $this->respondWithList('patients', $patientsArray, $paging, $total);
+
+        } catch (InvalidQueryException $e) {
+            return $this->respondWithError($e->getMessage(), 400);
         } catch (\Throwable $e) {
             return $this->handleException($e);
         }
     }
 
     /**
-     * Get all patients with addresses
-     * Restricted to Managers and Administrators only
+     * Addresses for many patients in two queries (instead of one per patient).
+     * Like Address::findByPerson(), every patient's list includes the Community address (id 0).
+     * @return array<int, array[]> patient id => addresses, newest first
      */
-    public function getAllPatientsWithAddresses(): array {
-        try {
-            // Check if the current user has appropriate role (admin or manager)
-            if (!$this->isManagerOrHigher())
-                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
-
-            // Fetch all patients
-            $patients = Patient::find([
-                'order' => 'lastname, firstname'
-            ]);
-
-            if (!$patients)
-                return $this->respondWithError(Message::DB_QUERY_FAILED, 500);
-
-            if ($patients->count() === 0)
-                return $this->respondWithSuccess(Message::DB_NO_RECORDS, 204, Message::DB_NO_RECORDS);
-
-            // Get patient data
-            $patientsArray = [];
-            foreach ($patients as $patient) {
-                $patientData = $patient->toArray();
-
-                // Get patient's addresses
-                $addresses = Address::findByPerson($patient->id,PersonType::PATIENT);
-                if ($addresses && $addresses->count() > 0) {
-                    $patientData['addresses'] = $addresses->toArray();
-                } else {
-                    $patientData['addresses'] = [];
-                }
-
-                $patientsArray[] = $patientData;
-            }
-
-            return $this->respondWithSuccess([
-                'count' => $patients->count(),
-                'patients' => $patientsArray
-            ]);
-
-        } catch (\Throwable $e) {
-            return $this->handleException($e);
+    private function addressesByPatient(array $patientIds): array {
+        $result = array_fill_keys($patientIds, []);
+        $addresses = Address::find([
+            'conditions' => 'person_type = :type: AND person_id IN ({ids:array})',
+            'bind' => ['type' => PersonType::PATIENT, 'ids' => $patientIds],
+            'order' => 'created_at DESC'
+        ]);
+        foreach ($addresses as $address) {
+            $result[(int)$address->person_id][] = $address->toArray();
         }
+        $community = Address::findFirst(0);
+        if ($community) {
+            $communityData = $community->toArray();
+            foreach ($result as &$list) {
+                $list[] = $communityData;
+                usort($list, static fn (array $a, array $b) => strcmp((string)$b['created_at'], (string)$a['created_at']));
+            }
+            unset($list);
+        }
+        return $result;
     }
 
     /**

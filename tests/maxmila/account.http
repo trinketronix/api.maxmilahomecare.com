@@ -26,3 +26,15 @@ Authorization: {{maxmila.administrator.token}}
 ### Get all user accounts with detailed information
 GET {{maxmila.baseUrl}}/account/83
 Authorization: {{maxmila.manager.token}}
+
+### ---- Pagination & filters ----
+
+###
+# @name Caregiver accounts, page 1
+GET {{maxmila.baseUrl}}/accounts?role=2&status=1&page=1&per_page=25
+Authorization: {{maxmila.manager.token}}
+
+###
+# @name Search accounts by name, email, phone or code
+GET {{maxmila.baseUrl}}/accounts?search=glo-
+Authorization: {{maxmila.manager.token}}

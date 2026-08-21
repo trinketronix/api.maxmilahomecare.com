@@ -9,6 +9,7 @@ use Api\Constants\Role;
 use Api\Email\Sender;
 use Api\Email\SMTP;
 use Api\Models\Auth;
+use Api\Services\InvalidQueryException;
 use Exception;
 use Phalcon\Http\Request\FileInterface;
 use Phalcon\Mvc\Controller;
@@ -171,6 +172,161 @@ HTACCESS;
             $e->getTraceAsString()
         ));
         return $this->respondWithError($publicMessage, $statusCode);
+    }
+
+    // ------------------------------------------------------------------
+    // List endpoints: pagination and query-string filters
+    // ------------------------------------------------------------------
+
+    protected const int DEFAULT_PER_PAGE = 50;
+    protected const int MAX_PER_PAGE = 200;
+
+    /**
+     * Pagination requested through ?page=N[&per_page=M] (page is 1-based, per_page 1..200, default 50).
+     * Returns null when "page" is absent: the endpoint then returns every row, as it always did.
+     */
+    protected function getPaging(): ?array {
+        $query = $this->request->getQuery();
+        if (!isset($query['page']) || $query['page'] === '') {
+            return null;
+        }
+        if (!ctype_digit((string)$query['page']) || (int)$query['page'] < 1) {
+            throw new InvalidQueryException('page must be a positive integer');
+        }
+        $perPage = self::DEFAULT_PER_PAGE;
+        if (isset($query['per_page']) && $query['per_page'] !== '') {
+            if (!ctype_digit((string)$query['per_page']) || (int)$query['per_page'] < 1) {
+                throw new InvalidQueryException('per_page must be a positive integer');
+            }
+            $perPage = min(self::MAX_PER_PAGE, (int)$query['per_page']);
+        }
+        $page = (int)$query['page'];
+        return [
+            'page'     => $page,
+            'per_page' => $perPage,
+            'limit'    => $perPage,
+            'offset'   => ($page - 1) * $perPage,
+        ];
+    }
+
+    /**
+     * Add limit/offset to Phalcon find() parameters when paging is active.
+     */
+    protected function applyPaging(array $params, ?array $paging): array {
+        if ($paging !== null) {
+            $params['limit'] = $paging['limit'];
+            $params['offset'] = $paging['offset'];
+        }
+        return $params;
+    }
+
+    /**
+     * Standard list payload: { ...$extra, count, <key>: items, pagination? }
+     * "count" is the number of items in this response; "pagination.total" is the number of matching rows.
+     */
+    protected function respondWithList(string $key, array $items, ?array $paging, int $total, array $extra = []): array {
+        $data = $extra;
+        $data['count'] = count($items);
+        $data[$key] = $items;
+        if ($paging !== null) {
+            $data['pagination'] = [
+                'page'        => $paging['page'],
+                'per_page'    => $paging['per_page'],
+                'total'       => $total,
+                'total_pages' => (int)ceil($total / $paging['per_page']),
+            ];
+        }
+        return $this->respondWithSuccess($data);
+    }
+
+    /**
+     * True when the request carries any list parameter (pagination or one of $filters).
+     * Used to keep the legacy "204 No records found" only for bare requests.
+     */
+    protected function hasListParams(array $filters): bool {
+        $query = $this->request->getQuery();
+        foreach (array_merge(['page', 'per_page'], $filters) as $name) {
+            if (isset($query[$name]) && $query[$name] !== '') {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Optional integer query parameter, optionally restricted to a set of allowed values.
+     */
+    protected function queryInt(string $name, ?array $allowed = null, int $min = PHP_INT_MIN): ?int {
+        $value = $this->request->getQuery($name);
+        if ($value === null || $value === '') {
+            return null;
+        }
+        if (!preg_match('/^-?\d+$/', (string)$value)) {
+            throw new InvalidQueryException("$name must be an integer");
+        }
+        $int = (int)$value;
+        if ($allowed !== null && !in_array($int, $allowed, true)) {
+            throw new InvalidQueryException("$name must be one of " . implode(', ', $allowed));
+        }
+        if ($int < $min) {
+            throw new InvalidQueryException("$name must be >= $min");
+        }
+        return $int;
+    }
+
+    /**
+     * Optional YYYY-MM-DD query parameter.
+     */
+    protected function queryDate(string $name): ?string {
+        $value = $this->request->getQuery($name);
+        if ($value === null || $value === '') {
+            return null;
+        }
+        $value = (string)$value;
+        if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $value, $m) || !checkdate((int)$m[2], (int)$m[3], (int)$m[1])) {
+            throw new InvalidQueryException("$name must be a date formatted YYYY-MM-DD");
+        }
+        return $value;
+    }
+
+    /**
+     * Optional free-text query parameter (trimmed, length-capped), e.g. ?search=smith
+     */
+    protected function queryText(string $name, int $maxLength = 100): ?string {
+        $value = $this->request->getQuery($name);
+        if ($value === null) {
+            return null;
+        }
+        $value = trim((string)$value);
+        if ($value === '') {
+            return null;
+        }
+        if (mb_strlen($value) > $maxLength) {
+            throw new InvalidQueryException("$name must be at most $maxLength characters");
+        }
+        return $value;
+    }
+
+    /**
+     * Escape LIKE wildcards in user input and wrap it for a "contains" match.
+     */
+    protected function likeContains(string $value): string {
+        return '%' . addcslashes($value, '%_\\') . '%';
+    }
+
+    /**
+     * "(col1 LIKE :p0: OR col2 LIKE :p1: ...)" with one placeholder per column.
+     * Native prepared statements (EMULATE_PREPARES=false) reject reusing a named placeholder.
+     */
+    protected function likeAnyCondition(array $columns, string $value, array &$bind, array &$bindTypes, string $prefix = 'search'): string {
+        $parts = [];
+        foreach (array_values($columns) as $i => $column) {
+            $key = $prefix . $i;
+            $parts[] = "$column LIKE :$key:";
+            $bind[$key] = $this->likeContains($value);
+            $bindTypes[$key] = \PDO::PARAM_STR;
+        }
+        return '(' . implode(' OR ', $parts) . ')';
     }
 
     /**
