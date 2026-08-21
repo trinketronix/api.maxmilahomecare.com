@@ -1,0 +1,82 @@
+### Bulk seeding / recovery - ADMINISTRATOR ONLY. Payloads are JSON arrays.
+### Never commit real data here: backup payloads go in tests/maxmila/*backup*.http (git-ignored).
+
+###
+# @name Bulk accounts
+POST {{maxmila.baseUrl}}/bulk/auths
+Content-Type: application/json
+Authorization: {{maxmila.administrator.token}}
+
+[
+  {"username": "seed1@example.com", "password": "SeedPass2026"},
+  {"username": "seed2@example.com", "password": "SeedPass2026"}
+]
+
+###
+# @name Bulk users (profile by id, optional addresses)
+POST {{maxmila.baseUrl}}/bulk/users
+Content-Type: application/json
+Authorization: {{maxmila.administrator.token}}
+
+[
+  {
+    "id": 2,
+    "firstname": "Seed",
+    "lastname": "User",
+    "phone": "313-555-0100",
+    "email": "seed1@example.com",
+    "addresses": [
+      {"type": "House", "address": "1 Example Rd", "city": "Detroit", "county": "Wayne", "state": "MI", "zipcode": "48226"}
+    ]
+  }
+]
+
+###
+# @name Bulk patients
+POST {{maxmila.baseUrl}}/bulk/patients
+Content-Type: application/json
+Authorization: {{maxmila.administrator.token}}
+
+[
+  {"firstname": "Seed", "lastname": "Patient", "phone": "313-555-0200",
+   "address": {"type": "Apartment", "address": "2 Example Rd", "city": "Detroit", "county": "Wayne", "state": "MI", "zipcode": "48226"}}
+]
+
+###
+# @name Bulk addresses
+POST {{maxmila.baseUrl}}/bulk/addresses
+Content-Type: application/json
+Authorization: {{maxmila.administrator.token}}
+
+[
+  {"person_id": 1, "person_type": 1, "type": "House", "address": "3 Example Rd", "city": "Detroit", "county": "Wayne", "state": "MI", "zipcode": "48226"}
+]
+
+###
+# @name Bulk assignments
+POST {{maxmila.baseUrl}}/bulk/user-patient
+Content-Type: application/json
+Authorization: {{maxmila.administrator.token}}
+
+[
+  {"user_id": 2, "patient_id": 1, "notes": "seed"}
+]
+
+###
+# @name Bulk visits (schema fields, or start_time/end_time for legacy backups)
+POST {{maxmila.baseUrl}}/bulk/visits
+Content-Type: application/json
+Authorization: {{maxmila.administrator.token}}
+
+[
+  {"user_id": 2, "patient_id": 1, "address_id": 0, "visit_date": "2026-08-01", "total_hours": 2, "extra_minutes": 0, "progress": 3},
+  {"user_id": 2, "patient_id": 1, "start_time": "2026-08-02 09:00:00", "end_time": "2026-08-02 11:30:00", "progress": 2}
+]
+
+###
+# @name Bulk as manager - expect 403
+POST {{maxmila.baseUrl}}/bulk/patients
+Content-Type: application/json
+Authorization: {{maxmila.manager.token}}
+
+[]

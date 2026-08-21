@@ -1,10 +1,23 @@
 ###
-# @name Send Email
+# @name Send Email (administrator only)
 POST {{maxmila.baseUrl}}/send/email
 Content-Type: application/json
+Authorization: {{maxmila.administrator.token}}
 
 {
-  "to": "toddsalpen@gmail.com",
-  "subject": "Email sending method works good",
-  "body": "this email is with the only purpose of make something good out of the system, highly recommend to watch the solo leveling, and a link to https://toddsalpen.com \nhave a good day"
+  "to": "someone@example.com",
+  "subject": "Maxmila API test",
+  "body": "Hello from the API test suite"
+}
+
+###
+# @name Send Email as caregiver - expect 403
+POST {{maxmila.baseUrl}}/send/email
+Content-Type: application/json
+Authorization: {{maxmila.caregiver.token}}
+
+{
+  "to": "someone@example.com",
+  "subject": "nope",
+  "body": "nope"
 }
