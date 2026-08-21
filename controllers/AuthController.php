@@ -13,23 +13,28 @@ use Api\Constants\Message;
 use Phalcon\Http\Response;
 
 class AuthController extends BaseController {
+    private const int MIN_PASSWORD_LENGTH = 8;
+
     private $apiBaseUrl = API_BASE_URL;
     private $appBaseUrl = APP_BASE_URL;
+
     /**
      * Create a new user account
      */
     public function register(): array {
         try {
-
             $data = $this->getRequestBody();
 
             // Validate required fields
-            if (empty($data[Auth::USERNAME]) || empty($data[Auth::PASSWORD]) || empty($data[USER::LASTNAME]) || empty($data[User::FIRSTNAME]))
+            if (empty($data[Auth::USERNAME]) || empty($data[Auth::PASSWORD]) || empty($data[User::LASTNAME]) || empty($data[User::FIRSTNAME]))
                 return $this->respondWithError(Message::CREDENTIALS_REQUIRED, 400);
 
             // Validate email format
             if (!filter_var($data[Auth::USERNAME], FILTER_VALIDATE_EMAIL))
                 return $this->respondWithError(Message::EMAIL_INVALID, 400);
+
+            if (strlen((string)$data[Auth::PASSWORD]) < self::MIN_PASSWORD_LENGTH)
+                return $this->respondWithError('Password must be at least ' . self::MIN_PASSWORD_LENGTH . ' characters', 400);
 
             // Execute within transaction
             return $this->withTransaction(function() use ($data) {
@@ -40,22 +45,8 @@ class AuthController extends BaseController {
                 $auth->role = Role::CAREGIVER;
                 $auth->status = Status::NOT_VERIFIED;
 
-                if (!$auth->save()) {
-                    $messages = $auth->getMessages(); // This is Phalcon\Messages\MessageInterface[]
-                    $msg = "An unknown error occurred."; // Default/fallback
-
-                    if (count($messages) > 0) {
-                        // Get the first message object from the array
-                        $obj = $messages[0]; // or current($phalconMessages)
-
-                        // Extract the string message from the object
-                        // The MessageInterface guarantees the getMessage() method.
-                        $msg = $obj->getMessage();
-                    }
-
-                    // Pass the extracted string message to your responder
-                    return $this->respondWithError($msg, 422);
-                }
+                if (!$auth->save())
+                    return $this->respondWithError($this->getFirstErrorMessage($auth), 422);
 
                 if (!$auth->id)
                     return $this->respondWithError(Message::DB_ID_GENERATION_FAILED, 422);
@@ -70,9 +61,7 @@ class AuthController extends BaseController {
             });
 
         } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+            return $this->handleException($e);
         }
     }
 
@@ -83,98 +72,46 @@ class AuthController extends BaseController {
         try {
             return $this->processLogin($this->getRequestBody());
         } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+            return $this->handleException($e);
         }
     }
 
     /**
-     * Activate a user account from the system
+     * Activate a user account from the system (manager/admin)
      */
     public function activateAccount(): array {
-        try {
-            // Role validation should now be done by middleware
-            // If we need additional role checking for this specific operation:
-            if (!$this->isManagerOrHigher())
-                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
-
-            $data = $this->getRequestBody();
-
-            if (empty($data[Auth::ID]))
-                return $this->respondWithError(Message::ID_REQUIRED, 400);
-
-            $id = $data[Auth::ID];
-            $auth = Auth::findFirstById($id);
-
-            if (!$auth)
-                return $this->respondWithError(Message::ID_NOT_FOUND, 404);
-
-            return $this->withTransaction(function() use ($auth) {
-                $auth->status = Status::ACTIVE;
-
-                if (!$auth->save())
-                    return $this->respondWithError(Message::USER_ACTIVATION_FAILED, 409);
-
-                return $this->respondWithSuccess([
-                    'message' => Message::USER_ACTIVATED
-                ], 202, Message::USER_ACTIVATED);
-            });
-
-        } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
-        }
+        return $this->changeAccountStatus(Status::ACTIVE, Message::USER_ACTIVATED, Message::USER_ACTIVATION_FAILED);
     }
 
     /**
-     * Inactivate a user account from the system
+     * Inactivate a user account from the system (manager/admin)
      */
     public function inactivateAccount(): array {
-        try {
-            // Role validation should now be done by middleware
-            // If we need additional role checking for this specific operation:
-            if (!$this->isManagerOrHigher())
-                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
-
-            $data = $this->getRequestBody();
-
-            if (empty($data[Auth::ID]))
-                return $this->respondWithError(Message::ID_REQUIRED, 400);
-
-            $id = $data[Auth::ID];
-            $auth = Auth::findFirstById($id);
-
-            if (!$auth)
-                return $this->respondWithError(Message::ID_NOT_FOUND, 404);
-
-            return $this->withTransaction(function() use ($auth) {
-                $auth->status = Status::INACTIVE;
-
-                if (!$auth->save())
-                    return $this->respondWithError(Message::USER_INACTIVATION_FAILED, 409);
-
-                return $this->respondWithSuccess([
-                    'message' => Message::USER_INACTIVATED
-                ], 202, Message::USER_INACTIVATED);
-            });
-
-        } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
-        }
+        return $this->changeAccountStatus(Status::INACTIVE, Message::USER_INACTIVATED, Message::USER_INACTIVATION_FAILED);
     }
 
-
     /**
-     * Inactivate a user account from the system
+     * Archive a user account from the system (manager/admin)
      */
     public function archivateAccount(): array {
+        return $this->changeAccountStatus(Status::ARCHIVED, Message::USER_ARCHIVED, Message::USER_ARCHIVATION_FAILED);
+    }
+
+    /**
+     * Soft-delete a user account from the system (manager/admin)
+     */
+    public function deleteAccount(): array {
+        return $this->changeAccountStatus(Status::SOFT_DELETED, Message::USER_DELETED, Message::USER_DELETION_FAILED);
+    }
+
+    /**
+     * Shared implementation of the account status endpoints.
+     * Body: { "id": <account id> }
+     * Rules: manager/admin only; managers cannot touch administrator accounts; nobody can change their own status.
+     * Any status other than Active also revokes the account's session token.
+     */
+    private function changeAccountStatus(int $newStatus, string $successMessage, string $failureMessage): array {
         try {
-            // Role validation should now be done by middleware
-            // If we need additional role checking for this specific operation:
             if (!$this->isManagerOrHigher())
                 return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
 
@@ -183,72 +120,47 @@ class AuthController extends BaseController {
             if (empty($data[Auth::ID]))
                 return $this->respondWithError(Message::ID_REQUIRED, 400);
 
-            $id = $data[Auth::ID];
-            $auth = Auth::findFirstById($id);
-
+            $auth = Auth::findFirstById((int)$data[Auth::ID]);
             if (!$auth)
                 return $this->respondWithError(Message::ID_NOT_FOUND, 404);
 
-            return $this->withTransaction(function() use ($auth) {
-                $auth->status = Status::ARCHIVED;
+            if ($denied = $this->denyIfProtectedTarget($auth))
+                return $denied;
+
+            if ($auth->status === $newStatus)
+                return $this->respondWithError('Account is already in the requested status', 400);
+
+            return $this->withTransaction(function() use ($auth, $newStatus, $successMessage, $failureMessage) {
+                $auth->status = $newStatus;
+                if ($newStatus !== Status::ACTIVE) {
+                    $auth->clearToken();
+                }
 
                 if (!$auth->save())
-                    return $this->respondWithError(Message::USER_ARCHIVATION_FAILED, 409);
+                    return $this->respondWithError($failureMessage, 409);
 
                 return $this->respondWithSuccess([
-                    'message' => Message::USER_ARCHIVED
-                ], 202, Message::USER_ARCHIVED);
+                    'message' => $successMessage
+                ], 202, $successMessage);
             });
 
         } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+            return $this->handleException($e);
         }
     }
 
-
     /**
-     * Inactivate a user account from the system
+     * Managers may not modify administrator accounts, and nobody may change their own role/status
+     * through the management endpoints.
      */
-    public function deleteAccount(): array {
-        try {
-            // Role validation should now be done by middleware
-            // If we need additional role checking for this specific operation:
-            if (!$this->isManagerOrHigher())
-                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
+    private function denyIfProtectedTarget(Auth $target): ?array {
+        if ((int)$target->id === $this->getCurrentUserId())
+            return $this->respondWithError('You cannot change your own account status or role', 403);
 
-            $data = $this->getRequestBody();
+        if ($target->role === Role::ADMINISTRATOR && !$this->isAdmin())
+            return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
 
-            if (empty($data[Auth::ID]))
-                return $this->respondWithError(Message::ID_REQUIRED, 400);
-
-            $id = $data[Auth::ID];
-            $auth = Auth::findFirstById($id);
-            if (!$auth)
-                return $this->respondWithError(Message::ID_NOT_FOUND, 404);
-
-            // Check if patient is already deleted
-            if ($auth->isDeleted()) {
-                return $this->respondWithError('This account is already deleted', 400);
-            }
-
-            return $this->withTransaction(function() use ($auth) {
-                $auth->status = Status::SOFT_DELETED;
-
-                if (!$auth->save())
-                    return $this->respondWithError(Message::USER_DELETION_FAILED, 409);
-
-                return $this->respondWithSuccess([
-                    'message' => Message::USER_DELETED
-                ], 202, Message::USER_DELETED);
-            });
-
-        } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
-        }
+        return null;
     }
 
     /**
@@ -290,12 +202,10 @@ class AuthController extends BaseController {
             return $response;
 
         } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
+            $this->handleException($e);
             $response = new \Phalcon\Http\Response();
             $response->setContentType('text/html', 'UTF-8');
-            $htmlResponse = $this->getActivationResponseHtml(false, 'An error occurred: ' . $e->getMessage());
-            $response->setContent($htmlResponse);
+            $response->setContent($this->getActivationResponseHtml(false, 'An unexpected error occurred. Please try again later.'));
             return $response;
         }
     }
@@ -315,7 +225,7 @@ class AuthController extends BaseController {
             $newExpiration = $tokenService->generateTokenExpirationTime();
             $newToken = $tokenService->createToken($auth, $newExpiration);
 
-
+            $user = null;
             $u = User::findFirstById($auth->id);
             if($u){
                 $user = [
@@ -337,14 +247,15 @@ class AuthController extends BaseController {
             });
 
         } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+            return $this->handleException($e);
         }
     }
 
     /**
-     * Change a user's role
+     * Change a user's role.
+     * Body: { "id": <account id>, "role": 0|1|2 }
+     * Rules: manager/admin; only administrators may grant the administrator role or modify an
+     * administrator; nobody can change their own role. The affected session token is revoked.
      */
     public function changeRole(): array {
         try {
@@ -354,22 +265,31 @@ class AuthController extends BaseController {
             $data = $this->getRequestBody();
 
             if (empty($data[Auth::ID]) || !isset($data[Auth::ROLE]))
-                return $this->respondWithError(Message::USER_ID_ROLE_REQUIRED, 405);
+                return $this->respondWithError(Message::USER_ID_ROLE_REQUIRED, 400);
 
-            $id = $data[Auth::ID];
             $userRole = (int)$data[Auth::ROLE];
 
             // Validate role
-            if (!in_array($userRole, [Role::ADMINISTRATOR, Role::MANAGER, Role::CAREGIVER]))
+            if (!in_array($userRole, [Role::ADMINISTRATOR, Role::MANAGER, Role::CAREGIVER], true))
                 return $this->respondWithError(Message::ROLE_INVALID, 400);
 
-            $auth = Auth::findFirstById($id);
+            if ($userRole === Role::ADMINISTRATOR && !$this->isAdmin())
+                return $this->respondWithError('Only administrators can grant the administrator role', 403);
+
+            $auth = Auth::findFirstById((int)$data[Auth::ID]);
 
             if (!$auth)
                 return $this->respondWithError(Message::USER_NOT_FOUND, 404);
 
+            if ($denied = $this->denyIfProtectedTarget($auth))
+                return $denied;
+
+            if ($auth->role === $userRole)
+                return $this->respondWithError('User already has this role', 400);
+
             return $this->withTransaction(function() use ($auth, $userRole) {
                 $auth->role = $userRole;
+                $auth->clearToken(); // force a new login so the client picks up the new role
 
                 if (!$auth->save())
                     return $this->respondWithError(Message::ROLE_CHANGE_FAILED, 409);
@@ -380,43 +300,62 @@ class AuthController extends BaseController {
             });
 
         } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+            return $this->handleException($e);
         }
     }
 
     /**
-     * Change a user's password from system
+     * Change a password (authenticated).
+     *  - Own password:      { "current_password": "...", "password": "..." }
+     *  - Another account:   { "username": "..." | "id": n, "password": "..." }  (administrators only)
+     * The affected account's session token is revoked; the user has to log in again.
+     * A forgot-password flow (unauthenticated, via emailed single-use token) is tracked separately.
      */
     public function changePassword(): array {
         try {
             $data = $this->getRequestBody();
 
-            if (empty($data[Auth::USERNAME]) || empty($data[Auth::PASSWORD]))
-                return $this->respondWithError('Username and new password is expected', 400);
+            $newPassword = $data[Auth::PASSWORD] ?? '';
+            if (!is_string($newPassword) || strlen($newPassword) < self::MIN_PASSWORD_LENGTH)
+                return $this->respondWithError('New password must be at least ' . self::MIN_PASSWORD_LENGTH . ' characters', 400);
 
-            $username = $data[Auth::USERNAME];
-            $auth = Auth::findFirstByUsername($username);
+            $current = Auth::findFirstById($this->getCurrentUserId());
+            if (!$current)
+                return $this->respondWithError(Message::INVALID_CREDENTIALS, 401);
 
-            if (!$auth)
-                return $this->respondWithError(Message::EMAIL_NOT_FOUND, 404);
+            $targetUsername = isset($data[Auth::USERNAME]) ? (string)$data[Auth::USERNAME] : null;
+            $targetId = isset($data[Auth::ID]) ? (int)$data[Auth::ID] : null;
+            $isSelf = ($targetUsername === null && $targetId === null)
+                || ($targetUsername !== null && strcasecmp($targetUsername, $current->username) === 0)
+                || ($targetId !== null && $targetId === (int)$current->id);
 
-            return $this->withTransaction(function() use ($auth, $data) {
-                $auth->setPassword($data[Auth::PASSWORD]);
+            if ($isSelf) {
+                $currentPassword = $data['current_password'] ?? '';
+                if (!is_string($currentPassword) || $currentPassword === '' || !$current->isCorrect($currentPassword))
+                    return $this->respondWithError('Current password is incorrect', 403);
+                $auth = $current;
+            } else {
+                if (!$this->isAdmin())
+                    return $this->respondWithError('Only administrators can change another user\'s password', 403);
+
+                $auth = $targetId !== null ? Auth::findFirstById($targetId) : Auth::findFirstByUsername($targetUsername);
+                if (!$auth)
+                    return $this->respondWithError(Message::ACCOUNT_NOT_FOUND, 404);
+            }
+
+            return $this->withTransaction(function() use ($auth, $newPassword) {
+                $auth->setPassword($newPassword);
+                $auth->clearToken();
 
                 if (!$auth->save())
                     return $this->respondWithError(Message::PASSWORD_CHANGE_FAILED, 409);
 
-                return $this->respondWithSuccess([
-                    'message' => Message::PASSWORD_CHANGED . ' ' . Message::PLEASE_RENEW_TOKEN
-                ], 202, Message::PASSWORD_CHANGED . ' ' . Message::PLEASE_RENEW_TOKEN);
+                $message = Message::PASSWORD_CHANGED . '. Please log in again';
+                return $this->respondWithSuccess(['message' => $message], 202, $message);
             });
 
         } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+            return $this->handleException($e);
         }
     }
 
@@ -426,7 +365,7 @@ class AuthController extends BaseController {
     public function getAuths(): array {
         try {
             if (!$this->isAdmin()) {
-                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 401);
+                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
             }
 
             $auth = Auth::find();
@@ -442,9 +381,7 @@ class AuthController extends BaseController {
             return $this->respondWithSuccess($auth->toArray());
 
         } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+            return $this->handleException($e);
         }
     }
 
@@ -452,49 +389,42 @@ class AuthController extends BaseController {
      * Process login
      */
     private function processLogin(array $data): array {
-        try {
-            if (empty($data[Auth::USERNAME]) || empty($data[Auth::PASSWORD]))
-                return $this->respondWithError(Message::CREDENTIALS_REQUIRED, 400);
+        if (empty($data[Auth::USERNAME]) || empty($data[Auth::PASSWORD]))
+            return $this->respondWithError(Message::CREDENTIALS_REQUIRED, 400);
 
-            $auth = Auth::findFirstByUsername($data[Auth::USERNAME]);
+        $auth = Auth::findFirstByUsername($data[Auth::USERNAME]);
 
-            if (!$auth || !$auth->isCorrect($data[Auth::PASSWORD]))
-                return $this->respondWithError(Message::INVALID_CREDENTIALS, 401);
+        if (!$auth || !$auth->isCorrect((string)$data[Auth::PASSWORD]))
+            return $this->respondWithError(Message::INVALID_CREDENTIALS, 401);
 
-            if (!$auth->isActive())
-                return $this->respondWithError(Message::ACCOUNT_NOT_ACTIVATED, 403);
+        if (!$auth->isActive())
+            return $this->respondWithError(Message::ACCOUNT_NOT_ACTIVATED, 403);
 
-            $tokenService = $this->getDI()->get('tokenService');
-            $expiration = $tokenService->generateTokenExpirationTime();
-            $token = $tokenService->createToken($auth, $expiration);
+        $tokenService = $this->getDI()->get('tokenService');
+        $expiration = $tokenService->generateTokenExpirationTime();
+        $token = $tokenService->createToken($auth, $expiration);
 
-            $u = User::findFirstById($auth->id);
-            if($u){
-                $user = [
-                    User::FULLNAME => $u->firstname . ' ' . $u->lastname,
-                    User::PHOTO => $u->photo,
-                ];
-            }
-
-            return $this->withTransaction(function() use ($auth, $user, $token, $expiration) {
-                $auth->token = $token;
-                $auth->expiration = $expiration;
-
-                if (!$auth->save())
-                    return $this->respondWithError(Message::DB_SESSION_UPDATE_FAILED, 500);
-
-                return $this->respondWithSuccess([
-                    Auth::TOKEN => $token,
-                    'user' => $user
-                ]);
-            });
-
-        } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            if ($this->db->isUnderTransaction()) $this->rollbackTransaction();
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+        $user = null;
+        $u = User::findFirstById($auth->id);
+        if($u){
+            $user = [
+                User::FULLNAME => $u->firstname . ' ' . $u->lastname,
+                User::PHOTO => $u->photo,
+            ];
         }
+
+        return $this->withTransaction(function() use ($auth, $user, $token, $expiration) {
+            $auth->token = $token;
+            $auth->expiration = $expiration;
+
+            if (!$auth->save())
+                return $this->respondWithError(Message::DB_SESSION_UPDATE_FAILED, 500);
+
+            return $this->respondWithSuccess([
+                Auth::TOKEN => $token,
+                'user' => $user
+            ]);
+        });
     }
 
     /**
@@ -507,18 +437,18 @@ class AuthController extends BaseController {
         $subject = 'Activate Maxmila Account';
         $edoc= strrev($code);
         $link = "$apiBaseUrl/activation/$edoc";
-        $body = "<h1>Welcome to Maxmila Homecare!</h1>>";
+        $body = "<h1>Welcome to Maxmila Homecare!</h1>";
         $body .= "<p>Please click the link below to activate your account:</p>";
         $body .= "<a href=\"$link\">Click Here to Activate your Account</a>";
         $body .= "<p>This link will expire in 72 hours.</p>";
         $body .= "<p>If you receive this email by mistake, you can safely ignore this email.</p>";
         $body .= "<h3>Thank you</h3>";
-        $body .= "<h4>Maxmila Homecare & Trinketronix Copyright 2025<h4>";
+        $body .= "<h4>Maxmila Homecare & Trinketronix Copyright " . date('Y') . "</h4>";
 
         $result = $this->processEmail($address, $subject, $body, true);
 
-        $success = $result['success'];
-        $message = $result['message'];
+        $success = $result['success'] ?? false;
+        $message = $result['message'] ?? 'no result';
 
         if($success) return true;
         else {
@@ -530,15 +460,16 @@ class AuthController extends BaseController {
      * Generate HTML for activation response
      *
      * @param bool $success Whether activation was successful
-     * @param string $message Message to display
+     * @param string $message Message to display (escaped here)
      * @return string HTML content
      */
     private function getActivationResponseHtml(bool $success, string $message): string
     {
-        $appBaseUrl = $this->appBaseUrl;
+        $appBaseUrl = htmlspecialchars($this->appBaseUrl, ENT_QUOTES, 'UTF-8');
+        $message = htmlspecialchars($message, ENT_QUOTES, 'UTF-8');
         $title = $success ? 'Account Activated' : 'Activation Failed';
         $color = $success ? '#4CAF50' : '#F44336';
-        $appName = \Api\Constants\Api::NAME;
+        $appName = htmlspecialchars(\Api\Constants\Api::NAME, ENT_QUOTES, 'UTF-8');
 
         return <<<HTML
 <!DOCTYPE html>

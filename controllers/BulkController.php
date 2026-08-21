@@ -24,6 +24,11 @@ class BulkController extends BaseController {
      */
     public function auths(): array {
         try {
+            // Bulk seeding/recovery is an administrator-only operation
+            if (!$this->isAdmin()) {
+                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
+            }
+
             $accounts = $this->getRequestBody();
 
             // Validate that we received an array
@@ -154,6 +159,10 @@ class BulkController extends BaseController {
      */
     public function users(): array {
         try {
+            // Bulk seeding/recovery is an administrator-only operation
+            if (!$this->isAdmin()) {
+                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
+            }
 
             // Get users array from request body
             $usersData = $this->getRequestBody();
@@ -292,8 +301,8 @@ class BulkController extends BaseController {
      */
     public function patients(): array {
         try {
-            // Verify user has permission to create patients (manager or higher)
-            if (!$this->isManagerOrHigher()) {
+            // Bulk seeding/recovery is an administrator-only operation
+            if (!$this->isAdmin()) {
                 return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
             }
 
@@ -439,8 +448,8 @@ class BulkController extends BaseController {
      */
     public function addresses(): array {
         try {
-            // Verify user has permission (manager or higher)
-            if (!$this->isManagerOrHigher()) {
+            // Bulk seeding/recovery is an administrator-only operation
+            if (!$this->isAdmin()) {
                 return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
             }
 
@@ -636,8 +645,8 @@ class BulkController extends BaseController {
      */
     public function userPatient(): array {
         try {
-            // Verify manager role or higher
-            if (!$this->isManagerOrHigher()) {
+            // Bulk seeding/recovery is an administrator-only operation
+            if (!$this->isAdmin()) {
                 return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
             }
 

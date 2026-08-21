@@ -47,10 +47,19 @@ class AddressController extends BaseController {
                 return $this->respondWithError('Person type is required and must be numeric', 400);
             }
 
-            // Validate person type
+            // Validate person type (the community address is system-owned and cannot be created here)
             $personType = (int)$data[Address::PERSON_TYPE]; // Explicitly cast to integer
-            if (!in_array($personType, [PersonType::USER, PersonType::PATIENT])) {
+            if (!in_array($personType, [PersonType::USER, PersonType::PATIENT], true)) {
                 return $this->respondWithError('Invalid person type', 400);
+            }
+
+            // Authorization: users may add their own addresses; patient addresses are managed by managers/admins
+            if ($personType === PersonType::USER) {
+                if ((int)$data[Address::PERSON_ID] !== $this->getCurrentUserId() && !$this->isManagerOrHigher()) {
+                    return $this->respondWithError(Message::UNAUTHORIZED_ACCESS, 403);
+                }
+            } elseif (!$this->isManagerOrHigher()) {
+                return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
             }
 
             // Validate person exists
@@ -134,7 +143,7 @@ class AddressController extends BaseController {
         } catch (Exception $e) {
             $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
             error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage() . ' trace: ' . $e->getTraceAsString() . ' line:'. $e->getLine(), 400);
+            return $this->handleException($e);
         }
     }
 
@@ -194,12 +203,9 @@ class AddressController extends BaseController {
                 return $this->respondWithError('Address not found', 404);
             }
 
-            // Check authorization
-            if ($address->person_type === PersonType::USER) {
-                $currentUserId = $this->getCurrentUserId();
-                if ($currentUserId !== $address->person_id && !$this->isManagerOrHigher()) {
-                    return $this->respondWithError(Message::UNAUTHORIZED_ACCESS, 403);
-                }
+            // Authorization: own address, any patient address (needed to schedule visits), or manager/admin
+            if (!$this->canReadAddress($address)) {
+                return $this->respondWithError(Message::UNAUTHORIZED_ACCESS, 403);
             }
 
             return $this->respondWithSuccess($address->toArray());
@@ -222,12 +228,12 @@ class AddressController extends BaseController {
                 return $this->respondWithError('Address not found', 404);
             }
 
-            // Check authorization
-            if ($address->person_type === PersonType::USER) {
-                $currentUserId = $this->getCurrentUserId();
-                if ($currentUserId !== $address->person_id && !$this->isManagerOrHigher()) {
-                    return $this->respondWithError(Message::UNAUTHORIZED_ACCESS, 403);
-                }
+            // Authorization: own address or manager/admin; the community address (id 0) is immutable
+            if ((int)$address->id === 0) {
+                return $this->respondWithError('The community address cannot be modified', 400);
+            }
+            if (!$this->canWriteAddress($address)) {
+                return $this->respondWithError(Message::UNAUTHORIZED_ACCESS, 403);
             }
 
             $data = $this->getRequestBody();
@@ -322,12 +328,12 @@ class AddressController extends BaseController {
                 return $this->respondWithError('Address not found', 404);
             }
 
-            // Check authorization
-            if ($address->person_type === PersonType::USER) {
-                $currentUserId = $this->getCurrentUserId();
-                if ($currentUserId !== $address->person_id && !$this->isManagerOrHigher()) {
-                    return $this->respondWithError(Message::UNAUTHORIZED_ACCESS, 403);
-                }
+            // Authorization: own address or manager/admin; the community address (id 0) is immutable
+            if ((int)$address->id === 0) {
+                return $this->respondWithError('The community address cannot be modified', 400);
+            }
+            if (!$this->canWriteAddress($address)) {
+                return $this->respondWithError(Message::UNAUTHORIZED_ACCESS, 403);
             }
 
             return $this->withTransaction(function() use ($address) {
@@ -442,6 +448,30 @@ class AddressController extends BaseController {
             error_log('Exception: ' . $message);
             return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
         }
+    }
+
+    /**
+     * Users can read their own addresses and any patient/community address; managers/admins read all.
+     */
+    private function canReadAddress(Address $address): bool {
+        if ($this->isManagerOrHigher()) {
+            return true;
+        }
+        if ((int)$address->person_type !== PersonType::USER) {
+            return true;
+        }
+        return (int)$address->person_id === $this->getCurrentUserId();
+    }
+
+    /**
+     * Users can modify only their own addresses; patient addresses require manager/admin.
+     */
+    private function canWriteAddress(Address $address): bool {
+        if ($this->isManagerOrHigher()) {
+            return true;
+        }
+        return (int)$address->person_type === PersonType::USER
+            && (int)$address->person_id === $this->getCurrentUserId();
     }
 
     /**

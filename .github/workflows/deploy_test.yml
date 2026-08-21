@@ -43,6 +43,7 @@ jobs:
             **/.env*
             **/tests/**
             **/database/**
+            **/cronjobs/**
             **/node_modules/**
             **/vendor/**
             .gitignore

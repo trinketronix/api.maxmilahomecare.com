@@ -21,3 +21,13 @@ secrets.txt
 # REST API confidential values
 http-client.env.json
 /tests/maxmila/img/avril.png
+
+# Uploaded photos are runtime data; keep only the protective .htaccess
+user/photo/*
+patient/photo/*
+!user/photo/.htaccess
+!patient/photo/.htaccess
+
+# Backup/seed payloads contain real personal data and must never be committed
+tests/maxmila/bulk-backup.http
+tests/maxmila/*backup*.http

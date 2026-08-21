@@ -588,24 +588,4 @@ class VisitController extends BaseController {
 
         return $data;
     }
-
-    /**
-     * Helper method to get first error message from model
-     */
-    private function getFirstErrorMessage($model): string {
-        $messages = $model->getMessages();
-        if (count($messages) > 0) {
-            return $messages[0]->getMessage();
-        }
-        return 'An unknown error occurred';
-    }
-
-    /**
-     * Helper method to handle exceptions
-     */
-    private function handleException(Exception $e): array {
-        $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-        error_log('VisitController Exception: ' . $message);
-        return $this->respondWithError('An error occurred: ' . $e->getMessage(), 500);
-    }
 }

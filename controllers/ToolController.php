@@ -15,6 +15,10 @@ class ToolController extends BaseController {
      */
     public function create(): array {
         try {
+            if (!$this->isAdmin()) {
+                return $this->respondWithError(\Api\Constants\Message::UNAUTHORIZED_ROLE, 403);
+            }
+
             $data = $this->getRequestBody();
 
             // Validate required fields
