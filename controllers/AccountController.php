@@ -66,12 +66,8 @@ class AccountController extends BaseController {
             // Get current user ID
             $currentUserId = $this->getCurrentUserId();
 
-            // If no ID provided in URL or empty string, use current user ID
-            if ($id === null || $id === '') {
-                $id = $currentUserId;
-            } else {
-                $id = (int)$id;
-            }
+            // If no ID provided in URL, use current user ID
+            $id = $id ?? $currentUserId;
 
             // If requesting another user's account, check authorization
             if ($id !== $currentUserId && !$this->isManagerOrHigher()) {

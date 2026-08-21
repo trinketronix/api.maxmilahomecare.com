@@ -6,10 +6,11 @@ if (isset($app)) {
     $user = new UserController();
 
     // Update user data
-    $app->put('/user/{userId:[0-9]*}', [$user, 'updateUser']);
+    $app->put('/user/{userId:[0-9]+}', [$user, 'updateUser']);
 
     // Get user photo
-    $app->get('/user/photo/{userId:[0-9]*}', [$user, 'getPhoto']);
+    $app->get('/user/photo', [$user, 'getPhoto']);                 // current user's photo
+    $app->get('/user/photo/{userId:[0-9]+}', [$user, 'getPhoto']);
 
     // Upload photo routes
     // For uploading own photo (backward compatibility)

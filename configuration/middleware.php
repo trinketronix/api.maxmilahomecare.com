@@ -38,7 +38,8 @@ if (isset($app)) {
         if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
             return true;
         }
-        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+        // Body-less methods do not need a Content-Type
+        if (in_array($_SERVER['REQUEST_METHOD'], ['GET', 'HEAD', 'DELETE'], true)) {
             return true;
         }
 
@@ -56,8 +57,9 @@ if (isset($app)) {
 
         $baseContentType = strtolower(trim(explode(';', $contentType)[0]));
 
-        // Check if this is an upload request by examining the actual URI
+        // Check if this is an upload request by examining the request path (query string excluded)
         $requestUri = $_SERVER['REQUEST_URI'] ?? $app->request->getURI();
+        $requestUri = parse_url($requestUri, PHP_URL_PATH) ?: $requestUri;
         $isUploadRequest = false;
 
         // Define upload route patterns
@@ -69,6 +71,7 @@ if (isset($app)) {
             '#^/patient/upload/photo$#',
             '#^/patient/update/photo$#',
             '#^/patient/\d+/upload/photo$#',
+            '#^/patient/\d+/update/photo$#',
         ];
 
         foreach ($uploadPatterns as $pattern) {
@@ -282,19 +285,11 @@ if (isset($app)) {
         $response->setHeader('Access-Control-Allow-Credentials', 'true');
 
         if (is_array($content) && isset($content['status'])) {
+            $isError = $content['status'] === 'error';
+            $statusCode = (int)($content['code'] ?? ($isError ? 400 : 200));
+            $content['code'] = $statusCode;
             $response->setJsonContent($content);
-            $statusCode = $content['code'] ?? 200;
-            $statusText = $content['status'] === 'error' ? 'Error' : 'OK';
-            $response->setStatusCode($statusCode, $statusText);
-        }
-        else if (is_array($content) && isset($content['status']) && $content['status'] === 'error') {
-            $statusCode = $content['code'] ?? 400;
-            $response->setStatusCode($statusCode, 'Error');
-            $response->setJsonContent([
-                'status' => 'error',
-                'code' => $statusCode,
-                'message' => $content['message'] ?? 'Unknown error'
-            ]);
+            $response->setStatusCode($statusCode, $isError ? 'Error' : 'OK');
         }
         else if ($content === null) {
             $response->setStatusCode(404, 'Not Found');

@@ -15,13 +15,6 @@ class TokenService {
         return ($this->getCurrentMilliseconds() + self::EXPIRATION_DAYS);
     }
 
-    public function getExpiration(?array $decodedToken): int {
-        if (!$decodedToken || !isset($decodedToken['expiration'])) {
-            return true;
-        }
-        return $decodedToken['expiration'];
-    }
-
     public function createToken(Auth $auth, int $expiration): string {
         $payload = [
             'id' => $auth->id,

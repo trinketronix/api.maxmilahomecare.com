@@ -270,12 +270,8 @@ class UserController extends BaseController {
             // Get current user ID
             $currentUserId = $this->getCurrentUserId();
 
-            // If no ID provided in URL or empty string, use current user ID
-            if ($userId === null || $userId === '') {
-                $userId = $currentUserId;
-            } else {
-                $userId = (int)$userId;
-            }
+            // If no ID provided in URL, use current user ID
+            $userId = $userId ?? $currentUserId;
 
             // If requesting another user's account, check authorization
             if ($userId !== $currentUserId && !$this->isManagerOrHigher()) {

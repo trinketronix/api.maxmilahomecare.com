@@ -207,9 +207,10 @@ class PatientController extends BaseController {
                             $status = (int)$data[$field];
                             if (!in_array($status, [
                                 Status::ACTIVE,
+                                Status::INACTIVE,
                                 Status::ARCHIVED,
                                 Status::SOFT_DELETED
-                            ])) {
+                            ], true)) {
                                 return $this->respondWithError(Message::STATUS_INVALID, 400);
                             }
                             $patient->$field = $status;

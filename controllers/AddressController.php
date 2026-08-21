@@ -9,6 +9,7 @@ use Exception;
 use Api\Models\Address;
 use Api\Models\User;
 use Api\Models\Patient;
+use Api\Models\Visit;
 use Api\Constants\Message;
 
 class AddressController extends BaseController {
@@ -76,7 +77,7 @@ class AddressController extends BaseController {
             }
 
             // Validate state format
-            if (!preg_match('/^[A-Z]{2}$/', $data[Address::STATE])) {
+            if (!preg_match('/^[A-Z]{2}$/', strtoupper((string)$data[Address::STATE]))) {
                 return $this->respondWithError('State must be a 2-letter code', 400);
             }
 
@@ -252,7 +253,7 @@ class AddressController extends BaseController {
                         // Perform validation for specific fields
                         switch ($field) {
                             case Address::STATE:
-                                if (!preg_match('/^[A-Z]{2}$/', $data[$field])) {
+                                if (!preg_match('/^[A-Z]{2}$/', strtoupper((string)$data[$field]))) {
                                     return $this->respondWithError('State must be a 2-letter code', 400);
                                 }
                                 $address->$field = strtoupper($data[$field]);
@@ -336,6 +337,16 @@ class AddressController extends BaseController {
                 return $this->respondWithError(Message::UNAUTHORIZED_ACCESS, 403);
             }
 
+            // Visits keep a RESTRICT foreign key to their address
+            $visitCount = (int)Visit::count([
+                'conditions' => 'address_id = :id:',
+                'bind' => ['id' => (int)$address->id],
+                'bindTypes' => ['id' => \PDO::PARAM_INT]
+            ]);
+            if ($visitCount > 0) {
+                return $this->respondWithError("Address is used by $visitCount visit(s) and cannot be deleted", 409);
+            }
+
             return $this->withTransaction(function() use ($address) {
                 if (!$address->delete()) {
                     $messages = $address->getMessages(); // This is Phalcon\Messages\MessageInterface[]
@@ -371,7 +382,9 @@ class AddressController extends BaseController {
      */
     public function findNearby(): array {
         try {
-            $data = $this->getRequestBody();
+            // GET endpoint: parameters come from the query string
+            // e.g. /address/nearby?latitude=42.33&longitude=-83.04&radius=10&person_type=1
+            $data = $this->request->getQuery();
 
             // Validate required fields
             if (!isset($data['latitude']) || !isset($data['longitude']) || !isset($data['radius'])) {
@@ -396,29 +409,25 @@ class AddressController extends BaseController {
             }
 
             // Get additional filters
-            $personType = $data['person_type'] ?? null;
+            $personType = isset($data['person_type']) && $data['person_type'] !== '' ? (int)$data['person_type'] : null;
 
             if ($personType !== null && !in_array($personType, [PersonType::USER, PersonType::PATIENT])) {
                 return $this->respondWithError('Invalid person type', 400);
             }
 
-            // Find nearby addresses
-            $addresses = Address::findNearby($latitude, $longitude, $radius);
+            // Find nearby addresses (plain array: Phalcon's Resultset::filter() does not take a boolean predicate)
+            $addresses = iterator_to_array(Address::findNearby($latitude, $longitude, $radius), false);
 
             // Filter by person type if specified
             if ($personType !== null) {
-                $addresses = $addresses->filter(function($address) use ($personType) {
-                    return $address->person_type == $personType;
-                });
+                $addresses = array_filter($addresses, fn (Address $a) => (int)$a->person_type === $personType);
             }
 
-            // For user addresses, ensure authorization
+            // Caregivers only see patient/community addresses and their own
             if (!$this->isManagerOrHigher()) {
                 $currentUserId = $this->getCurrentUserId();
-                $addresses = $addresses->filter(function($address) use ($currentUserId) {
-                    return $address->person_type != PersonType::USER ||
-                        $address->person_id == $currentUserId;
-                });
+                $addresses = array_filter($addresses, fn (Address $a) =>
+                    (int)$a->person_type !== PersonType::USER || (int)$a->person_id === $currentUserId);
             }
 
             // Calculate distance for each address

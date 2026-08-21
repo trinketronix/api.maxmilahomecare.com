@@ -529,7 +529,7 @@ class BulkController extends BaseController {
                         }
 
                         // Validate state format
-                        if (!preg_match('/^[A-Z]{2}$/', $data[Address::STATE])) {
+                        if (!preg_match('/^[A-Z]{2}$/', strtoupper((string)$data[Address::STATE]))) {
                             $results['failed'][] = [
                                 'index' => $index,
                                 'error' => 'State must be a 2-letter code'
@@ -836,13 +836,14 @@ class BulkController extends BaseController {
             try {
                 foreach ($visitsData as $index => $data) {
                     try {
-                        // Validate minimum required fields
+                        // Validate minimum required fields (visit_date may be derived from start_time)
                         $requiredFields = [
                             Visit::USER_ID => 'User ID is required',
                             Visit::PATIENT_ID => 'Patient ID is required',
-                            Visit::START_TIME => 'Start time is required',
-                            Visit::END_TIME => 'End time is required'
                         ];
+                        if (!isset($data[Visit::VISIT_DATE]) && !isset($data[Visit::START_TIME])) {
+                            $requiredFields[Visit::VISIT_DATE] = 'Visit date (or start time) is required';
+                        }
 
                         $missingFields = [];
                         foreach ($requiredFields as $field => $message) {
@@ -881,36 +882,66 @@ class BulkController extends BaseController {
                             continue;
                         }
 
-                        // Create visit with all fields from backup
-                        $visit = new Visit();
-
-                        // Set required fields
-                        $visit->user_id = $userId;
-                        $visit->patient_id = $patientId;
+                        // Address: 0 = Community; anything else must exist
+                        $addressId = isset($data[Visit::ADDRESS_ID]) ? (int)$data[Visit::ADDRESS_ID] : 0;
+                        if ($addressId !== 0 && !Address::findFirst($addressId)) {
+                            $results['failed'][] = [
+                                'index' => $index,
+                                'error' => "Address with ID {$addressId} not found"
+                            ];
+                            continue;
+                        }
 
                         // Parse dates
                         try {
-                            $startTime = new DateTime($data[Visit::START_TIME]);
-                            $endTime = new DateTime($data[Visit::END_TIME]);
+                            $startTime = isset($data[Visit::START_TIME]) && $data[Visit::START_TIME] !== '' ? new DateTime($data[Visit::START_TIME]) : null;
+                            $endTime = isset($data[Visit::END_TIME]) && $data[Visit::END_TIME] !== '' ? new DateTime($data[Visit::END_TIME]) : null;
 
-                            if ($endTime < $startTime) {
+                            if ($startTime && $endTime && $endTime < $startTime) {
                                 $results['failed'][] = [
                                     'index' => $index,
                                     'error' => "End time cannot be before start time"
                                 ];
                                 continue;
                             }
-
-                            $visit->start_time = $startTime->format('Y-m-d H:i:s');
-                            $visit->end_time = $endTime->format('Y-m-d H:i:s');
                         } catch (Exception $e) {
-                            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
                             $results['failed'][] = [
                                 'index' => $index,
                                 'error' => "Invalid date format: " . $e->getMessage()
                             ];
                             continue;
+                        }
+
+                        // Create visit with all fields from backup
+                        $visit = new Visit();
+                        $visit->user_id = $userId;
+                        $visit->patient_id = $patientId;
+                        $visit->address_id = $addressId;
+                        $visit->visit_date = isset($data[Visit::VISIT_DATE]) ? (string)$data[Visit::VISIT_DATE] : $startTime->format('Y-m-d');
+                        $visit->scheduled_by = isset($data[Visit::SCHEDULED_BY]) ? (int)$data[Visit::SCHEDULED_BY] : $userId;
+
+                        if ($startTime) {
+                            $visit->start_time = $startTime->format('Y-m-d H:i:s');
+                        }
+                        if ($endTime) {
+                            $visit->end_time = $endTime->format('Y-m-d H:i:s');
+                        }
+
+                        // Duration: explicit fields win; otherwise derive from start/end (legacy backups)
+                        if (isset($data[Visit::TOTAL_HOURS])) {
+                            $visit->total_hours = (int)$data[Visit::TOTAL_HOURS];
+                            $visit->extra_minutes = isset($data[Visit::EXTRA_MINUTES]) ? (int)$data[Visit::EXTRA_MINUTES] : 0;
+                        } elseif ($startTime && $endTime) {
+                            $minutes = max(0, intdiv($endTime->getTimestamp() - $startTime->getTimestamp(), 60));
+                            $visit->total_hours = min(24, intdiv($minutes, 60));
+                            $remainder = $minutes % 60;
+                            $visit->extra_minutes = $remainder - ($remainder % 15); // 0, 15, 30 or 45
+                        }
+
+                        foreach ([Visit::CHECKIN_BY, Visit::CHECKOUT_BY, Visit::CANCELED_BY, Visit::APPROVED_BY] as $actorField) {
+                            if (isset($data[$actorField])) {
+                                $visit->$actorField = (int)$data[$actorField];
+                            }
                         }
 
                         // Set optional fields if provided
