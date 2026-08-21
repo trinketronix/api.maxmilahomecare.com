@@ -9,5 +9,6 @@ if (isset($app)) {
      */
     $app->get('/accounts', [$account, 'getAll']);
     // New route for getting a single account
-    $app->get('/account/{id:[0-9]*}', [$account, 'getById']);
+    $app->get('/account', [$account, 'getById']);                  // current user's account
+    $app->get('/account/{id:[0-9]+}', [$account, 'getById']);
 }

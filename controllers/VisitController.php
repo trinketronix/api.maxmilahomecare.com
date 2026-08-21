@@ -311,6 +311,115 @@ class VisitController extends BaseController {
     }
 
     /**
+     * Update a visit's schedule details (PUT /visit/{id})
+     * Owner: only while the visit is still scheduled. Manager/Admin: any active visit that is
+     * not approved or canceled.
+     * Updatable: visit_date, start_time, total_hours, extra_minutes, note, address_id
+     */
+    public function updateVisit(int $visitId): array {
+        try {
+            $currentUserId = $this->getCurrentUserId();
+            $data = $this->getRequestBody();
+
+            $visit = Visit::findFirstById($visitId);
+            if (!$visit) {
+                return $this->respondWithError('Visit not found', 404);
+            }
+
+            if ($visit->user_id !== $currentUserId && !$this->isManagerOrHigher()) {
+                return $this->respondWithError('You can only update your own visits', 403);
+            }
+            if (!$visit->isVisible()) {
+                return $this->respondWithError('Only active visits can be updated', 400);
+            }
+            if ($visit->isApproved() || $visit->isCanceled()) {
+                return $this->respondWithError('Approved or canceled visits cannot be updated. Current status: ' . $visit->getProgressDescription(), 400);
+            }
+            if (!$visit->isScheduled() && !$this->isManagerOrHigher()) {
+                return $this->respondWithError('Visits can only be edited before check-in', 400);
+            }
+
+            $updates = [];
+
+            if (array_key_exists(Visit::VISIT_DATE, $data)) {
+                if (empty($data[Visit::VISIT_DATE])) {
+                    return $this->respondWithError('Visit date cannot be empty', 400);
+                }
+                $updates[Visit::VISIT_DATE] = (string)$data[Visit::VISIT_DATE];
+            }
+
+            if (array_key_exists(Visit::START_TIME, $data)) {
+                $updates[Visit::START_TIME] = !empty($data[Visit::START_TIME]) ? (string)$data[Visit::START_TIME] : null;
+            }
+
+            $totalHours = $visit->total_hours;
+            $extraMinutes = $visit->extra_minutes;
+
+            if (isset($data[Visit::TOTAL_HOURS]) && $data[Visit::TOTAL_HOURS] !== '') {
+                $totalHours = (int)$data[Visit::TOTAL_HOURS];
+                if ($totalHours < 0 || $totalHours > 24) {
+                    return $this->respondWithError('Total hours must be between 0 and 24', 400);
+                }
+                $updates[Visit::TOTAL_HOURS] = $totalHours;
+            }
+
+            if (isset($data[Visit::EXTRA_MINUTES]) && $data[Visit::EXTRA_MINUTES] !== '') {
+                $extraMinutes = (int)$data[Visit::EXTRA_MINUTES];
+                if (!in_array($extraMinutes, [0, 15, 30, 45], true)) {
+                    return $this->respondWithError('Extra minutes must be 0, 15, 30, or 45', 400);
+                }
+                $updates[Visit::EXTRA_MINUTES] = $extraMinutes;
+            }
+
+            if ($totalHours === 0 && $extraMinutes === 0) {
+                return $this->respondWithError('Visit duration must be greater than zero', 400);
+            }
+
+            if (array_key_exists(Visit::NOTE, $data)) {
+                $updates[Visit::NOTE] = !empty($data[Visit::NOTE]) ? (string)$data[Visit::NOTE] : null;
+            }
+
+            if (isset($data[Visit::ADDRESS_ID]) && $data[Visit::ADDRESS_ID] !== '') {
+                $addressId = (int)$data[Visit::ADDRESS_ID];
+                // 0 = Community (no fixed address); anything else must belong to the visit's patient
+                if ($addressId !== 0 && !$this->validatePatientAddress($addressId, $visit->patient_id)) {
+                    return $this->respondWithError('Invalid address for this patient', 400);
+                }
+                $updates[Visit::ADDRESS_ID] = $addressId;
+            }
+
+            if (empty($updates)) {
+                return $this->respondWithError('No updatable fields provided', 400);
+            }
+
+            return $this->withTransaction(function() use ($visit, $updates) {
+                foreach ($updates as $field => $value) {
+                    $visit->$field = $value;
+                }
+
+                // end_time always follows start_time + duration
+                if (empty($visit->start_time)) {
+                    $visit->end_time = null;
+                } else {
+                    $visit->calculateEndTime();
+                }
+
+                if (!$visit->save()) {
+                    return $this->respondWithError($this->getFirstErrorMessage($visit), 422);
+                }
+
+                return $this->respondWithSuccess([
+                    'message' => 'Visit updated successfully',
+                    'visit' => $this->formatVisitData($visit)
+                ], 200, 'Visit updated successfully');
+            });
+
+        } catch (Exception $e) {
+            return $this->handleException($e);
+        }
+    }
+
+    /**
      * Check in to a visit
      */
     public function checkin(int $visitId): array {

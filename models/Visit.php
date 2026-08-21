@@ -74,6 +74,9 @@ class Visit extends Model {
     public function initialize(): void {
         $this->setSource('visit');
 
+        // beforeUpdate() relies on hasChanged(), which needs snapshots
+        $this->keepSnapshots(true);
+
         // Define relationships
         $this->belongsTo('user_id', User::class, 'id', ['alias' => 'user']);
         $this->belongsTo('patient_id', Patient::class, 'id', ['alias' => 'patient']);
@@ -217,7 +220,7 @@ class Visit extends Model {
     /**
      * Calculate end time based on start time, total hours, and extra minutes
      */
-    private function calculateEndTime(): void {
+    public function calculateEndTime(): void {
         if (!empty($this->start_time) && ($this->total_hours > 0 || $this->extra_minutes > 0)) {
             $startTime = new DateTime($this->start_time);
             $startTime->modify("+{$this->total_hours} hours");

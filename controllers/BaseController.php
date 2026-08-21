@@ -262,6 +262,14 @@ HTACCESS;
 
             $this->beginTransaction();
             $result = $operation();
+
+            // The operation reported a business error: nothing it wrote may persist
+            // (e.g. register(): auth row saved but user row failed).
+            if (is_array($result) && ($result['status'] ?? null) === 'error') {
+                $this->rollbackTransaction();
+                return $result;
+            }
+
             $this->commitTransaction();
             return $result;
         } catch (Exception $e) {
