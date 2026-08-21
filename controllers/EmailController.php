@@ -12,6 +12,9 @@ class EmailController extends BaseController{
     // more than one CC and BCC and attachments
 
     public function send(): array{
+        // Sending arbitrary email from the company account is an administrator-only operation
+        if (!$this->isAdmin())
+            return $this->respondWithError(Message::UNAUTHORIZED_ROLE, 403);
 
         $data = $this->getRequestBody();
         // Validate the recipient "to"

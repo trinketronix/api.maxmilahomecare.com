@@ -29,7 +29,7 @@ class UserController extends BaseController {
             }
 
             // Authorization check: allow updates only for own data or if admin/manager
-            if ($tokenUserId !== $userId && $currentUserRole > Role::MANAGER) {
+            if ($tokenUserId !== $userId && !$this->isManagerOrHigher()) {
                 return $this->respondWithError(Message::UNAUTHORIZED_ACCESS, 403);
             }
 
@@ -51,9 +51,8 @@ class UserController extends BaseController {
                 User::EMAIL2,
                 // Additional information
                 User::LANGUAGES,
-                User::DESCRIPTION,
-                // Profile media
-                User::PHOTO
+                User::DESCRIPTION
+                // photo is managed exclusively through the upload endpoints
             ];
 
             // Track all updates
@@ -118,7 +117,7 @@ class UserController extends BaseController {
                 $responseData = $user->toArray();
 
                 // Show SSN only if user is updating their own data or is admin/manager
-                if ($tokenUserId !== $userId && $currentUserRole > Role::MANAGER) {
+                if ($tokenUserId !== $userId && !$this->isManagerOrHigher()) {
                     unset($responseData[User::SSN]);
                 } else if (!empty($responseData[User::SSN])) {
                     $responseData[User::SSN] = Base64::decodingSaltedPeppered($responseData[User::SSN]);
@@ -159,7 +158,7 @@ class UserController extends BaseController {
             }
 
             // Authorization check: only allow viewing other profiles if admin/manager
-            if ($currentUserId !== $userId && $currentUserRole > Role::MANAGER) {
+            if ($currentUserId !== $userId && !$this->isManagerOrHigher()) {
                 return $this->respondWithError(Message::UNAUTHORIZED_ACCESS, 403);
             }
 
@@ -196,236 +195,73 @@ class UserController extends BaseController {
     }
 
     /**
-     * Upload a new profile photo for a user
-     * Modified to allow administrators and managers to upload photos for other users
+     * Upload a new profile photo (own photo, or any user's photo when manager/admin)
      */
     public function uploadPhoto(?int $userId = null): array {
-        try {
-            // Get the current user's ID and role
-            $currentUserId = $this->getCurrentUserId();
-            $currentUserRole = $this->getCurrentUserRole();
-
-            // If no userId provided, use current user's ID
-            if ($userId === null) {
-                $userId = $currentUserId;
-            }
-
-            // Authorization check: allow upload for own photo or if admin/manager
-            if ($userId !== $currentUserId && $currentUserRole > Role::MANAGER) {
-                return $this->respondWithError(Message::UNAUTHORIZED_ACCESS, 403);
-            }
-
-            // Check for files (middleware should already validate multipart form-data)
-            if (!$this->request->hasFiles()) {
-                return $this->respondWithError(Message::UPLOAD_NO_FILES, 400);
-            }
-
-            $files = $this->request->getUploadedFiles();
-            $photo = $files[0];
-
-            // Validate file type
-            $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-            if (!in_array($photo->getType(), $allowedTypes)) {
-                return $this->respondWithError(Message::UPLOAD_INVALID_TYPE, 400);
-            }
-
-            // Find and validate user
-            $user = User::findFirst($userId);
-            if (!$user) {
-                return $this->respondWithError(Message::USER_NOT_FOUND, 404);
-            }
-
-            // Create photos directory if it doesn't exist
-            $uploadDir = User::PATH_PHOTO_FILE;
-            if (!is_dir($uploadDir)) {
-                mkdir($uploadDir, 0755, true);
-            }
-
-            // Generate filename using user info
-            $extension = pathinfo($photo->getName(), PATHINFO_EXTENSION);
-            $sanitizedFirstname = preg_replace('/[^a-z0-9]/i', '', $user->firstname);
-            $sanitizedLastname = preg_replace('/[^a-z0-9]/i', '', $user->lastname);
-            $filename = sprintf(
-                '%d-%s-%s.%s',
-                $userId,
-                strtolower($sanitizedFirstname),
-                strtolower($sanitizedLastname),
-                $extension
-            );
-
-            $path = $uploadDir . '/' . $filename;
-
-            return $this->withTransaction(function() use ($user, $photo, $path, $filename, $uploadDir, $currentUserId, $userId) {
-                // Get temporary file path
-                $tempPath = $photo->getTempName();
-
-                // Process and resize image to 360x360
-                if (!$this->processAndResizeImage($tempPath, $path)) {
-                    // If ImageMagick fails, fall back to regular file upload
-                    if (!$photo->moveTo($path)) {
-                        return $this->respondWithError(Message::UPLOAD_PHOTO_FAILED, 500);
-                    }
-                }
-
-                // Delete old photo if exists and is not the default photo
-                $oldPhoto = $uploadDir . '/' . $user->photo;
-                if ($user->photo && $user->photo !== User::DEFAULT_PHOTO_FILE && file_exists($oldPhoto)) {
-                    unlink($oldPhoto);
-                }
-
-                $upath = "/$path";
-                $user->photo = $upath;
-
-                if (!$user->save()) {
-                    // If save fails, clean up the uploaded file
-                    if (file_exists($path)) {
-                        unlink($path);
-                    }
-                    $messages = $user->getMessages();
-                    $msg = "An unknown error occurred.";
-
-                    if (count($messages) > 0) {
-                        $obj = $messages[0];
-                        $msg = $obj->getMessage();
-                    }
-
-                    return $this->respondWithError($msg, 422);
-                }
-
-                // Add information about who uploaded the photo if it wasn't the user themselves
-                $uploadedBy = ($currentUserId !== $userId) ? " by user ID: $currentUserId" : "";
-
-                return $this->respondWithSuccess([
-                    'message' => Message::UPLOAD_PHOTO_SUCCESS . $uploadedBy,
-                    'path' => $upath,
-                    'filename' => $filename,
-                    'user_id' => $userId,
-                    'uploaded_by' => $currentUserId,
-                    'processed' => true // Indicates image was processed with ImageMagick
-                ], 201, Message::UPLOAD_PHOTO_SUCCESS);
-            });
-
-        } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
-        }
+        return $this->savePhoto($userId, 'uploaded_by');
     }
 
     /**
-     * Update a user's profile photo
-     * Already supports admin/manager updating other users' photos
+     * Replace a profile photo. Same rules as uploadPhoto; kept as a separate route for the clients.
      */
     public function updatePhoto(?int $userId = null): array {
+        return $this->savePhoto($userId, 'updated_by');
+    }
+
+    /**
+     * Shared implementation of uploadPhoto/updatePhoto.
+     * Type detection, extension and directory protection are handled by BaseController::storeUploadedPhoto().
+     */
+    private function savePhoto(?int $userId, string $actorKey): array {
         try {
-            // Get the current user's ID
             $currentUserId = $this->getCurrentUserId();
-            $currentUserRole = $this->getCurrentUserRole();
+            $userId = $userId ?? $currentUserId;
 
-            // If no userId provided, use current user's ID
-            if ($userId === null) {
-                $userId = $currentUserId;
-            }
-
-            // Authorization check
-            if ($currentUserId !== $userId && $currentUserRole > Role::MANAGER) {
+            if ($userId !== $currentUserId && !$this->isManagerOrHigher()) {
                 return $this->respondWithError(Message::UNAUTHORIZED_ACCESS, 403);
             }
 
-            // Check for files
             if (!$this->request->hasFiles()) {
                 return $this->respondWithError(Message::UPLOAD_NO_FILES, 400);
             }
 
-            $files = $this->request->getUploadedFiles();
-            $photo = $files[0];
-
-            // Validate file type
-            $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-            if (!in_array($photo->getType(), $allowedTypes)) {
-                return $this->respondWithError(Message::UPLOAD_INVALID_TYPE, 400);
-            }
-
-            // Find user
             $user = User::findFirst($userId);
             if (!$user) {
                 return $this->respondWithError(Message::USER_NOT_FOUND, 404);
             }
 
-            // Create photos directory if it doesn't exist
-            $uploadDir = User::PATH_PHOTO_FILE;
-            if (!is_dir($uploadDir)) {
-                mkdir($uploadDir, 0755, true);
-            }
+            $photo = $this->request->getUploadedFiles()[0];
+            $baseName = sprintf('%d-%s-%s', $userId, $user->firstname, $user->lastname);
 
-            // Generate filename using user info
-            $extension = pathinfo($photo->getName(), PATHINFO_EXTENSION);
-            $sanitizedFirstname = preg_replace('/[^a-z0-9]/i', '', $user->firstname);
-            $sanitizedLastname = preg_replace('/[^a-z0-9]/i', '', $user->lastname);
-            $filename = sprintf(
-                '%d-%s-%s.%s',
-                $userId,
-                strtolower($sanitizedFirstname),
-                strtolower($sanitizedLastname),
-                $extension
-            );
-
-            $path = $uploadDir . '/' . $filename;
-
-            return $this->withTransaction(function() use ($user, $photo, $path, $filename, $uploadDir, $currentUserId, $userId) {
-                // Get temporary file path
-                $tempPath = $photo->getTempName();
-
-                // Process and resize image to 360x360
-                if (!$this->processAndResizeImage($tempPath, $path)) {
-                    // If ImageMagick fails, fall back to regular file upload
-                    if (!$photo->moveTo($path)) {
-                        return $this->respondWithError(Message::UPLOAD_FAILED, 500);
-                    }
+            return $this->withTransaction(function() use ($user, $photo, $baseName, $currentUserId, $userId, $actorKey) {
+                $stored = $this->storeUploadedPhoto($photo, User::PATH_PHOTO_FILE, $baseName);
+                if (is_string($stored)) {
+                    return $this->respondWithError($stored, $stored === Message::UPLOAD_INVALID_TYPE ? 400 : 500);
                 }
 
-                // Delete old photo if exists and is not the default photo
-                $oldPhoto = $uploadDir . '/' . $user->photo;
-                if ($user->photo && $user->photo !== User::DEFAULT_PHOTO_FILE && file_exists($oldPhoto)) {
-                    unlink($oldPhoto);
-                }
-
-                $upath = "/$path";
-                $user->photo = $upath;
+                $previousPhoto = $user->photo;
+                $user->photo = $stored['path'];
 
                 if (!$user->save()) {
-                    // If save fails, clean up the uploaded file
-                    if (file_exists($path)) {
-                        unlink($path);
-                    }
-                    $messages = $user->getMessages();
-                    $msg = "An unknown error occurred.";
-
-                    if (count($messages) > 0) {
-                        $obj = $messages[0];
-                        $msg = $obj->getMessage();
-                    }
-
-                    return $this->respondWithError($msg, 422);
+                    $this->deleteStoredPhoto($stored['path'], User::PATH_PHOTO_FILE, User::DEFAULT_PHOTO_FILE, (string)$previousPhoto);
+                    return $this->respondWithError($this->getFirstErrorMessage($user), 422);
                 }
 
-                // Add information about who updated the photo if it wasn't the user themselves
-                $updatedBy = ($currentUserId !== $userId) ? " by user ID: $currentUserId" : "";
+                $this->deleteStoredPhoto($previousPhoto, User::PATH_PHOTO_FILE, User::DEFAULT_PHOTO_FILE, $stored['path']);
 
+                $by = ($currentUserId !== $userId) ? " by user ID: $currentUserId" : "";
                 return $this->respondWithSuccess([
-                    'message' => Message::UPLOAD_PHOTO_SUCCESS . $updatedBy,
-                    'path' => $upath,
-                    'filename' => $filename,
+                    'message' => Message::UPLOAD_PHOTO_SUCCESS . $by,
+                    'path' => $stored['path'],
+                    'filename' => $stored['filename'],
                     'user_id' => $userId,
-                    'updated_by' => $currentUserId,
+                    $actorKey => $currentUserId,
                     'processed' => true
                 ], 201, Message::UPLOAD_PHOTO_SUCCESS);
             });
 
         } catch (Exception $e) {
-            $message = $e->getMessage() . ' ' . $e->getTraceAsString() . ' ' . $e->getFile() . ' ' . $e->getLine();
-            error_log('Exception: ' . $message);
-            return $this->respondWithError('Exception: ' . $e->getMessage(), 400);
+            return $this->handleException($e);
         }
     }
 

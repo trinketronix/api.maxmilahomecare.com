@@ -15,8 +15,8 @@ POST {{maxmila.baseUrl}}/auth/login
 Content-Type: application/json
 
 {
-  "username": "avrilsalpen@gmail.com",
-  "password": "Mju72wsx"
+  "username": "{{maxmila.custom.username}}",
+  "password": "{{maxmila.custom.password}}"
 }
 
 ###
@@ -83,6 +83,6 @@ PUT {{maxmila.baseUrl}}/auth/change/password
 Content-Type: application/json
 
 {
-  "username": "hectorsalpen@gmail.com",
-  "password": "Mju72wsx"
+  "username": "{{maxmila.custom.username}}",
+  "password": "{{maxmila.custom.password}}"
 }
