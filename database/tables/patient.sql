@@ -17,8 +17,8 @@ CREATE TABLE `patient` (
 
     -- Contact information
     `phone` VARCHAR(20) NOT NULL COMMENT 'Primary contact phone number',
-    `phone2` VARCHAR(20) NOT NULL COMMENT 'Secondary contact phone number',
-    `phone3` VARCHAR(20) NOT NULL COMMENT 'Thirdly contact phone number',
+    `phone2` VARCHAR(20) DEFAULT NULL COMMENT 'Secondary contact phone number, optional',
+    `phone3` VARCHAR(20) DEFAULT NULL COMMENT 'Third contact phone number, optional',
 
     -- Record status, allows to delete records in soft-deletion, archived, or just normal active
     `status` TINYINT NOT NULL DEFAULT 1 COMMENT 'Record status: 0=Waiting/Not-Active, 1=Active/Visible/Normal, 2=Archived, 3=Soft-Deleted',

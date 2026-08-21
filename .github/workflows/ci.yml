@@ -43,6 +43,9 @@ jobs:
           done
           exit $bad
 
+      - name: Generated SQL (create_all/reinstall_all) matches the per-table sources
+        run: bash database/build.sh --check
+
       - name: composer validate
         run: composer validate --no-check-publish --strict
 

@@ -1,10 +1,14 @@
-CREATE OR REPLACE VIEW user_auth AS
+-- Account view: one row per account joining auth (credentials, role, status) with user (profile).
+-- Backs the Api\Models\UserAuthView model; keep its column list in sync with that class.
+CREATE OR REPLACE VIEW `user_auth` AS
 SELECT
     a.id,
     a.username,
     a.role,
     a.status,
     a.token,
+    a.expiration,
+    a.created_at AS auth_created_at,
     a.updated_at AS auth_updated_at,
     u.firstname,
     u.lastname,

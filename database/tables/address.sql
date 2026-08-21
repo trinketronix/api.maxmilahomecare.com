@@ -50,7 +50,7 @@ DROP CONSTRAINT `chk_person_type`,
 ADD CONSTRAINT `chk_person_type` CHECK (person_type IN (-1, 0, 1));
 
 -- 2. Enable inserting 0
-SET SESSION sql_mode = 'NO_AUTO_VALUE_ON_ZERO';
+SET SESSION sql_mode = CONCAT(@@SESSION.sql_mode, ',NO_AUTO_VALUE_ON_ZERO');
 
 -- 3. Insert system address
 INSERT INTO `address` (id, person_id, person_type, type, address, city, county, state, zipcode)
